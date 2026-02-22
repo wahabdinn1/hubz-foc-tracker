@@ -1,9 +1,11 @@
-import { getInventory } from "../../../server/actions";
+import { getInventory } from "@/server/actions";
 import { InventoryClient } from "@/components/InventoryClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/PinModal";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
+import { PageSkeleton } from "@/components/Skeletons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +22,11 @@ export default async function InventoryPage() {
             {!authed ? (
                 <PinModal />
             ) : (
-                <Suspense fallback={<div className="p-10 text-neutral-500 dark:text-neutral-400 animate-pulse transition-colors">Loading Inventory data...</div>}>
-                    <InventoryFetcher />
-                </Suspense>
+                <ErrorBoundary fallbackTitle="Failed to load inventory">
+                    <Suspense fallback={<PageSkeleton />}>
+                        <InventoryFetcher />
+                    </Suspense>
+                </ErrorBoundary>
             )}
         </DashboardLayout>
     );

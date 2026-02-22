@@ -14,7 +14,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { verifyPin } from "../../server/actions";
+import { verifyPin } from "@/server/actions";
 
 export function PinModal() {
     const [error, setError] = useState("");

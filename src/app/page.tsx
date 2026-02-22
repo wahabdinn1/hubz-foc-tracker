@@ -1,9 +1,11 @@
-import { getInventory } from "../../server/actions";
+import { getInventory } from "@/server/actions";
 import { DashboardClient } from "@/components/DashboardClient";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PinModal } from "@/components/PinModal";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/Skeletons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +22,11 @@ export default async function Page() {
       {!authed ? (
         <PinModal />
       ) : (
-        <Suspense fallback={<DashboardClient inventory={[]} isAuthenticated={true} isLoading={true} />}>
-          <DashboardFetcher />
-        </Suspense>
+        <ErrorBoundary fallbackTitle="Failed to load dashboard">
+          <Suspense fallback={<PageSkeleton />}>
+            <DashboardFetcher />
+          </Suspense>
+        </ErrorBoundary>
       )}
     </DashboardLayout>
   );

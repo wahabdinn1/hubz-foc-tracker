@@ -6,7 +6,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem } from "../../server/actions";
+import { InventoryItem } from "@/server/actions";
 import { cn } from "@/lib/utils";
 
 interface QuickViewPanelProps {

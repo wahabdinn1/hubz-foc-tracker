@@ -41,22 +41,10 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { requestUnit, InventoryItem, RequestPayload } from "../../server/actions"
+import { requestUnit, InventoryItem } from "@/server/actions"
+import { requestFormSchema, RequestPayload } from "@/lib/validations"
 
-const formSchema = z.object({
-    username: z.string().min(1, "Username is required"),
-    requestor: z.string().min(1, "Requestor is required"),
-    customRequestor: z.string().optional(),
-    campaignName: z.string().min(1, "Campaign is required"),
-    unitName: z.string().min(1, "Unit Name is required"),
-    imeiIfAny: z.string().optional(),
-    kolName: z.string().min(1, "KOL Name is required"),
-    kolAddress: z.string().min(1, "KOL Address is required"),
-    kolPhoneNumber: z.string().min(1, "Phone Number is required"),
-    deliveryDate: z.date(),
-    typeOfDelivery: z.string().min(1, "Type of Delivery is required"),
-    typeOfFoc: z.string().min(1, "Type of FOC is required"),
-})
+// Removed local formSchema
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
@@ -64,8 +52,8 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // 1. Define your form.
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema as any),
+    const form = useForm<z.infer<typeof requestFormSchema>>({
+        resolver: zodResolver(requestFormSchema as any),
         defaultValues: {
             username: "",
             requestor: "",
@@ -85,25 +73,26 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
     const watchImei = form.watch("imeiIfAny")
 
     // 2. Define a submit handler.
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<typeof requestFormSchema>) {
         setIsSubmitting(true)
 
         const payload: RequestPayload = {
             ...values,
-            deliveryDate: format(values.deliveryDate, "yyyy-MM-dd"), // format string for server action
+            deliveryDate: format(values.deliveryDate, "yyyy-MM-dd"),
         }
 
-        const result = await requestUnit(payload)
+        // Optimistic: close modal and show success immediately
+        form.reset()
+        setOpen(false)
+        toast.success("Request submitted — syncing with Google Sheets...")
 
+        const result = await requestUnit(payload)
         setIsSubmitting(false)
 
         if (result.success) {
-            toast.success("Unit requested successfully!")
-            form.reset()
-            setOpen(false)
             router.refresh()
         } else {
-            toast.error("Failed to submit request", {
+            toast.error("Request failed to save", {
                 description: result.error,
             })
         }

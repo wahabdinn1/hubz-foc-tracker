@@ -1,9 +1,11 @@
-import { getInventory } from "../../../server/actions";
+import { getInventory } from "@/server/actions";
 import { KOLClient } from "@/components/KOLClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/PinModal";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
+import { PageSkeleton } from "@/components/Skeletons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +22,11 @@ export default async function KOLPage() {
             {!authed ? (
                 <PinModal />
             ) : (
-                <Suspense fallback={<div className="p-10 text-neutral-500 dark:text-neutral-400 animate-pulse transition-colors">Loading KOL data...</div>}>
-                    <KOLFetcher />
-                </Suspense>
+                <ErrorBoundary fallbackTitle="Failed to load KOL data">
+                    <Suspense fallback={<PageSkeleton />}>
+                        <KOLFetcher />
+                    </Suspense>
+                </ErrorBoundary>
             )}
         </DashboardLayout>
     );

@@ -42,9 +42,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <nav className="flex-1 px-3 py-8 space-y-2">
-                    <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" ? "text-blue-400" : "text-neutral-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
-                    <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") ? "text-blue-400" : "text-neutral-400 group-hover:text-neutral-200")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
-                    <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") ? "text-blue-400" : "text-neutral-500 dark:text-neutral-400 group-hover:dark:text-neutral-200 group-hover:text-neutral-700")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
+                    <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
+                    <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
+                    <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
                 </nav>
             </motion.div>
 
@@ -73,9 +73,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-3xl p-4 border-t border-black/5 dark:border-white/5 transition-colors"
                     >
                         <nav className="space-y-2">
-                            <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" ? "text-blue-400" : "text-neutral-400")} />} label="Dashboard" active={pathname === "/"} open={true} />
-                            <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") ? "text-blue-400" : "text-neutral-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} />
-                            <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") ? "text-blue-400" : "text-neutral-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} />
+                            <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
                         </nav>
                     </motion.div>
                 )}
@@ -89,12 +89,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     );
 }
 
-function NavItem({ icon, label, active, open, href }: { icon: React.ReactNode, label: string, active?: boolean, open: boolean, href?: string }) {
+function NavItem({ icon, label, active, open, href, onClick }: { icon: React.ReactNode, label: string, active?: boolean, open: boolean, href?: string, onClick?: () => void }) {
     if (!href) return null;
 
     return (
-        <Link href={href} className={cn(
-            "flex items-center h-11 px-3.5 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden group border",
+        <Link href={href} onClick={onClick} className={cn(
+            "flex items-center h-12 md:h-11 px-3.5 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden group border",
             active
                 ? "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.1)]"
                 : "border-transparent hover:bg-black/5 dark:hover:bg-white/10 dark:hover:border-white/5 text-neutral-500 dark:text-neutral-400 dark:hover:text-white hover:text-neutral-900"

@@ -34,27 +34,16 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { returnUnit, InventoryItem, ReturnPayload } from "../../server/actions"
-
-const formSchema = z.object({
-    username: z.string().min(1, "Username is required"),
-    requestor: z.string().min(1, "Requestor is required"),
-    customRequestor: z.string().optional(),
-    unitName: z.string().min(1, "Unit Name is required"),
-    imei: z.string().min(1, "IMEI is required"),
-    fromKol: z.string().min(1, "From KOL is required"),
-    kolAddress: z.string().min(1, "KOL Address is required"),
-    kolPhoneNumber: z.string().min(1, "Phone Number is required"),
-    typeOfFoc: z.string().min(1, "Type of FOC is required"),
-})
+import { returnUnit, InventoryItem } from "@/server/actions"
+import { returnSchema, ReturnPayload } from "@/lib/validations"
 
 export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema as any),
+    const form = useForm<z.infer<typeof returnSchema>>({
+        resolver: zodResolver(returnSchema as any),
         defaultValues: {
             username: "",
             requestor: "",
@@ -70,22 +59,23 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
 
     const watchRequestor = form.watch("requestor")
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<typeof returnSchema>) {
         setIsSubmitting(true)
 
         const payload: ReturnPayload = values;
 
-        const result = await returnUnit(payload)
+        // Optimistic: close modal and show success immediately
+        form.reset()
+        setOpen(false)
+        toast.success("Return logged — syncing with Google Sheets...")
 
+        const result = await returnUnit(payload)
         setIsSubmitting(false)
 
         if (result.success) {
-            toast.success("Unit return logged successfully!")
-            form.reset()
-            setOpen(false)
             router.refresh()
         } else {
-            toast.error("Failed to submit return request", {
+            toast.error("Return failed to save", {
                 description: result.error,
             })
         }
