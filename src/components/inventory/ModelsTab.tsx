@@ -30,7 +30,10 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
 
         return Object.entries(groups).map(([name, items]) => {
             const available = items.filter(i => !!i.statusLocation?.toUpperCase().includes("AVAILABLE")).length;
-            const loaned = items.filter(i => !!i.statusLocation?.toUpperCase().includes("LOANED")).length;
+            const loaned = items.filter(i => {
+                const loc = i.statusLocation?.toUpperCase() || "";
+                return loc.includes("LOANED") || loc.includes("ON KOL");
+            }).length;
             const missing = items.filter(i => !!i.focStatus?.toUpperCase().includes("MISSING")).length;
 
             return {
@@ -107,12 +110,10 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
 
                                 {/* Extra details like Timestamp and Return Date */}
                                 <div className="mt-1 pt-3 border-t border-black/5 dark:border-white/5 flex flex-col gap-1.5 text-xs">
-                                    {(item.statusLocation?.includes("LOANED") || item.statusLocation?.includes("ON KOL")) && (
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-500">Request Date:</span>
-                                            <span className="text-neutral-300 font-mono">{item.fullData?.["Step 3 Request Date"] || "-"}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-neutral-500">Request Date:</span>
+                                        <span className="text-neutral-300 font-mono">{item.fullData?.["Step 3 Request Date"] || "-"}</span>
+                                    </div>
                                     {(item.focStatus === 'RETURN' || item.focStatus === 'UNRETURN') && (
                                         <div className="flex items-center justify-between">
                                             <span className="text-neutral-500">Target Return:</span>
