@@ -15,6 +15,7 @@ import {
     InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { verifyPin } from "@/server/actions";
+import { Loader2 } from "lucide-react";
 
 export function PinModal() {
     const [error, setError] = useState("");
@@ -24,11 +25,15 @@ export function PinModal() {
     const onComplete = (value: string) => {
         startTransition(async () => {
             setError("");
-            const res = await verifyPin(value);
-            if (res.success) {
-                router.refresh();
-            } else {
-                setError(res.error || "Invalid PIN");
+            try {
+                const res = await verifyPin(value);
+                if (res.success) {
+                    router.refresh();
+                } else {
+                    setError(res.error || "Invalid PIN");
+                }
+            } catch {
+                setError("Network error — please check your connection and try again.");
             }
         });
     };
@@ -46,7 +51,13 @@ export function PinModal() {
                         Please enter your 6-digit authorized PIN to access the Hubz FOC Tracker.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                <div className="flex flex-col items-center justify-center py-6 space-y-4 relative">
+                    {/* Loading overlay (#10) */}
+                    {isPending && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-neutral-900/60 backdrop-blur-sm rounded-xl">
+                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                        </div>
+                    )}
                     <InputOTP maxLength={6} onComplete={onComplete} disabled={isPending}>
                         <InputOTPGroup>
                             <InputOTPSlot index={0} />

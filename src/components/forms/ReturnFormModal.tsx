@@ -34,7 +34,8 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { returnUnit, InventoryItem } from "@/server/actions"
+import { returnUnit } from "@/server/actions"
+import type { InventoryItem } from "@/types/inventory"
 import { returnSchema, ReturnPayload } from "@/lib/validations"
 
 export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] }) {
@@ -69,15 +70,21 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         setOpen(false)
         toast.success("Return logged — syncing with Google Sheets...")
 
-        const result = await returnUnit(payload)
-        setIsSubmitting(false)
-
-        if (result.success) {
-            router.refresh()
-        } else {
-            toast.error("Return failed to save", {
-                description: result.error,
+        try {
+            const result = await returnUnit(payload)
+            if (result.success) {
+                router.refresh()
+            } else {
+                toast.error("Return failed to save", {
+                    description: result.error,
+                })
+            }
+        } catch {
+            toast.error("Network error", {
+                description: "Could not reach the server. Please check your connection and try again.",
             })
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -136,7 +143,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                             </FormControl>
                                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
                                                 {["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"].map((req) => (
-                                                    <SelectItem key={req} value={req} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer transition-colors">
+                                                    <SelectItem key={req} value={req} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                                         {req}
                                                     </SelectItem>
                                                 ))}
@@ -176,11 +183,16 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                         <Select
                                             onValueChange={(val) => {
                                                 field.onChange(val)
-                                                // Sync Unit Name and KOL Holder fields
+                                                // Sync all fields from the selected inventory item
                                                 const selectedUnit = loanedItems.find(item => item.imei === val)
                                                 if (selectedUnit) {
                                                     form.setValue("unitName", selectedUnit.unitName || "")
                                                     form.setValue("fromKol", selectedUnit.onHolder || "")
+                                                    // Auto-fill phone and address from fullData
+                                                    const phone = selectedUnit.fullData?.["KOL Phone Number"] || selectedUnit.fullData?.["Phone Number"] || ""
+                                                    const address = selectedUnit.fullData?.["KOL Address"] || selectedUnit.fullData?.["Address"] || ""
+                                                    form.setValue("kolPhoneNumber", phone)
+                                                    form.setValue("kolAddress", address)
                                                 }
                                             }}
                                             value={field.value || undefined}
@@ -192,7 +204,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                             </FormControl>
                                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors max-h-60">
                                                 {loanedItems.map((item) => (
-                                                    <SelectItem key={item.imei} value={item.imei || "unknown"} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer transition-colors">
+                                                    <SelectItem key={item.imei} value={item.imei || "unknown"} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                                         {item.imei} - {item.unitName} - {item.onHolder || "Unknown KOL"}
                                                     </SelectItem>
                                                 ))}
@@ -270,7 +282,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                             </FormControl>
                                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
                                                 {["ACCESORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES"].map((type) => (
-                                                    <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer transition-colors">
+                                                    <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                                         {type}
                                                     </SelectItem>
                                                 ))}

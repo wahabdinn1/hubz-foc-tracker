@@ -15,9 +15,11 @@ export function ThemeToggle({ className }: { className?: string }) {
     }, [])
 
     if (!mounted) {
-        <Button variant="ghost" size="icon" className={cn("text-neutral-500 dark:text-neutral-400 w-10 h-10 opacity-50 relative shrink-0 rounded-xl", className)}>
-            <div className="w-5 h-5 rounded-full border border-neutral-400" />
-        </Button>
+        return (
+            <Button variant="ghost" size="icon" className={cn("text-neutral-500 dark:text-neutral-400 w-10 h-10 opacity-50 relative shrink-0 rounded-xl", className)}>
+                <div className="w-5 h-5 rounded-full border border-neutral-400" />
+            </Button>
+        );
     }
 
     return (

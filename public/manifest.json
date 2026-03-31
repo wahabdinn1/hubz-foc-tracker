@@ -1,0 +1,16 @@
+{
+  "name": "Hubz FOC Tracker",
+  "short_name": "Hubz FOC",
+  "description": "Samsung FOC Device Tracker for inventory management and KOL coordination",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1931",
+  "theme_color": "#0047ab",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

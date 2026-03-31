@@ -13,12 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hubz FOC Tracker",
-  description: "Samsung Request Tracker",
+  title: {
+    default: "Hubz FOC Tracker",
+    template: "%s",
+  },
+  description:
+    "Samsung FOC device tracker — manage inventory, KOL assignments, and return schedules in real time.",
+  manifest: "/manifest.json",
+  icons: { icon: "/icon.svg" },
 };
 
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 export default function RootLayout({
   children,

@@ -1,10 +1,10 @@
-import { InventoryItem } from "@/server/actions";
+import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Clock, Smartphone, CheckCircle } from "lucide-react";
 
 interface ReturnTrackingProps {
-    topUrgentReturns: InventoryItem[];
+    topUrgentReturns: ReturnTrackingItem[];
     setSelectedItem: (item: InventoryItem) => void;
 }
 
@@ -33,11 +33,8 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                             isOverdue = !isNaN(returnDate.getTime()) && returnDate < today;
                         }
 
-                        // We rely on the parent having injected groupCount via (item as any).groupCount
-                        const groupCount = (item as any).groupCount || 1;
-
                         return (
-                            <div key={idx}
+                            <div key={`${item.imei}-${item.unitName}-${idx}`}
                                 onClick={() => setSelectedItem(item)}
                                 className={cn(
                                     "group flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all cursor-pointer overflow-hidden",
@@ -48,9 +45,9 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                 <div className="flex items-center gap-3 md:gap-4 min-w-0">
                                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shrink-0 border border-black/5 dark:border-white/[0.05] relative transition-colors">
                                         <Smartphone className="w-4 h-4 text-neutral-500 dark:text-neutral-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-                                        {groupCount > 1 && (
+                                        {item.groupCount > 1 && (
                                             <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-neutral-100 dark:border-neutral-900">
-                                                {groupCount}
+                                                {item.groupCount}
                                             </span>
                                         )}
                                     </div>

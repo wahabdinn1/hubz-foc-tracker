@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { InventoryItem } from "@/server/actions";
+import type { InventoryItem } from "@/types/inventory";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -96,7 +96,7 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
                                 <div className="flex justify-between items-start">
                                     <div className="min-w-0">
                                         <p className="text-neutral-500 dark:text-neutral-400 text-xs font-mono mb-1 truncate">IMEI: {item.imei || "N/A"}</p>
-                                        <h3 className="font-semibold text-neutral-200 text-sm truncate">{item.onHolder || "Unknown Holder"}</h3>
+                                        <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 text-sm truncate">{item.onHolder || "Unknown Holder"}</h3>
                                     </div>
                                     <Badge variant="outline" className={cn(
                                         "px-2 py-0.5 text-[10px] whitespace-nowrap shrink-0 ml-2",
@@ -112,14 +112,14 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
                                 <div className="mt-1 pt-3 border-t border-black/5 dark:border-white/5 flex flex-col gap-1.5 text-xs">
                                     <div className="flex items-center justify-between">
                                         <span className="text-neutral-500">Request Date:</span>
-                                        <span className="text-neutral-300 font-mono">{item.fullData?.["Step 3 Request Date"] || "-"}</span>
+                                        <span className="text-neutral-700 dark:text-neutral-300 font-mono">{item.fullData?.["Step 3 Request Date"] || "-"}</span>
                                     </div>
                                     {(item.focStatus === 'RETURN' || item.focStatus === 'UNRETURN') && (
                                         <div className="flex items-center justify-between">
                                             <span className="text-neutral-500">Target Return:</span>
                                             <span className={cn(
                                                 "font-medium",
-                                                item.plannedReturnDate === 'ASAP' ? "text-red-400" : "text-neutral-300"
+                                                item.plannedReturnDate === 'ASAP' ? "text-red-400" : "text-neutral-700 dark:text-neutral-300"
                                             )}>{item.plannedReturnDate || "N/A"}</span>
                                         </div>
                                     )}
@@ -166,6 +166,25 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
                                 </div>
                             </div>
                             <h3 className="font-bold text-lg text-neutral-900 dark:text-white truncate leading-tight mb-3" title={model.name}>{model.name}</h3>
+
+                            {/* Utilization bar */}
+                            <div className="mb-3">
+                                <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-1.5">
+                                    <span>Utilization</span>
+                                    <span className="font-mono">{model.total > 0 ? Math.round((model.loaned / model.total) * 100) : 0}%</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                    <div
+                                        className={cn(
+                                            "h-full rounded-full transition-all duration-500",
+                                            model.total > 0 && (model.loaned / model.total) > 0.8 ? "bg-red-500" :
+                                                model.total > 0 && (model.loaned / model.total) > 0.5 ? "bg-amber-500" :
+                                                    "bg-emerald-500"
+                                        )}
+                                        style={{ width: `${model.total > 0 ? (model.loaned / model.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="mt-auto grid grid-cols-2 gap-2 text-xs font-medium">
                                 <div className="flex flex-col gap-1 p-2 bg-green-500/5 rounded-lg border border-green-500/10">

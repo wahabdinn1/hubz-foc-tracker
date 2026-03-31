@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { InventoryItem } from "@/server/actions";
+import type { InventoryItem } from "@/types/inventory";
 import { Search, User, Phone, MapPin, Package, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "./ThemeToggle";
-import { QuickViewPanel } from "./QuickViewPanel";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -54,11 +54,15 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
     const activeKOLData = selectedKOL ? kolData.find(k => k.name === selectedKOL) : null;
 
     if (activeKOLData) {
+        const profileHash = activeKOLData.name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const profileHue = profileHash % 360;
+        const profileInitials = activeKOLData.name.split(/\s+/).map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
+
         return (
             <div className="w-full h-full space-y-6 md:space-y-8 pb-10 p-4 md:p-10">
                 <button
                     onClick={() => setSelectedKOL(null)}
-                    className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors text-sm font-medium bg-black/5 dark:bg-neutral-900/50 transition-colors px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5 transition-colors w-fit"
+                    className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors text-sm font-medium bg-black/5 dark:bg-neutral-900/50 px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5 w-fit"
                 >
                     &larr; Back to Directory
                 </button>
@@ -67,8 +71,11 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                     {/* KOL Profile Sidebar */}
                     <div className="w-full md:w-80 shrink-0 bg-neutral-50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col gap-4 md:gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center shrink-0">
-                                <User className="w-8 h-8 text-blue-400" />
+                            <div
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 dark:border-white/10 shrink-0"
+                                style={{ background: `linear-gradient(135deg, hsl(${profileHue}, 60%, 65%), hsl(${(profileHue + 40) % 360}, 50%, 55%))` }}
+                            >
+                                <span className="text-white font-bold text-xl tracking-wide">{profileInitials}</span>
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold text-neutral-900 dark:text-white transition-colors tracking-tight leading-tight mb-1">{activeKOLData.name}</h1>
@@ -79,11 +86,11 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                         <div className="space-y-4">
                             <div className="flex items-start gap-3 text-sm">
                                 <Phone className="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" />
-                                <span className="text-neutral-300 break-all">{activeKOLData.phone}</span>
+                                <span className="text-neutral-700 dark:text-neutral-300 break-all">{activeKOLData.phone}</span>
                             </div>
                             <div className="flex items-start gap-3 text-sm">
                                 <MapPin className="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" />
-                                <span className="text-neutral-300">{activeKOLData.address}</span>
+                                <span className="text-neutral-700 dark:text-neutral-300">{activeKOLData.address}</span>
                             </div>
                         </div>
                     </div>
@@ -104,23 +111,26 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ duration: 0.15, delay: Math.min(idx * 0.05, 0.3) }}
                                         onClick={() => setSelectedItem(item)}
-                                        className="cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4 bg-white/80 dark:bg-neutral-950/40 transition-colors shadow-sm dark:shadow-none border border-black/5 dark:border-white/5 rounded-xl md:rounded-2xl p-3 md:p-4 hover:bg-black/5 dark:hover:bg-neutral-800/50 hover:border-blue-500/30 transition-all">
-                                        <div>
-                                            <h3 className="font-semibold text-neutral-200">{item.unitName}</h3>
-                                            <p className="text-neutral-500 text-xs font-mono mt-0.5">IMEI: {item.imei || "N/A"}</p>
+                                        className="cursor-pointer flex flex-col gap-3 bg-white/80 dark:bg-neutral-950/40 transition-all shadow-sm dark:shadow-none border border-black/5 dark:border-white/5 rounded-xl md:rounded-2xl p-3 md:p-4 hover:bg-black/5 dark:hover:bg-neutral-800/50 hover:border-blue-500/30"
+                                    >
+                                        <div className="min-w-0">
+                                            <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 truncate">{item.unitName}</h3>
+                                            <p className="text-neutral-500 text-xs font-mono mt-0.5 truncate">IMEI: {item.imei || "N/A"}</p>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <Badge variant="outline" className={cn(
-                                                "px-2.5 py-1 text-xs whitespace-nowrap",
+                                                "px-2 py-0.5 text-[10px] sm:text-xs whitespace-nowrap",
                                                 item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
                                                     item.statusLocation?.includes("LOANED / ON KOL") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                                         "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
                                             )}>
                                                 {item.statusLocation || "UNKNOWN"}
                                             </Badge>
-                                            <div className="text-right text-xs text-neutral-500 w-24">
-                                                {item.focStatus}
-                                            </div>
+                                            {item.focStatus && (
+                                                <span className="text-[10px] sm:text-xs text-neutral-500 font-medium">
+                                                    {item.focStatus}
+                                                </span>
+                                            )}
                                         </div>
                                     </motion.div>
                                 ))}
@@ -176,7 +186,14 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                 ) : (
                     <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                         <AnimatePresence mode="popLayout">
-                            {filteredKOLs.map((kol, idx) => (
+                            {filteredKOLs.map((kol, idx) => {
+                                // Deterministic color from name hash
+                                const hash = kol.name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                                const hue = hash % 360;
+                                const initials = kol.name.split(/\s+/).map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
+                                const latestDevice = kol.items[kol.items.length - 1]?.unitName;
+
+                                return (
                                 <motion.div
                                     layout
                                     initial={{ opacity: 0, scale: 0.95 }}
@@ -188,14 +205,22 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                     className="group cursor-pointer bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.05] hover:border-blue-500/30 rounded-xl md:rounded-2xl p-4 md:p-5 backdrop-blur-xl transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800/60 hover:-translate-y-1 shadow-lg"
                                 >
                                     <div className="flex items-center justify-between mb-4">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600/20 to-purple-600/20 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(37,99,235,0.1)] border border-blue-500/20">
-                                            <User className="w-6 h-6" />
+                                        {/* Avatar with unique color */}
+                                        <div
+                                            className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-md border border-white/20 dark:border-white/10"
+                                            style={{
+                                                background: `linear-gradient(135deg, hsl(${hue}, 60%, 65%), hsl(${(hue + 40) % 360}, 50%, 55%))`,
+                                            }}
+                                        >
+                                            <span className="text-white font-bold text-sm tracking-wide">{initials}</span>
                                         </div>
                                         <Badge variant="outline" className={cn(
-                                            "px-2 shadow-sm font-medium",
-                                            kol.activeCount > 0 ? "bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)]" : "bg-neutral-800 text-neutral-500 border-none shadow-none"
+                                            "px-2 shadow-sm font-medium text-xs",
+                                            kol.activeCount > 0
+                                                ? "bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)]"
+                                                : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                                         )}>
-                                            {kol.activeCount} active
+                                            {kol.activeCount > 0 ? `${kol.activeCount} active` : "All returned"}
                                         </Badge>
                                     </div>
                                     <h3 className="font-bold text-lg text-neutral-900 dark:text-white transition-colors truncate leading-tight mb-1" title={kol.name}>{kol.name}</h3>
@@ -203,8 +228,15 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                         <Package className="w-3.5 h-3.5 opacity-70" />
                                         {kol.totalItems} Total Devices Handled
                                     </p>
+                                    {latestDevice && (
+                                        <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2 truncate flex items-center gap-1">
+                                            <Smartphone className="w-3 h-3 shrink-0" />
+                                            Latest: {latestDevice}
+                                        </p>
+                                    )}
                                 </motion.div>
-                            ))}
+                                );
+                            })}
                         </AnimatePresence>
                     </motion.div>
                 )}

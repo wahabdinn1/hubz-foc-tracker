@@ -4,14 +4,15 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 
 ## Features
 
-- **Dashboard** — Analytical views showing available stock, outstanding loans, unreturned devices, and pending returns. Includes top 3 urgent return tracking and recent activity feeds.
-- **Inventory Bank** — Robust Data hub: Group identical models beautifully on the `ModelsTab` or utilize the heavy-data `MasterListTab` equipped with instant multi-select Status filters and dynamic `sticky` table headers.
-- **KOL Directory** — Iterates over Google Sheets row data to dynamically assemble cohesive Key Opinion Leader portals displaying combined hardware histories and specific contact addresses.
-- **Form Modals** — Outbound (loan) and Inbound (return) data submission forms securely validated by centralized Zod Schemas.
-- **Micro-Animations** — Framer Motion integrates deep into the UI; filtering arrays causes cards to fluidly sort, slide, and fade rather than snapping abruptly. 
-- **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), strictly enforced by the `proxy.ts` Edge Server architecture intercepting traffic before initial renders.
-- **Theming & Design** — Pristine Light mode & Dark mode system utilizing `next-themes` wrapped over Aceternity UI floating frosted glass components and responsive Tailwind utilities.
-- **Mobile Responsive** — Horizontal data tables instantly collapse into touch-friendly vertical tracking cards on mobile viewports so teams can work securely via smartphones without frustrating horizontal scrolling.
+- **Dashboard** — Analytical views showing available stock, outstanding loans, unreturned devices, and pending returns. Includes urgent return tracking and recent activity feeds.
+- **Inventory Bank** — Robust data hub: view all devices in the Master List, group by Device Models, or browse by Campaigns. Equipped with instant multi-select status filters, dynamic sticky headers, and full-text search.
+- **KOL Directory** — Dynamically assembles Key Opinion Leader profiles from device tracking data, displaying combined hardware histories and contact details.
+- **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
+- **Form Modals** — Outbound (loan) and Inbound (return) data submission forms validated by centralized Zod schemas.
+- **Micro-Animations** — Framer Motion powers fluid card sorting, sliding, and fading transitions throughout the UI.
+- **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by Edge middleware intercepting all traffic.
+- **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.
+- **Mobile Responsive** — Full mobile support with collapsible sidebar, touch-friendly cards, and adaptive typography.
 
 ## Technology Stack
 
@@ -19,8 +20,8 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 |---|---|
 | Framework | Next.js 16 (App Router, React 19) |
 | Styling | Tailwind CSS v4 |
-| UI Components | Shadcn UI, Aceternity UI (Framer Motion) |
-| State and Theming | `next-themes`, React Hooks |
+| UI Components | Shadcn UI, Framer Motion |
+| State & Theming | `next-themes`, React Hooks |
 | Icons | Lucide React, Tabler Icons |
 | Validation | Zod, `react-hook-form` |
 | Data Source | Google Sheets API (via Server Actions) |
@@ -37,9 +38,10 @@ GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\
 GOOGLE_CLIENT_EMAIL="your-service-account@your-project.iam.gserviceaccount.com"
 GOOGLE_SHEET_ID="your_google_sheet_id_here"
 AUTHORIZED_PINS="123456,654321"
+JWT_SECRET="your_jwt_signing_secret_here"
 ```
 
-All variables are required. The application will fail at runtime if `GOOGLE_PRIVATE_KEY` is not set.
+All Google variables are required. The application will fail at runtime if `GOOGLE_PRIVATE_KEY` is not set. `JWT_SECRET` is recommended for JWT signing; if omitted, `GOOGLE_PRIVATE_KEY` is used as a fallback.
 
 ### 2. Install Dependencies
 

@@ -29,14 +29,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     </div>
                     <AnimatePresence>
                         {open && (
-                            <motion.span
+                            <motion.div
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -10 }}
-                                className="text-neutral-900 dark:text-white font-bold tracking-wide whitespace-nowrap text-lg"
+                                className="flex flex-col whitespace-nowrap"
                             >
-                                Hubz FOC
-                            </motion.span>
+                                <span className="text-neutral-900 dark:text-white font-bold tracking-wide text-lg leading-tight">
+                                    Hubz FOC
+                                </span>
+                                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-widest">
+                                    Inventory Tracker
+                                </span>
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </div>

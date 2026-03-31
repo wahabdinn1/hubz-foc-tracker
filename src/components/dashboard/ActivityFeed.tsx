@@ -1,4 +1,4 @@
-import { InventoryItem } from "@/server/actions";
+import type { InventoryItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { History, ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon } from "lucide-react";
@@ -31,7 +31,7 @@ export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
                             const isAvailable = item.statusLocation?.toUpperCase().includes("AVAILABLE");
 
                             return (
-                                <div key={idx} className="flex gap-4 relative">
+                                <div key={`${item.imei}-${item.unitName}-${idx}`} className="flex gap-4 relative">
                                     {/* Timeline Node */}
                                     <div className={cn(
                                         "w-12 h-12 rounded-full flex items-center justify-center shrink-0 border z-10 shadow-lg relative transition-colors",

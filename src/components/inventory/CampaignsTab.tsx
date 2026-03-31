@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { InventoryItem } from "@/server/actions";
+import type { InventoryItem } from "@/types/inventory";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

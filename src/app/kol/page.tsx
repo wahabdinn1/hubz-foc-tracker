@@ -1,13 +1,19 @@
+import type { Metadata } from "next";
 import { getInventory } from "@/server/actions";
-import { KOLClient } from "@/components/KOLClient";
+import { KOLClient } from "@/components/kol/KOLClient";
 import { Suspense } from "react";
-import { PinModal } from "@/components/PinModal";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PinModal } from "@/components/shared/PinModal";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
-import { PageSkeleton } from "@/components/Skeletons";
+import { PageSkeleton } from "@/components/shared/Skeletons";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "KOL Management — Hubz FOC Tracker",
+  description: "Key Opinion Leader directory with device assignment history and contact details.",
+};
 
 async function KOLFetcher() {
     const inventory = await getInventory();

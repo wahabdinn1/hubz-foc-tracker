@@ -1,13 +1,19 @@
+import type { Metadata } from "next";
 import { getInventory } from "@/server/actions";
-import { DashboardClient } from "@/components/DashboardClient";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { PinModal } from "@/components/PinModal";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PinModal } from "@/components/shared/PinModal";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { Suspense } from "react";
-import { PageSkeleton } from "@/components/Skeletons";
+import { PageSkeleton } from "@/components/shared/Skeletons";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dashboard — Hubz FOC Tracker",
+  description: "Real-time inventory overview, return tracking, and activity feed for all FOC devices.",
+};
 
 async function DashboardFetcher() {
   const inventory = await getInventory();
