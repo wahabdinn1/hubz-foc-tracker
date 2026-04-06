@@ -28,12 +28,20 @@ import { motion, AnimatePresence } from "framer-motion";
 interface MasterListTabProps {
     inventory: InventoryItem[];
     setSelectedItem: (item: InventoryItem) => void;
+    initialFilter?: string;
 }
 
-export function MasterListTab({ inventory, setSelectedItem }: MasterListTabProps) {
+export function MasterListTab({ inventory, setSelectedItem, initialFilter }: MasterListTabProps) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
-    const [locationFilter, setLocationFilter] = useState("ALL");
+    const [statusFilter, setStatusFilter] = useState(() => {
+        if (initialFilter === "unreturn") return "UNRETURN";
+        return "ALL";
+    });
+    const [locationFilter, setLocationFilter] = useState(() => {
+        if (initialFilter === "available") return "AVAILABLE";
+        if (initialFilter === "loaned") return "LOANED";
+        return "ALL";
+    });
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState<{ key: keyof InventoryItem, direction: 'asc' | 'desc' } | null>(null);

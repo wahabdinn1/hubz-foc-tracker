@@ -9,7 +9,7 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
     return (
-        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col h-[350px] md:h-[420px] transition-colors">
+        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col flex-1 min-h-[300px] transition-colors">
             <div className="flex items-center gap-3 mb-6 shrink-0">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                     <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -68,9 +68,14 @@ export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
                             )
                         })
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-neutral-500 gap-3 opacity-60 mt-20">
-                            <History className="w-12 h-12" />
-                            <p>No recorded activity found.</p>
+                        <div className="h-[250px] flex flex-col items-center justify-center text-neutral-500 gap-2 mt-4 px-4 text-center border-2 border-dashed border-black/5 dark:border-white/5 rounded-2xl bg-white/30 dark:bg-neutral-900/20">
+                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 mb-2">
+                                <History className="w-6 h-6 text-blue-500" />
+                            </div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-200 text-base">No recorded activity yet</p>
+                            <p className="text-xs max-w-[220px] leading-relaxed">
+                                Use the <strong className="text-blue-500">New Request</strong> or <strong className="text-red-400">Inbound (Return)</strong> buttons above to log your first transaction.
+                            </p>
                         </div>
                     )}
                 </div>

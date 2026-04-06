@@ -10,15 +10,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { RefreshCw, Smartphone, Database, Megaphone } from "lucide-react";
+import { RequestFormModal } from "@/components/forms/RequestFormModal";
+import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
+import { useInventoryStats } from "@/hooks/useInventoryStats";
 
 import { ModelsTab } from "./ModelsTab";
 import { MasterListTab } from "./MasterListTab";
 import { CampaignsTab } from "./CampaignsTab";
 
-export function InventoryClient({ inventory }: { inventory: InventoryItem[] }) {
+export function InventoryClient({ inventory, initialFilter }: { inventory: InventoryItem[]; initialFilter?: string }) {
     // Shared State
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [isPending, startTransition] = useTransition();
+
+    const { availableUnits, loanedItems } = useInventoryStats(inventory);
 
     const handleSync = () => {
         startTransition(async () => {
@@ -54,6 +59,9 @@ export function InventoryClient({ inventory }: { inventory: InventoryItem[] }) {
                     >
                         <RefreshCw className={cn("w-5 h-5", isPending && "animate-spin text-blue-400")} />
                     </Button>
+                    <div className="w-px h-6 bg-black/10 dark:bg-white/10 transition-colors" />
+                    <ReturnFormModal loanedItems={loanedItems} />
+                    <RequestFormModal availableItems={availableUnits} />
                 </div>
             </div>
 
@@ -81,7 +89,7 @@ export function InventoryClient({ inventory }: { inventory: InventoryItem[] }) {
 
                 {/* TAB 1: MASTER LIST */}
                 <TabsContent value="master" className="m-0 focus-visible:ring-0">
-                    <MasterListTab inventory={inventory} setSelectedItem={setSelectedItem} />
+                    <MasterListTab inventory={inventory} setSelectedItem={setSelectedItem} initialFilter={initialFilter} />
                 </TabsContent>
 
                 {/* TAB 2: DEVICE MODELS */}

@@ -14,12 +14,15 @@ export const SHEETS = {
   DATA_BANK: "Step 1 Data Bank",
   FOC_REQUEST: "Step 3 FOC Request",
   FOC_RETURN: "Step 4 FOC Return",
+  OVERDUE_TRACKER: "OVERDUE TRACKER",
 } as const;
 
 /** Column range used when fetching each sheet. */
 export const SHEET_RANGES = {
   DATA_BANK: `${SHEETS.DATA_BANK}!A:P`,
-  FOC_REQUEST: `${SHEETS.FOC_REQUEST}!A:H`,
+  FOC_REQUEST: `${SHEETS.FOC_REQUEST}!A:M`,
+  FOC_RETURN: `${SHEETS.FOC_RETURN}!A:I`,
+  OVERDUE_TRACKER: `${SHEETS.OVERDUE_TRACKER}!A:U`,
 } as const;
 
 /**
@@ -45,8 +48,12 @@ export const COLUMN_HEADERS = {
 export const REQUEST_HEADERS = {
   TIMESTAMP: "Timestamp",
   UNIT_NAME: "Unit Name",
-  IMEI: "IMEI",
+  IMEI: "IMEI if any",
   KOL_NAME: "KOL Name",
+  REQUESTOR: "Requestor",
+  PHONE: "KOL Phone Number",
+  ADDRESS: "KOL address",
+  TYPE_FOC: "Type of FOC",
 } as const;
 
 // ---------------------------------------------------------------------------

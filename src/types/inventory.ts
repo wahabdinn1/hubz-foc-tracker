@@ -64,6 +64,58 @@ export interface ReturnTrackingItem extends InventoryItem {
 }
 
 // ---------------------------------------------------------------------------
+// Overdue Tracker
+// ---------------------------------------------------------------------------
+
+/** A row from the "OVERDUE TRACKER" sheet. */
+export interface OverdueItem {
+  /** Serial number / IMEI. */
+  serialNumber: string;
+  /** Material description (device name). */
+  materialDescription: string;
+  /** Planned return date string. */
+  planReturnDate: string;
+  /** Number of days overdue (positive = overdue). */
+  overdueDays: number;
+  /** Current status update text. */
+  statusUpdate: string;
+  /** Location (GOAT, etc). */
+  location: string;
+  /** SEIN PIC names. */
+  seinPic: string;
+  /** Contact person. */
+  contactPerson: string;
+  /** Next step action. */
+  nextStep: string;
+}
+
+// ---------------------------------------------------------------------------
+// Return History (Step 4)
+// ---------------------------------------------------------------------------
+
+/** A row from the "Step 4 FOC Return" sheet. */
+export interface ReturnHistoryItem {
+  /** Timestamp of the return submission. */
+  timestamp: string;
+  /** Email of the submitter. */
+  email: string;
+  /** Requestor name. */
+  requestor: string;
+  /** Device unit name. */
+  unitName: string;
+  /** IMEI / Serial Number. */
+  imei: string;
+  /** KOL name the device was returned from. */
+  fromKol: string;
+  /** KOL address. */
+  kolAddress: string;
+  /** KOL phone number. */
+  kolPhone: string;
+  /** Type of FOC. */
+  typeOfFoc: string;
+}
+
+// ---------------------------------------------------------------------------
 // Server Action Responses
 // ---------------------------------------------------------------------------
 

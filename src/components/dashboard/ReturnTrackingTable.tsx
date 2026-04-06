@@ -10,7 +10,7 @@ interface ReturnTrackingProps {
 
 export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: ReturnTrackingProps) {
     return (
-        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col h-[350px] md:h-[420px] transition-colors">
+        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col h-[500px] md:h-[640px] transition-colors">
             <div className="flex items-center gap-3 mb-6 shrink-0">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
                     <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -33,16 +33,44 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                             isOverdue = !isNaN(returnDate.getTime()) && returnDate < today;
                         }
 
+                        let progressPercent = 0;
+                        let progressColor = "bg-neutral-500";
+
+                        if (isAsap || isOverdue) {
+                            progressPercent = 100;
+                            progressColor = "bg-red-500";
+                        } else if (item.plannedReturnDate) {
+                            const returnDate = new Date(item.plannedReturnDate);
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            const diffTime = returnDate.getTime() - today.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            if (diffDays > 14) {
+                                progressPercent = 20;
+                                progressColor = "bg-green-500";
+                            } else if (diffDays > 7) {
+                                progressPercent = 50;
+                                progressColor = "bg-blue-500";
+                            } else if (diffDays > 3) {
+                                progressPercent = 80;
+                                progressColor = "bg-orange-500";
+                            } else {
+                                progressPercent = 95;
+                                progressColor = "bg-red-400";
+                            }
+                        }
+
                         return (
                             <div key={`${item.imei}-${item.unitName}-${idx}`}
                                 onClick={() => setSelectedItem(item)}
                                 className={cn(
-                                    "group flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all cursor-pointer overflow-hidden",
+                                    "group relative overflow-hidden flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all cursor-pointer",
                                     isOverdue || isAsap
                                         ? "bg-red-50 dark:bg-red-950/20 border-red-500/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-500/40"
                                         : "bg-white dark:bg-neutral-950/40 border-black/5 dark:border-white/[0.05] hover:bg-neutral-50 dark:hover:bg-white/5 hover:border-black/10 dark:hover:border-white/10 shadow-sm dark:shadow-none"
                                 )}>
-                                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                                <div className="flex items-center gap-3 md:gap-4 min-w-0 z-10">
                                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shrink-0 border border-black/5 dark:border-white/[0.05] relative transition-colors">
                                         <Smartphone className="w-4 h-4 text-neutral-500 dark:text-neutral-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                                         {item.groupCount > 1 && (
@@ -63,7 +91,7 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-1 ml-4 shrink-0">
+                                <div className="flex flex-col items-end gap-1 ml-4 shrink-0 z-10">
                                     <Badge variant={(isAsap || isOverdue) ? "destructive" : "secondary"} className={cn(
                                         "font-mono text-xs px-2.5 py-1 whitespace-nowrap",
                                         (isAsap || isOverdue)
@@ -74,6 +102,10 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                     </Badge>
                                     {isAsap && <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">As Soon As Possible</span>}
                                     {isOverdue && !isAsap && <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Overdue</span>}
+                                </div>
+                                {/* Health/Timeline Bar */}
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/5 dark:bg-white/5">
+                                    <div className={cn("h-full transition-all duration-1000 ease-out", progressColor)} style={{ width: `${progressPercent}%` }} />
                                 </div>
                             </div>
                         );

@@ -15,13 +15,18 @@ export const metadata: Metadata = {
   description: "Browse all FOC devices by Master List, Device Models, or Campaigns with search and filters.",
 };
 
-async function InventoryFetcher() {
+async function InventoryFetcher({ initialFilter }: { initialFilter?: string }) {
     const inventory = await getInventory();
-    return <InventoryClient inventory={inventory} />;
+    return <InventoryClient inventory={inventory} initialFilter={initialFilter} />;
 }
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ filter?: string }>;
+}) {
     const authed = await isAuthenticated();
+    const params = await searchParams;
 
     return (
         <DashboardLayout>
@@ -30,7 +35,7 @@ export default async function InventoryPage() {
             ) : (
                 <ErrorBoundary fallbackTitle="Failed to load inventory">
                     <Suspense fallback={<PageSkeleton />}>
-                        <InventoryFetcher />
+                        <InventoryFetcher initialFilter={params.filter} />
                     </Suspense>
                 </ErrorBoundary>
             )}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getInventory } from "@/server/actions";
+import { getInventory, getOverdueData, getReturnHistory } from "@/server/actions";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
@@ -16,8 +16,12 @@ export const metadata: Metadata = {
 };
 
 async function DashboardFetcher() {
-  const inventory = await getInventory();
-  return <DashboardClient inventory={inventory} isAuthenticated={true} />
+  const [inventory, overdueItems, returnHistory] = await Promise.all([
+    getInventory(),
+    getOverdueData(),
+    getReturnHistory(),
+  ]);
+  return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
 }
 
 export default async function Page() {

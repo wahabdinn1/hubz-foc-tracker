@@ -10,7 +10,8 @@ export function Scorecard({
     icon,
     className,
     children,
-    subtitle
+    subtitle,
+    onClick
 }: {
     title?: string,
     value?: string | number,
@@ -18,6 +19,7 @@ export function Scorecard({
     className?: string;
     children?: ReactNode;
     subtitle?: string;
+    onClick?: () => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -35,8 +37,10 @@ export function Scorecard({
         <div
             ref={ref}
             onMouseMove={handleMouseMove}
+            onClick={onClick}
             className={cn(
                 "group relative overflow-hidden rounded-2xl bg-white/50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] backdrop-blur-xl shadow-lg flex flex-col p-4 min-h-[100px] transition-colors hover:border-black/10 dark:hover:border-white/[0.15]",
+                onClick && "cursor-pointer hover:shadow-xl active:scale-[0.98]",
                 className
             )}
         >

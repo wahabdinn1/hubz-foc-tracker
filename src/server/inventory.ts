@@ -2,7 +2,7 @@
 
 import { sheets } from "./google";
 import { unstable_cache, revalidatePath } from "next/cache";
-import type { InventoryItem } from "@/types/inventory";
+import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
 import {
   SHEETS,
   SHEET_RANGES,
@@ -75,8 +75,8 @@ export const getInventory = unstable_cache(
       );
       const colIndex = buildColIndex(headers);
 
-      // -- Build request-date lookup from Step 3 --
-      const requestDates = buildRequestDateMap(reqRows);
+      // -- Build request-data lookup from Step 3 --
+      const requestDataMap = buildRequestDataMap(reqRows);
 
       // -- Map each data row to an InventoryItem --
       return rows.slice(1).map((row) => {
@@ -94,14 +94,16 @@ export const getInventory = unstable_cache(
         const unitName = resolveColumn(row, colIndex, COLUMN_HEADERS.UNIT_NAME, 6);
         const kol = resolveColumn(row, colIndex, COLUMN_HEADERS.ON_HOLDER, 14);
 
-        // Resolve request date: IMEI match → composite key match → fallback
-        let reqDate = "";
+        // Resolve request data: IMEI match → composite key match
+        let reqData: Record<string, string> | undefined;
         if (imei && imei.trim() !== "" && imei.trim() !== "-") {
-          reqDate = requestDates.get(imei.trim()) || "";
+          reqData = requestDataMap.get(imei.trim());
         }
-        if (!reqDate && unitName && kol) {
-          reqDate = requestDates.get(`${unitName.trim()}||${kol.trim()}`) || "";
+        if (!reqData && unitName && kol) {
+          reqData = requestDataMap.get(`${unitName.trim()}||${kol.trim()}`);
         }
+
+        let reqDate = reqData?.[REQUEST_HEADERS.TIMESTAMP] || "";
         if (!reqDate) {
           reqDate =
             fullData["Timestamp"] ||
@@ -111,6 +113,14 @@ export const getInventory = unstable_cache(
         }
 
         fullData["Step 3 Request Date"] = reqDate;
+        
+        // Expose Step 3 data directly in fullData so it can be autofilled in forms
+        if (reqData) {
+          if (reqData[REQUEST_HEADERS.REQUESTOR]) fullData["Step 3 Requestor"] = reqData[REQUEST_HEADERS.REQUESTOR];
+          if (reqData[REQUEST_HEADERS.PHONE]) fullData["Step 3 Phone"] = reqData[REQUEST_HEADERS.PHONE];
+          if (reqData[REQUEST_HEADERS.ADDRESS]) fullData["Step 3 Address"] = reqData[REQUEST_HEADERS.ADDRESS];
+          if (reqData[REQUEST_HEADERS.TYPE_FOC]) fullData["Step 3 Type of FOC"] = reqData[REQUEST_HEADERS.TYPE_FOC];
+        }
 
         return {
           imei,
@@ -143,14 +153,14 @@ export const getInventory = unstable_cache(
 // ---------------------------------------------------------------------------
 
 /**
- * Build a Map<string, string> of request dates from the Step 3 FOC Request
+ * Build a Map of request data from the Step 3 FOC Request
  * sheet. Keys are either raw IMEI values or composite "UnitName||KOLName".
  */
-function buildRequestDateMap(
+function buildRequestDataMap(
   reqRows: string[][] | null | undefined
-): Map<string, string> {
-  const requestDates = new Map<string, string>();
-  if (!reqRows || reqRows.length <= 1) return requestDates;
+): Map<string, Record<string, string>> {
+  const requestData = new Map<string, Record<string, string>>();
+  if (!reqRows || reqRows.length <= 1) return requestData;
 
   const reqHeaders = (reqRows[0] as string[]).map(
     (h) => h?.trim() || "Unknown"
@@ -161,6 +171,11 @@ function buildRequestDateMap(
   const unitIdx = reqColIndex(REQUEST_HEADERS.UNIT_NAME);
   const imeiIdx = reqColIndex(REQUEST_HEADERS.IMEI);
   const kolIdx = reqColIndex(REQUEST_HEADERS.KOL_NAME);
+  
+  const reqIdx = reqColIndex(REQUEST_HEADERS.REQUESTOR);
+  const phoneIdx = reqColIndex(REQUEST_HEADERS.PHONE);
+  const addrIdx = reqColIndex(REQUEST_HEADERS.ADDRESS);
+  const typeFocIdx = reqColIndex(REQUEST_HEADERS.TYPE_FOC);
 
   for (let i = 1; i < reqRows.length; i++) {
     const r = reqRows[i];
@@ -168,17 +183,25 @@ function buildRequestDateMap(
     const unitName = unitIdx >= 0 ? r[unitIdx] : undefined;
     const imei = imeiIdx >= 0 ? r[imeiIdx] : undefined;
     const kol = kolIdx >= 0 ? r[kolIdx] : undefined;
-
+    
     if (timestamp) {
+      const dataObj: Record<string, string> = {
+        [REQUEST_HEADERS.TIMESTAMP]: timestamp,
+        [REQUEST_HEADERS.REQUESTOR]: reqIdx >= 0 ? r[reqIdx] || "" : "",
+        [REQUEST_HEADERS.PHONE]: phoneIdx >= 0 ? r[phoneIdx] || "" : "",
+        [REQUEST_HEADERS.ADDRESS]: addrIdx >= 0 ? r[addrIdx] || "" : "",
+        [REQUEST_HEADERS.TYPE_FOC]: typeFocIdx >= 0 ? r[typeFocIdx] || "" : "",
+      };
+
       if (imei && imei.trim() !== "" && imei.trim() !== "-") {
-        requestDates.set(imei.trim(), timestamp);
+        requestData.set(imei.trim(), dataObj);
       } else if (unitName && kol) {
-        requestDates.set(`${unitName.trim()}||${kol.trim()}`, timestamp);
+        requestData.set(`${unitName.trim()}||${kol.trim()}`, dataObj);
       }
     }
   }
 
-  return requestDates;
+  return requestData;
 }
 
 /**
@@ -189,3 +212,100 @@ export async function revalidateInventory() {
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+// ---------------------------------------------------------------------------
+// Overdue Tracker
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch overdue device data from the "OVERDUE TRACKER" sheet.
+ * Returns items that have overdue days > 0.
+ */
+export const getOverdueData = unstable_cache(
+  async (): Promise<OverdueItem[]> => {
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: SHEET_RANGES.OVERDUE_TRACKER,
+      });
+
+      const rows = response.data.values;
+      if (!rows || rows.length <= 1) return [];
+
+      const headers = (rows[0] as string[]).map(h => h?.trim().toLowerCase() || "");
+
+      return rows.slice(1)
+        .map((row) => {
+          const col = (name: string) => {
+            const idx = headers.findIndex(h => h.includes(name.toLowerCase()));
+            return idx >= 0 ? row[idx] || "" : "";
+          };
+
+          const overdueDaysRaw = col("overdue");
+          const overdueDays = parseInt(overdueDaysRaw, 10);
+
+          return {
+            serialNumber: col("serial number"),
+            materialDescription: col("material description"),
+            planReturnDate: col("plan return date"),
+            overdueDays: isNaN(overdueDays) ? 0 : overdueDays,
+            statusUpdate: col("status update"),
+            location: col("location"),
+            seinPic: col("sein pic 1"),
+            contactPerson: col("contact person"),
+            nextStep: col("next step"),
+          };
+        })
+        .filter(item => item.serialNumber && item.serialNumber.trim() !== "" && item.overdueDays > 0)
+        .sort((a, b) => b.overdueDays - a.overdueDays);
+    } catch (error) {
+      console.error("Failed to fetch overdue data", error);
+      return [];
+    }
+  },
+  ["overdue-data"],
+  { revalidate: CACHE_REVALIDATE_SECONDS }
+);
+
+// ---------------------------------------------------------------------------
+// Return History (Step 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch return submission history from the "Step 4 FOC Return" sheet.
+ */
+export const getReturnHistory = unstable_cache(
+  async (): Promise<ReturnHistoryItem[]> => {
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: SHEET_RANGES.FOC_RETURN,
+      });
+
+      const rows = response.data.values;
+      if (!rows || rows.length <= 1) return [];
+
+      // Step 4 headers: Timestamp | Email Address | Requestor | Unit Name | IMEI/SN | From KOL | KOL address | KOL Phone Number | Type of FOC
+      return rows.slice(1)
+        .filter(row => row && row.length > 0 && row[0]) // skip empty rows
+        .map((row) => ({
+          timestamp: row[0] || "",
+          email: row[1] || "",
+          requestor: row[2] || "",
+          unitName: row[3] || "",
+          imei: row[4] || "",
+          fromKol: row[5] || "",
+          kolAddress: row[6] || "",
+          kolPhone: row[7] || "",
+          typeOfFoc: row[8] || "",
+        }))
+        .reverse(); // most recent first
+    } catch (error) {
+      console.error("Failed to fetch return history", error);
+      return [];
+    }
+  },
+  ["return-history"],
+  { revalidate: CACHE_REVALIDATE_SECONDS }
+);
+

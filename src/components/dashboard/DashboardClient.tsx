@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
-import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
+import { useState, useTransition } from "react";
+import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
 import { revalidateInventory } from "@/server/actions";
 import { Scorecard } from "@/components/shared/Scorecard";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,23 @@ import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { cn } from "@/lib/utils";
 import { ReturnTrackingTable } from "./ReturnTrackingTable";
 import { ActivityFeed } from "./ActivityFeed";
+import { DashboardDonutChart } from "./DashboardDonutChart";
+import { OverduePanel } from "./OverduePanel";
+import { ReturnHistoryPanel } from "./ReturnHistoryPanel";
+import { useInventoryStats } from "@/hooks/useInventoryStats";
+import { motion } from "framer-motion";
 import {
     Package, CheckCircle, Clock, Gift, RefreshCw, ArrowDownRight,
 } from "lucide-react";
 
-export function DashboardClient({ inventory, isAuthenticated }: { inventory: InventoryItem[], isAuthenticated: boolean }) {
+interface DashboardClientProps {
+    inventory: InventoryItem[];
+    isAuthenticated: boolean;
+    overdueItems?: OverdueItem[];
+    returnHistory?: ReturnHistoryItem[];
+}
+
+export function DashboardClient({ inventory, isAuthenticated, overdueItems = [], returnHistory = [] }: DashboardClientProps) {
     const router = useRouter();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
@@ -36,94 +48,41 @@ export function DashboardClient({ inventory, isAuthenticated }: { inventory: Inv
         });
     };
 
-    // -- Memoized computations (#6) --
+    const {
+        totalStock,
+        availableCount,
+        onKolCount,
+        giftedUnitsCount,
+        pendingReturnCount,
+        topUrgentReturns,
+        availableUnits,
+        loanedItems,
+        recentActivity
+    } = useInventoryStats(inventory);
 
-    const validInventory = useMemo(() =>
-        inventory.filter(item => (item.imei && item.imei.trim() !== "") || (item.unitName && item.unitName.trim() !== ""))
-    , [inventory]);
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
 
-    const totalStock = validInventory.length;
-
-    const availableCount = useMemo(() =>
-        validInventory.filter(i => i.statusLocation?.toUpperCase().includes("AVAILABLE")).length
-    , [validInventory]);
-
-    const onKolCount = useMemo(() =>
-        validInventory.filter(i => i.statusLocation?.toUpperCase().includes("LOANED")).length
-    , [validInventory]);
-
-    const giftedUnitsCount = useMemo(() =>
-        inventory.filter(i => i.focStatus?.toUpperCase().trim() === 'UNRETURN').length
-    , [inventory]);
-
-    const topUrgentReturns = useMemo((): ReturnTrackingItem[] => {
-        const itemsToReturnRaw = inventory.filter(item => {
-            const locationStr = item.statusLocation?.toUpperCase() || "";
-            if (locationStr.includes('RETURN TO TCC')) return false;
-            const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
-            return hasReturnDate;
-        });
-
-        // Aggregate Returns by Unit Name, SEIN PIC, and GOAT PIC
-        const aggregatedReturnsMap = new Map<string, ReturnTrackingItem>();
-
-        itemsToReturnRaw.forEach(item => {
-            const unitName = item.unitName?.trim() || "Unknown Unit";
-            const seinPic = item.seinPic?.trim() || "-";
-            const goatPic = item.goatPic?.trim() || "-";
-            const key = `${unitName}_${seinPic}_${goatPic}`;
-
-            if (aggregatedReturnsMap.has(key)) {
-                const existing = aggregatedReturnsMap.get(key)!;
-                existing.groupCount += 1;
-                if (item.plannedReturnDate?.toUpperCase() === 'ASAP' && existing.plannedReturnDate?.toUpperCase() !== 'ASAP') {
-                    existing.plannedReturnDate = 'ASAP';
-                }
-            } else {
-                aggregatedReturnsMap.set(key, { ...item, groupCount: 1 });
-            }
-        });
-
-        return Array.from(aggregatedReturnsMap.values()).sort((a, b) => {
-            const aIsAsap = a.plannedReturnDate?.toUpperCase() === 'ASAP';
-            const bIsAsap = b.plannedReturnDate?.toUpperCase() === 'ASAP';
-            if (aIsAsap && !bIsAsap) return -1;
-            if (!aIsAsap && bIsAsap) return 1;
-            if (aIsAsap && bIsAsap) return 0;
-            const dateA = new Date(a.plannedReturnDate).getTime();
-            const dateB = new Date(b.plannedReturnDate).getTime();
-            return dateA - dateB;
-        });
-    }, [inventory]);
-
-    const pendingReturnCount = topUrgentReturns.length;
-
-    const availableUnits = useMemo(() =>
-        inventory.filter(i => i.statusLocation?.includes("AVAILABLE"))
-    , [inventory]);
-
-    const loanedItems = useMemo(() =>
-        inventory.filter(i => i.statusLocation?.includes("LOANED") || i.statusLocation?.includes("ON KOL"))
-    , [inventory]);
-
-    const recentActivity = useMemo(() =>
-        [...validInventory].filter(item => {
-            const dateStr = item.fullData?.["Timestamp"] || item.fullData?.["Date Received"] || item.fullData?.["Request Date"];
-            return !!dateStr && dateStr.trim() !== "" && dateStr.trim() !== "-";
-        }).sort((a, b) => {
-            const dateA = new Date(a.fullData?.["Timestamp"] || a.fullData?.["Date Received"] || a.fullData?.["Request Date"] || 0);
-            const dateB = new Date(b.fullData?.["Timestamp"] || b.fullData?.["Date Received"] || b.fullData?.["Request Date"] || 0);
-            return dateB.getTime() - dateA.getTime();
-        }).slice(0, 15)
-    , [validInventory]);
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+    };
 
     return (
         <div className="w-full h-full space-y-6 md:space-y-8 pb-10 p-4 md:p-10">
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none transition-colors" />
+
             {!isAuthenticated && (
                 <div className="fixed inset-0 z-40 bg-white/60 dark:bg-black/60 backdrop-blur-sm pointer-events-none transition-colors" />
             )}
 
-            {/* Page Header & Actions */}
+            {/* Header Area */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white transition-colors">
@@ -151,24 +110,49 @@ export function DashboardClient({ inventory, isAuthenticated }: { inventory: Inv
             </div>
 
             {/* Scorecards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 relative z-10">
-                <Scorecard title="Total Stock" value={totalStock} icon={<Package className="w-4 h-4" />} />
-                <Scorecard title="Available" value={availableCount} icon={<CheckCircle className="w-4 h-4 text-green-400" />} />
-                <Scorecard title="On KOL" value={onKolCount} icon={<Clock className="w-4 h-4 text-orange-400" />} />
-                <Scorecard title="Unreturn" value={giftedUnitsCount} icon={<Gift className="w-4 h-4 text-cyan-400" />} subtitle="Marked as UNRETURN" />
-                <Scorecard title="Pending Returns" value={pendingReturnCount} icon={<ArrowDownRight className="w-4 h-4 text-red-400" />} subtitle="Scheduled items" />
-            </div>
+            <motion.div 
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 relative z-10"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+            >
+                <motion.div variants={itemVariants}><Scorecard title="Total Stock" value={totalStock} icon={<Package className="w-4 h-4" />} /></motion.div>
+                <motion.div variants={itemVariants}><Scorecard title="Available" value={availableCount} icon={<CheckCircle className="w-4 h-4 text-green-400" />} onClick={() => router.push('/inventory?filter=available')} /></motion.div>
+                <motion.div variants={itemVariants}><Scorecard title="On KOL" value={onKolCount} icon={<Clock className="w-4 h-4 text-orange-400" />} onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
+                <motion.div variants={itemVariants}><Scorecard title="Unreturn" value={giftedUnitsCount} icon={<Gift className="w-4 h-4 text-cyan-400" />} subtitle="Marked as UNRETURN" onClick={() => router.push('/inventory?filter=unreturn')} /></motion.div>
+                <motion.div variants={itemVariants}><Scorecard title="Pending Returns" value={pendingReturnCount} icon={<ArrowDownRight className="w-4 h-4 text-red-400" />} subtitle="Scheduled items" onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
+            </motion.div>
 
             {/* Dashboard Analytics Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative z-10">
+            <motion.div 
+                className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative z-10 items-stretch"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+            >
                 <ReturnTrackingTable
                     topUrgentReturns={topUrgentReturns}
                     setSelectedItem={setSelectedItem}
                 />
-                <ActivityFeed
-                    recentActivity={recentActivity}
-                />
-            </div>
+                <div className="flex flex-col gap-4 md:gap-6 h-full">
+                    <DashboardDonutChart 
+                        availableCount={availableCount} 
+                        onKolCount={onKolCount} 
+                        unreturnCount={giftedUnitsCount} 
+                    />
+                    <ActivityFeed
+                        recentActivity={recentActivity}
+                    />
+                </div>
+            </motion.div>
+
+            {/* Overdue + Return History */}
+            {(overdueItems.length > 0 || returnHistory.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative z-10">
+                    <OverduePanel overdueItems={overdueItems} />
+                    <ReturnHistoryPanel returnHistory={returnHistory} />
+                </div>
+            )}
 
             <QuickViewPanel
                 item={selectedItem}

@@ -10,7 +10,7 @@ import {
   type RequestPayload,
   type ReturnPayload,
 } from "@/lib/validations";
-import { SHEETS, EMAIL_DOMAIN } from "@/lib/constants";
+import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN } from "@/lib/constants";
 import type { ActionResult } from "@/types/inventory";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -21,10 +21,13 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 /**
  * Submit a new outbound FOC request (device loan to a KOL).
- * Appends a row to the "Step 3 FOC Request" sheet.
  *
- * @param data - Validated request payload from the form.
- * @returns ActionResult indicating success or failure with an error message.
+ * Race-condition defense (Layer 1.5):
+ *   1. Re-read Step 1 at submission time → verify the unit is still AVAILABLE.
+ *   2. Cross-check the last 100 rows of Step 3 → detect near-simultaneous writes.
+ *   3. Only then append a row to Step 3.
+ *
+ * Step 1 is NEVER written to — it is GET/Read only.
  */
 export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   if (!(await isAuthenticated())) {
@@ -34,6 +37,99 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   try {
     const validated = requestPayloadSchema.parse(data);
 
+    const submittedImei = (validated.imeiIfAny || "").trim();
+
+    // -----------------------------------------------------------------------
+    // Layer 1.5  — Only run if an IMEI was actually selected (not "none")
+    // -----------------------------------------------------------------------
+    if (submittedImei && submittedImei !== "none") {
+      // -- Step A: Re-read Step 1 and verify AVAILABLE ----------------------
+      const step1Response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: SHEET_RANGES.DATA_BANK,
+      });
+
+      const step1Rows = step1Response.data.values;
+      if (step1Rows && step1Rows.length > 1) {
+        const step1Headers = (step1Rows[0] as string[]).map((h) =>
+          h?.trim().toUpperCase() || ""
+        );
+
+        // Find the IMEI column (Column E/F area — serial number)
+        const imeiColIdx = step1Headers.findIndex(
+          (h) => h.includes("SERIAL NUMBER") || h.includes("IMEI")
+        );
+        // Find the Status Location column (Column M area)
+        const statusColIdx = step1Headers.findIndex(
+          (h) => h.includes("STATUS LOCATION")
+        );
+
+        if (imeiColIdx >= 0 && statusColIdx >= 0) {
+          const matchingRow = step1Rows
+            .slice(1)
+            .find(
+              (row) =>
+                (row[imeiColIdx] || "").trim().toUpperCase() ===
+                submittedImei.toUpperCase()
+            );
+
+          if (matchingRow) {
+            const currentStatus = (matchingRow[statusColIdx] || "")
+              .trim()
+              .toUpperCase();
+            if (!currentStatus.includes("AVAILABLE")) {
+              return {
+                success: false,
+                error:
+                  "This unit has just been taken by another PIC. Please select a different unit.",
+              };
+            }
+          }
+        }
+      }
+
+      // -- Step B: Cross-check Step 3 last 100 rows for collision ------------
+      const step3Response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: SHEET_RANGES.FOC_REQUEST,
+      });
+
+      const step3Rows = step3Response.data.values;
+      if (step3Rows && step3Rows.length > 1) {
+        const step3Headers = (step3Rows[0] as string[]).map((h) =>
+          h?.trim().toUpperCase() || ""
+        );
+
+        // Find IMEI column in Step 3
+        const step3ImeiColIdx = step3Headers.findIndex(
+          (h) => h.includes("IMEI") || h.includes("SERIAL")
+        );
+
+        if (step3ImeiColIdx >= 0) {
+          // Check the last 100 rows (most recent submissions)
+          const recentRows = step3Rows.slice(
+            Math.max(1, step3Rows.length - 100)
+          );
+          const collision = recentRows.find(
+            (row) =>
+              (row[step3ImeiColIdx] || "").trim().toUpperCase() ===
+              submittedImei.toUpperCase()
+          );
+
+          if (collision) {
+            return {
+              success: false,
+              error:
+                "Request collision detected. This unit was just processed milliseconds ago. Please select a different unit.",
+            };
+          }
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // All checks passed — append the row to Step 3
+    // -----------------------------------------------------------------------
     const timestamp = new Date().toLocaleString("id-ID");
     const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
     const finalRequestor =
@@ -121,8 +217,8 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
             validated.unitName,
             validated.imei,
             validated.fromKol,
-            validated.kolPhoneNumber,
             validated.kolAddress,
+            validated.kolPhoneNumber,
             validated.typeOfFoc,
           ],
         ],

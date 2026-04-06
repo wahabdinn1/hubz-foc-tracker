@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Plus } from "lucide-react"
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Layers, Smartphone, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Calendar } from "@/components/ui/calendar"
 import {
     Dialog,
@@ -45,14 +46,77 @@ import { requestUnit } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { requestFormSchema, RequestPayload } from "@/lib/validations"
 
-// Removed local formSchema
+// ---------------------------------------------------------------------------
+// Device Category Logic
+// ---------------------------------------------------------------------------
+
+const DEVICE_CATEGORIES = [
+    { prefix: "G-S", label: "S Series", icon: "📱" },
+    { prefix: "G-A", label: "A Series", icon: "📱" },
+    { prefix: "G-T", label: "Tab", icon: "📋" },
+    { prefix: "G-B", label: "Buds", icon: "🎧" },
+    { prefix: "G-W", label: "Wearable", icon: "⌚" },
+] as const;
+
+/** Key(s) used in fullData for the FOC Type column (Column D in Step 1) */
+const FOC_TYPE_KEYS = ["FOC TYPE", "TYPE OF FOC", "Type of FOC", "Foc Type"] as const;
+
+function getDeviceCategory(unitName: string): string {
+    const upper = unitName.toUpperCase().trim();
+    for (const cat of DEVICE_CATEGORIES) {
+        if (upper.startsWith(cat.prefix)) return cat.label;
+    }
+    return "Others";
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState<string>("")
+    const [imeiPopoverOpen, setImeiPopoverOpen] = useState(false)
 
-    // 1. Define your form.
+    // Build category → items map from AVAILABLE items only
+    const categoryMap = useMemo(() => {
+        const map = new Map<string, InventoryItem[]>();
+
+        availableItems
+            .filter(item => item.statusLocation?.toUpperCase().includes("AVAILABLE"))
+            .forEach(item => {
+                const category = getDeviceCategory(item.unitName || "");
+                const list = map.get(category) || [];
+                list.push(item);
+                map.set(category, list);
+            });
+
+        return map;
+    }, [availableItems]);
+
+    // Sorted category names with counts
+    const categories = useMemo(() => {
+        const allCats = Array.from(categoryMap.entries()).map(([name, items]) => ({
+            name,
+            count: items.length,
+        }));
+        // Sort so defined categories come first alphabetically, "Others" last
+        return allCats.sort((a, b) => {
+            if (a.name === "Others") return 1;
+            if (b.name === "Others") return -1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [categoryMap]);
+
+    // Items filtered by selected category
+    const filteredItems = useMemo(() => {
+        if (!selectedCategory) return [];
+        return categoryMap.get(selectedCategory) || [];
+    }, [selectedCategory, categoryMap]);
+
+    // React Hook Form setup
     const form = useForm<z.infer<typeof requestFormSchema>>({
         resolver: zodResolver(requestFormSchema as any),
         defaultValues: {
@@ -72,8 +136,35 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
 
     const watchRequestor = form.watch("requestor")
     const watchImei = form.watch("imeiIfAny")
+    const watchTypeOfFoc = form.watch("typeOfFoc")
+    const [autoFilledFoc, setAutoFilledFoc] = useState<string | null>(null);
 
-    // 2. Define a submit handler.
+    // Handle category change — reset IMEI selection
+    function handleCategoryChange(value: string) {
+        setSelectedCategory(value);
+        form.setValue("imeiIfAny", "");
+        form.setValue("unitName", "");
+        form.setValue("typeOfFoc", "");
+        setAutoFilledFoc(null);
+    }
+
+    /** Read FOC TYPE from an item's fullData (Column D in sheet) */
+    function extractFocType(item: InventoryItem): string {
+        if (!item.fullData) return "";
+        for (const key of FOC_TYPE_KEYS) {
+            const val = item.fullData[key];
+            if (val && val.trim() !== "" && val.trim() !== "-") return val.trim().toUpperCase();
+        }
+        return "";
+    }
+
+    // Reset all category/IMEI state when form resets
+    function resetFormState() {
+        setSelectedCategory("");
+        form.reset();
+    }
+
+    // Submit handler with 409 conflict handling
     async function onSubmit(values: z.infer<typeof requestFormSchema>) {
         setIsSubmitting(true)
 
@@ -82,19 +173,38 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
             deliveryDate: format(values.deliveryDate, "yyyy-MM-dd"),
         }
 
-        // Optimistic: close modal and show success immediately
-        form.reset()
-        setOpen(false)
-        toast.success("Request submitted — syncing with Google Sheets...")
-
         try {
             const result = await requestUnit(payload)
+
             if (result.success) {
+                resetFormState()
+                setOpen(false)
+                toast.success("Request submitted successfully", {
+                    description: "Syncing with Google Sheets...",
+                })
                 router.refresh()
             } else {
-                toast.error("Request failed to save", {
-                    description: result.error,
-                })
+                // Handle 409-style conflict errors from the server action
+                const isConflict =
+                    result.error?.includes("just been taken") ||
+                    result.error?.includes("collision detected");
+
+                if (isConflict) {
+                    // Reset IMEI selection immediately
+                    form.setValue("imeiIfAny", "");
+                    form.setValue("unitName", "");
+                    setSelectedCategory("");
+
+                    toast.error("Unit Unavailable", {
+                        description: result.error,
+                        icon: <AlertTriangle className="w-4 h-4" />,
+                        duration: 8000,
+                    })
+                } else {
+                    toast.error("Request failed to save", {
+                        description: result.error,
+                    })
+                }
             }
         } catch {
             toast.error("Network error", {
@@ -105,8 +215,14 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         }
     }
 
+    // Get icon for a category label
+    function getCategoryIcon(name: string): string {
+        const cat = DEVICE_CATEGORIES.find(c => c.label === name);
+        return cat?.icon || "📦";
+    }
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetFormState(); }}>
             <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
                     <Plus className="w-4 h-4" />
@@ -170,7 +286,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Requestor</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value || undefined}>
                                             <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors text-neutral-200">
+                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
                                                     <SelectValue placeholder="Select Requestor" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -206,48 +322,150 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                 <div className="hidden md:block"></div>
                             )}
 
-                            {/* IMEI Selection */}
+                            {/* ============================================================ */}
+                            {/* 2-Step IMEI Selection: Category → Unit/IMEI                  */}
+                            {/* ============================================================ */}
+
+                            {/* Step 1: Device Category Dropdown */}
+                            <FormItem className="flex flex-col">
+                                <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                    <span className="flex items-center gap-1.5">
+                                        <Layers className="w-3.5 h-3.5" />
+                                        Select Device Category
+                                    </span>
+                                </FormLabel>
+                                <Select
+                                    value={selectedCategory || undefined}
+                                    onValueChange={handleCategoryChange}
+                                >
+                                    <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
+                                        <SelectValue placeholder="Choose category first..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
+                                        {categories.map((cat) => (
+                                            <SelectItem
+                                                key={cat.name}
+                                                value={cat.name}
+                                                className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <span>{getCategoryIcon(cat.name)}</span>
+                                                    <span>{cat.name}</span>
+                                                    <span className="ml-auto text-xs text-neutral-400 tabular-nums">({cat.count})</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {!selectedCategory && (
+                                    <p className="text-xs text-neutral-400 mt-1">Select a category to see available units</p>
+                                )}
+                            </FormItem>
+
+                            {/* Step 2: IMEI/Unit Selection (only active after category) */}
                             <FormField
                                 control={form.control}
                                 name="imeiIfAny"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">IMEI/SN - Unit Name</FormLabel>
-                                        <Select
-                                            onValueChange={(val) => {
-                                                field.onChange(val === "none" ? "" : val)
-                                                // Sync Unit Name field
-                                                const selectedUnit = availableItems.find(item => item.imei === val)
-                                                if (selectedUnit) {
-                                                    form.setValue("unitName", selectedUnit.unitName)
-                                                } else if (val === "none") {
-                                                    form.setValue("unitName", "")
-                                                }
-                                            }}
-                                            value={field.value || undefined}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors text-neutral-200">
-                                                    <SelectValue placeholder="Select IMEI if exact unit" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors max-h-60">
-                                                <SelectItem value="none" className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer italic">
-                                                    None (Define manually)
-                                                </SelectItem>
-                                                {availableItems.map((item) => (
-                                                    <SelectItem key={item.imei} value={item.imei || "unknown"} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
-                                                        {item.imei} - {item.unitName}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                            <span className="flex items-center gap-1.5">
+                                                <Smartphone className="w-3.5 h-3.5" />
+                                                Select Unit / IMEI
+                                            </span>
+                                        </FormLabel>
+                                        <Popover open={imeiPopoverOpen} onOpenChange={setImeiPopoverOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        disabled={!selectedCategory}
+                                                        className={cn(
+                                                            "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal whitespace-pre-wrap h-auto min-h-[40px] text-left",
+                                                            !field.value && "text-neutral-500 dark:text-neutral-400",
+                                                            !selectedCategory && "opacity-50 cursor-not-allowed"
+                                                        )}
+                                                    >
+                                                        {!selectedCategory
+                                                            ? "Select a category first"
+                                                            : field.value === "none"
+                                                                ? "None (Define manually)"
+                                                                : !field.value
+                                                                    ? `Select from ${filteredItems.length} available unit${filteredItems.length !== 1 ? "s" : ""}...`
+                                                                    : (() => {
+                                                                        const item = filteredItems.find(i => i.imei === field.value);
+                                                                        return item ? `${item.imei} — ${item.unitName}` : field.value;
+                                                                    })()
+                                                        }
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder="Search IMEI or Unit Name..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>No available units in this category.</CommandEmpty>
+                                                        <CommandGroup heading={`${selectedCategory} — ${filteredItems.length} available`}>
+                                                            <CommandItem
+                                                                value="none define manually"
+                                                                onSelect={() => {
+                                                                    field.onChange("none");
+                                                                    form.setValue("unitName", "");
+                                                                    form.setValue("typeOfFoc", "");
+                                                                    setAutoFilledFoc(null);
+                                                                    setImeiPopoverOpen(false);
+                                                                }}
+                                                                className="italic text-neutral-500"
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        field.value === "none" ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                None (Define manually)
+                                                            </CommandItem>
+                                                            {filteredItems.map((item) => (
+                                                                <CommandItem
+                                                                    value={`${item.imei} ${item.unitName}`}
+                                                                    key={item.imei}
+                                                                    onSelect={() => {
+                                                                        field.onChange(item.imei);
+                                                                        form.setValue("unitName", item.unitName || "");
+                                                                        // Auto-fill Type of FOC from spreadsheet Column D
+                                                                        const focType = extractFocType(item);
+                                                                        if (focType) {
+                                                                            form.setValue("typeOfFoc", focType, { shouldValidate: true });
+                                                                            setAutoFilledFoc(focType);
+                                                                        }
+                                                                        setImeiPopoverOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "mr-2 h-4 w-4",
+                                                                            item.imei === field.value ? "opacity-100" : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                                                        <span className="font-medium text-sm truncate">{item.unitName}</span>
+                                                                        <span className="text-xs text-neutral-400 font-mono truncate">{item.imei}</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage className="text-red-400" />
                                     </FormItem>
                                 )}
                             />
 
-                            {/* Unit Name (Read Only if IMEI selected) */}
+                            {/* Unit Name (Auto-filled from IMEI selection, or manual entry) */}
                             <FormField
                                 control={form.control}
                                 name="unitName"
@@ -258,9 +476,13 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                             <Input
                                                 placeholder="e.g. S24 Ultra Titanium"
                                                 className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500 disabled:opacity-50"
+                                                disabled={!!watchImei && watchImei !== "none" && watchImei !== ""}
                                                 {...field}
                                             />
                                         </FormControl>
+                                        {watchImei && watchImei !== "none" && watchImei !== "" && (
+                                            <p className="text-xs text-blue-500 mt-1">Auto-filled from selected unit</p>
+                                        )}
                                         <FormMessage className="text-red-400" />
                                     </FormItem>
                                 )}
@@ -321,7 +543,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                 control={form.control}
                                 name="deliveryDate"
                                 render={({ field }) => (
-                                    <FormItem className="flex flex-col mt-2">
+                                    <FormItem className="flex flex-col">
                                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Delivery Date</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
@@ -329,7 +551,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                                     <Button
                                                         variant={"outline"}
                                                         className={cn(
-                                                            "w-full pl-3 text-left font-normal bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors text-neutral-200 hover:bg-neutral-900",
+                                                            "w-full pl-3 text-left font-normal bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800",
                                                             !field.value && "text-muted-foreground"
                                                         )}
                                                     >
@@ -365,11 +587,11 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                 control={form.control}
                                 name="typeOfDelivery"
                                 render={({ field }) => (
-                                    <FormItem className="mt-2">
+                                    <FormItem>
                                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of Delivery</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value || undefined}>
                                             <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors text-neutral-200">
+                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
                                                     <SelectValue placeholder="Select Delivery" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -386,7 +608,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                 )}
                             />
 
-                            {/* Type of FOC */}
+                            {/* Type of FOC (auto-filled from category, still editable) */}
                             <FormField
                                 control={form.control}
                                 name="typeOfFoc"
@@ -395,7 +617,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of FOC</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value || undefined}>
                                             <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors text-neutral-200">
+                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
                                                     <SelectValue placeholder="Select FOC Type" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -407,6 +629,9 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {autoFilledFoc && watchTypeOfFoc === autoFilledFoc && (
+                                            <p className="text-xs text-blue-500 mt-1">Auto-filled from spreadsheet data</p>
+                                        )}
                                         <FormMessage className="text-red-400" />
                                     </FormItem>
                                 )}
