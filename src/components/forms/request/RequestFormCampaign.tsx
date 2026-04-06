@@ -11,7 +11,7 @@ export function RequestFormCampaign() {
     const watchRequestor = useWatch({ name: "requestor" });
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <>
             {/* Campaign Name (Full Width) */}
             <FormField
                 control={form.control}
@@ -95,6 +95,6 @@ export function RequestFormCampaign() {
             ) : (
                 <div className="hidden md:block"></div>
             )}
-        </div>
+        </>
     );
 }

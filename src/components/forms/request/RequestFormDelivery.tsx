@@ -20,7 +20,7 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
     const watchTypeOfFoc = useWatch({ name: "typeOfFoc" });
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <>
             {/* Delivery Date */}
             <FormField
                 control={form.control}
@@ -96,7 +96,7 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                 control={form.control}
                 name="typeOfFoc"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of FOC</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || undefined}>
                             <FormControl>
@@ -119,6 +119,6 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                     </FormItem>
                 )}
             />
-        </div>
+        </>
     );
 }

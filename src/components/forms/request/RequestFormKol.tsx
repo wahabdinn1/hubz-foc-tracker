@@ -9,7 +9,7 @@ export function RequestFormKol() {
     const form = useFormContext();
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <>
             {/* KOL Name */}
             <FormField
                 control={form.control}
@@ -59,6 +59,6 @@ export function RequestFormKol() {
                     </FormItem>
                 )}
             />
-        </div>
+        </>
     );
 }

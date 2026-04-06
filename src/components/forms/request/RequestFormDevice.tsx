@@ -42,7 +42,7 @@ export function RequestFormDevice({
     const watchImei = useWatch({ name: "imeiIfAny" });
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <>
             {/* Step 1: Device Category Dropdown */}
             <FormItem className="flex flex-col">
                 <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
@@ -204,6 +204,6 @@ export function RequestFormDevice({
                     </FormItem>
                 )}
             />
-        </div>
+        </>
     );
 }
