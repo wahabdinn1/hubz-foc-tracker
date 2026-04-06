@@ -10,10 +10,24 @@ import {
   type RequestPayload,
   type ReturnPayload,
 } from "@/lib/validations";
-import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN } from "@/lib/constants";
+import { SHEET_RANGES, EMAIL_DOMAIN } from "@/lib/constants";
 import type { ActionResult } from "@/types/inventory";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+
+/**
+ * Format a Date as `M/d/yyyy HH:mm:ss` — e.g. `6/4/2026 05:01:30`.
+ * The Google Sheet expects this exact pattern (no comma, colon-separated time).
+ */
+function formatTimestamp(date: Date): string {
+  const d = date.getDate();
+  const m = date.getMonth() + 1;
+  const y = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${m}/${d}/${y} ${hh}:${mm}:${ss}`;
+}
 
 // ---------------------------------------------------------------------------
 // Outbound (Loan) — Step 3 FOC Request
@@ -130,7 +144,7 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
     // -----------------------------------------------------------------------
     // All checks passed — append the row to Step 3
     // -----------------------------------------------------------------------
-    const timestamp = new Date().toLocaleString("id-ID");
+    const timestamp = formatTimestamp(new Date());
     const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
     const finalRequestor =
       validated.requestor === "Other"
@@ -139,8 +153,9 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
-      range: SHEETS.FOC_REQUEST,
+      range: SHEET_RANGES.FOC_REQUEST,
       valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
       requestBody: {
         values: [
           [
@@ -197,7 +212,7 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
   try {
     const validated = returnSchema.parse(data);
 
-    const timestamp = new Date().toLocaleString("id-ID");
+    const timestamp = formatTimestamp(new Date());
     const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
     const finalRequestor =
       validated.requestor === "Other"
@@ -206,8 +221,9 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
-      range: SHEETS.FOC_RETURN,
+      range: SHEET_RANGES.FOC_RETURN,
       valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
       requestBody: {
         values: [
           [
