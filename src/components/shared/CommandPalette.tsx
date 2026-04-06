@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Search, Package, User, Megaphone } from "lucide-react";
 import type { InventoryItem } from "@/types/inventory";
@@ -67,6 +67,7 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="overflow-hidden p-0 max-w-lg bg-white/95 dark:bg-neutral-950/95 border-neutral-200 dark:border-neutral-800 backdrop-blur-2xl shadow-2xl [&>button]:hidden">
+                    <DialogTitle className="sr-only">Command Palette</DialogTitle>
                     <Command className="bg-transparent">
                         <CommandInput
                             placeholder="Search devices, KOLs, campaigns..."
