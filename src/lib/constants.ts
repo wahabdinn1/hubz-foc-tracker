@@ -115,3 +115,45 @@ export const QUICKVIEW_HIDDEN_KEYS = new Set([
 
 /** Email domain appended to usernames for form submissions. */
 export const EMAIL_DOMAIN = "@wppmedia.com";
+
+// ---------------------------------------------------------------------------
+// Form Dropdown Options
+// ---------------------------------------------------------------------------
+
+/** Requestor names for the dropdown in both Request and Return forms. */
+export const REQUESTORS = [
+  "Abigail",
+  "Khalida",
+  "Oliv",
+  "Salma",
+  "Tashya",
+  "Venni",
+  "Other",
+] as const;
+
+/** FOC type options (used in both forms). */
+export const FOC_TYPES = [
+  "ACCESSORIES",
+  "APS",
+  "BUDS",
+  "HANDPHONE",
+  "PACKAGES",
+  "RUGGED",
+  "TAB",
+  "WEARABLES",
+] as const;
+
+/** Delivery type options (used in Request form). */
+export const DELIVERY_TYPES = [
+  "BLUEBIRD",
+  "TIKI",
+] as const;
+
+/** Device category prefixes for the 2-step unit selection. */
+export const DEVICE_CATEGORIES = [
+  { prefix: "G-S", label: "S Series", icon: "📱" },
+  { prefix: "G-A", label: "A Series", icon: "📱" },
+  { prefix: "G-T", label: "Tab", icon: "📋" },
+  { prefix: "G-B", label: "Buds", icon: "🎧" },
+  { prefix: "G-W", label: "Wearable", icon: "⌚" },
+] as const;

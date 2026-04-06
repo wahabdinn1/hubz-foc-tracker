@@ -1,6 +1,6 @@
 # Hubz FOC Tracker — Developer Guide
 
-This document covers the architecture, data flow, conventions, and security model for the Hubz FOC Tracker. It is intended as a reference for anyone modifying or extending the codebase.
+This document covers the architecture, data flow, conventions, security model, and **step-by-step guides for common customization tasks** (adding requestors, changing form fields, updating delivery types, etc.).
 
 ---
 
@@ -25,6 +25,8 @@ src/
       ThemeProvider.tsx         # next-themes wrapper
       ThemeToggle.tsx           # Light/dark mode toggle button
     shared/                    # Reusable cross-feature components
+      PageHeader.tsx           # Unified page header toolbar (theme, sync, forms, Cmd+K)
+      CommandPalette.tsx       # Global Cmd+K search across nav, KOLs, campaigns
       QuickViewPanel.tsx       # Slide-over device detail panel
       Scorecard.tsx            # Animated stat card with spotlight effect
       PinModal.tsx             # Authentication PIN lock screen
@@ -35,16 +37,20 @@ src/
       ReturnFormModal.tsx      # Inbound (return) form
     dashboard/                 # Dashboard-specific widgets
       DashboardClient.tsx      # Dashboard state orchestrator
+      DashboardDonutChart.tsx  # Lightweight SVG donut chart (replaces recharts)
       ReturnTrackingTable.tsx  # Urgent return tracking table
       ActivityFeed.tsx         # Recent activity timeline
+      OverduePanel.tsx         # Overdue items panel
+      ReturnHistoryPanel.tsx   # Return history panel
     inventory/                 # Inventory tab components
       InventoryClient.tsx      # Inventory view orchestrator
-      MasterListTab.tsx        # Searchable/sortable device table
-      ModelsTab.tsx            # Grouped-by-model accordion view
+      MasterListTab.tsx        # Searchable/sortable device table with page-jump
+      ModelsTab.tsx            # 3-level grouped-by-model view
       CampaignsTab.tsx         # Grouped-by-campaign view
     kol/                       # KOL directory components
       KOLClient.tsx            # KOL list + individual profile views
     ui/                        # Shadcn primitives + custom components
+      EmptyState.tsx           # Reusable empty state with icon + message
 
   types/
     inventory.ts               # Centralized TypeScript interfaces
@@ -53,11 +59,17 @@ src/
 
   lib/
     auth.ts                    # Shared server-side JWT verification
-    constants.ts               # Magic strings, sheet names, config values
-    date-utils.ts              # Shared date/urgency helpers (getReturnUrgency, isItemOverdue)
-    validations.ts             # Centralized Zod schemas
+    constants.ts               # Centralized constants: REQUESTORS, FOC_TYPES,
+                               #   DELIVERY_TYPES, DEVICE_CATEGORIES, sheet names,
+                               #   column headers, auth config, etc.
+    date-utils.ts              # Shared date/urgency helpers
+    validations.ts             # Centralized Zod schemas (request + return)
     utils.ts                   # Tailwind class merge & helpers
     rate-limit.ts              # In-memory PIN brute-force prevention
+
+  hooks/
+    useInventoryStats.ts       # Derives stats (available, loaned, etc.) from inventory
+    useSyncInventory.ts        # Centralized sync-with-Sheets + transition state
 
   server/
     actions.ts                 # Barrel re-export of all server actions
@@ -77,10 +89,12 @@ src/
 | `server/mutations.ts` | Appends rows to "Step 3" (request) and "Step 4" (return) sheets |
 | `server/auth.ts` | PIN verification, JWT signing, cookie management |
 | `types/inventory.ts` | `InventoryItem`, `ReturnTrackingItem`, `KOLProfile`, `ActionResult` type definitions |
-| `lib/constants.ts` | Sheet names, column header lookups, auth config, status strings |
+| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `DEVICE_CATEGORIES`, sheet names, column headers |
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
 | `lib/validations.ts` | Zod schemas shared between client forms and server actions |
 | `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions |
+| `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `availableUnits`, `loanedItems` from raw inventory |
+| `hooks/useSyncInventory.ts` | Centralized `handleSync()` + `isPending` state for all pages |
 
 ---
 
@@ -201,6 +215,349 @@ Run `npx eslint .` to check for linting issues.
 
 ---
 
+## How-To Guides: Form & Content Customization
+
+The following guides explain how to make common changes to the Request/Return forms, device categories, delivery options, and other site content **without breaking the application**.
+
+---
+
+### How to Add or Remove a Requestor
+
+Requestors appear in the "Requestor" dropdown on both the Outbound (Request) and Inbound (Return) forms.
+
+**File to edit:** `src/components/forms/RequestFormModal.tsx` (Request) and `src/components/forms/ReturnFormModal.tsx` (Return)
+
+**Steps:**
+
+1. Open the form component file.
+2. Search for the string array that populates the `<SelectItem>` elements inside the Requestor field. It looks like this:
+
+   ```tsx
+   {["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"].map((req) => (
+       <SelectItem key={req} value={req} ...>
+           {req}
+       </SelectItem>
+   ))}
+   ```
+
+3. Add, remove, or rename entries inside the array:
+
+   ```tsx
+   // Example: Adding "Diana" and removing "Oliv"
+   {["Abigail", "Diana", "Khalida", "Salma", "Tashya", "Venni", "Other"].map((req) => (
+   ```
+
+4. **Keep `"Other"` last** — it triggers a conditional "Custom Requestor" text input below the dropdown.
+5. Repeat the same change in `ReturnFormModal.tsx` so both forms stay consistent.
+6. Save and test with `pnpm dev`.
+
+> **Note:** No backend or validation changes are needed. The Zod schema only requires `requestor` to be a non-empty string, it does not enforce specific values.
+
+> **Centralized Constants:** Since the 2026-04 refactoring, all dropdown values are defined in `src/lib/constants.ts`. The forms import from there — you no longer need to edit each form file separately.
+
+**Single source of truth (`src/lib/constants.ts`):**
+
+```ts
+export const REQUESTORS = ["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"] as const;
+```
+
+Edit this array to add/remove requestors. Both forms will update automatically.
+
+---
+
+### How to Add or Remove a Device Category
+
+Device categories control the first dropdown in the 2-step unit selection ("Select Device Category").
+
+**File to edit:** `src/components/forms/RequestFormModal.tsx`
+
+**Steps:**
+
+1. Find the `DEVICE_CATEGORIES` constant at the top of the file:
+
+   ```tsx
+   const DEVICE_CATEGORIES = [
+       { prefix: "G-S", label: "S Series", icon: "📱" },
+       { prefix: "G-A", label: "A Series", icon: "📱" },
+       { prefix: "G-T", label: "Tab",      icon: "📋" },
+       { prefix: "G-B", label: "Buds",     icon: "🎧" },
+       { prefix: "G-W", label: "Wearable", icon: "⌚" },
+   ] as const;
+   ```
+
+2. Add a new object for a new category:
+
+   ```tsx
+   { prefix: "G-R", label: "Rugged", icon: "🛡️" },
+   ```
+
+3. Or remove an existing entry to merge it into "Others".
+
+**How it works:** The `prefix` is matched against the start of each item's `unitName` (after uppercasing). If no prefix matches, the unit falls into the automatic "Others" bucket. The `label` is what appears in the dropdown, and `icon` is the emoji shown next to it.
+
+> **Note:** Since the 2026-04 refactoring, `DEVICE_CATEGORIES` is defined in `src/lib/constants.ts` and imported by `RequestFormModal.tsx`. Edit the constant there.
+
+---
+
+### How to Add or Remove Delivery Types
+
+Delivery types appear in the "Type of Delivery" dropdown on the Request form.
+
+**File to edit:** `src/components/forms/RequestFormModal.tsx`
+
+**Steps:**
+
+1. Search for the delivery type array. It looks like:
+
+   ```tsx
+   {["BLUEBIRD", "TIKI"].map((type) => (
+       <SelectItem key={type} value={type} ...>
+           {type}
+       </SelectItem>
+   ))}
+   ```
+
+2. Add or remove entries:
+
+   ```tsx
+   {["BLUEBIRD", "GOSEND", "TIKI", "PICKUP"].map((type) => (
+   ```
+
+3. Save and test. No backend changes needed.
+
+> **Note:** Since the 2026-04 refactoring, delivery types are defined in `src/lib/constants.ts` as `DELIVERY_TYPES`. Edit the constant there.
+
+---
+
+### How to Add or Remove FOC Types
+
+FOC Types appear in the "Type of FOC" dropdown on both the Request and Return forms. This field can be **auto-filled** from the Google Sheet data (Column D of "Step 1 Data Bank"), but the user can still override the selection.
+
+**File to edit:** `src/components/forms/RequestFormModal.tsx` and `src/components/forms/ReturnFormModal.tsx`
+
+**Steps:**
+
+1. Search for the FOC type array:
+
+   ```tsx
+   {["ACCESORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES"].map((type) => (
+   ```
+
+2. Add, remove, or rename entries:
+
+   ```tsx
+   {["ACCESSORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES", "MONITOR"].map((type) => (
+   ```
+
+3. If Google Sheets Column D uses a value not in this array, the auto-fill will set it but it may not match a dropdown option. Make sure the sheet values match the array entries (case-insensitive matching is handled by the `extractFocType` function).
+
+> **Note:** Since the 2026-04 refactoring, FOC types are defined in `src/lib/constants.ts` as `FOC_TYPES`. Edit the constant there — both forms import from it.
+
+---
+
+### How to Change the Email Domain
+
+The email domain suffix shown next to the Username field (currently `@wppmedia.com`).
+
+**Files to edit:**
+
+1. `src/lib/constants.ts` — Change the canonical value:
+
+   ```tsx
+   export const EMAIL_DOMAIN = "@newdomain.com";
+   ```
+
+2. `src/components/forms/RequestFormModal.tsx` — Update the visible suffix text:
+
+   ```tsx
+   <span className="...">@newdomain.com</span>
+   ```
+
+3. `src/server/mutations.ts` — The server action reads `EMAIL_DOMAIN` from constants, so updating `constants.ts` is sufficient for the backend.
+
+---
+
+### How to Change Form Field Layout
+
+The Request form uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). Each field is one column unless it has `md:col-span-2` (full width).
+
+**Current layout order (top to bottom):**
+
+| Row | Left Column | Right Column |
+|---|---|---|
+| 1 | Campaign Name (full width) | — |
+| 2 | Username + @domain (full width) | — |
+| 3 | Requestor | Custom Requestor (if "Other") |
+| 4 | Device Category | Unit / IMEI |
+| 5 | Unit Name (full width) | — |
+| 6 | KOL Name | KOL Phone Number |
+| 7 | KOL Address (full width) | — |
+| 8 | Delivery Date | Type of Delivery |
+| 9 | Type of FOC | (empty) |
+
+**To rearrange fields:** Move the `<FormField>` JSX blocks within the `<div className="grid ...">` container. The grid automatically wraps items into 2 columns on desktop.
+
+**To make a field full-width:** Add `className="md:col-span-2"` to its `<FormItem>`.
+
+**To make a field half-width:** Remove `md:col-span-2` from its `<FormItem>`.
+
+---
+
+### How to Add a Completely New Form Field
+
+Adding a new field requires changes in **3 files**:
+
+#### 1. Zod Schema — `src/lib/validations.ts`
+
+Add the field to both the client schema and the payload schema:
+
+```tsx
+// Client schema (requestFormSchema)
+newFieldName: z.string().min(1, "Field is required"),
+
+// Server payload schema (requestPayloadSchema)
+newFieldName: z.string().min(1, "Field is required"),
+
+// Type (auto-inferred by z.infer, no manual change needed)
+```
+
+#### 2. Form UI — `src/components/forms/RequestFormModal.tsx`
+
+Add a default value in the `useForm` setup:
+
+```tsx
+defaultValues: {
+    // ... existing fields
+    newFieldName: "",
+},
+```
+
+Add the JSX `<FormField>` block in the desired position within the grid:
+
+```tsx
+<FormField
+    control={form.control}
+    name="newFieldName"
+    render={({ field }) => (
+        <FormItem>
+            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                New Field Label
+            </FormLabel>
+            <FormControl>
+                <Input
+                    placeholder="Enter value"
+                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
+                    {...field}
+                />
+            </FormControl>
+            <FormMessage className="text-red-400" />
+        </FormItem>
+    )}
+/>
+```
+
+#### 3. Server Action — `src/server/mutations.ts`
+
+Add the new field to the row array that gets appended to Google Sheets. Find the `requestUnit` function and locate the `values` array:
+
+```tsx
+const values = [[
+    timestamp,
+    payload.username + EMAIL_DOMAIN,
+    payload.requestor === "Other" ? payload.customRequestor : payload.requestor,
+    payload.campaignName,
+    payload.unitName,
+    payload.imeiIfAny || "",
+    payload.kolName,
+    payload.kolAddress,
+    payload.kolPhoneNumber,
+    payload.deliveryDate,
+    payload.typeOfDelivery,
+    payload.typeOfFoc,
+    payload.newFieldName,      // ← Add the new field here
+]];
+```
+
+> **Important:** The position in the array must match the target column in the Google Sheet. If the new field maps to Column N, place it as the 14th element (0-indexed: 13th).
+
+---
+
+### How to Change the PIN / Add Authorized PINs
+
+**File to edit:** `.env.local`
+
+```env
+AUTHORIZED_PINS="newpin1,newpin2,newpin3"
+```
+
+PINs are comma-separated strings. Restart the dev server after changing.
+
+---
+
+### How to Change the Sidebar / Navigation
+
+**File to edit:** `src/components/layout/DashboardLayout.tsx`
+
+The sidebar renders a list of navigation items. Each item has:
+- `href` — the route path
+- `icon` — a Lucide React icon component
+- `label` — the visible text
+
+Search for the navigation items array and add/modify entries:
+
+```tsx
+{ href: "/new-page", icon: SomeIcon, label: "New Page" },
+```
+
+Then create the corresponding page at `src/app/new-page/page.tsx`.
+
+---
+
+### How to Change Dashboard Scorecard Content
+
+**File to edit:** `src/components/dashboard/DashboardClient.tsx`
+
+Scorecards are rendered using the `<Scorecard>` component. Each one receives:
+- `title` — card heading
+- `value` — the number to display
+- `icon` — Lucide icon
+- `filterLink` — optional link URL for click-through
+
+Modify the props or add new `<Scorecard>` instances in the grid.
+
+---
+
+### How to Modify Google Sheet Column Mapping
+
+If the Google Sheet columns are renamed or reordered:
+
+**File to edit:** `src/lib/constants.ts`
+
+Update the `COLUMN_HEADERS` object. Each key maps to an **ordered array** of possible header names:
+
+```tsx
+export const COLUMN_HEADERS = {
+  IMEI: ["SERIAL NUMBER (IMEI/SN)", "IMEI", "Serial Number"],
+  // ... add fallback names as needed
+};
+```
+
+The system tries each name in order and uses the first match. This makes the app robust against minor header renames.
+
+---
+
+### How to Add Firebase, Supabase, or Other Backends
+
+The application currently uses Google Sheets as its only data source. To add a different backend:
+
+1. Create a new service file in `src/server/` (e.g., `supabase.ts`).
+2. Implement the same `getInventory()` return shape (`InventoryItem[]`).
+3. Replace the import in `src/server/inventory.ts`.
+4. Update mutation functions in `src/server/mutations.ts` to write to the new backend.
+5. Keep the Zod schemas unchanged — they validate the data shape, not the storage layer.
+
+---
+
 ## Troubleshooting
 
 **Sheet column headers changed** — Update the corresponding entry in `lib/constants.ts` → `COLUMN_HEADERS`. The lookup system tries multiple header names in priority order.
@@ -212,3 +569,64 @@ Run `npx eslint .` to check for linting issues.
 **Build fails with missing env vars** — All three Google credentials must be present. `AUTHORIZED_PINS` must also be set for auth.
 
 **Adding a new hidden column to QuickView** — Add the lowercase key to `QUICKVIEW_HIDDEN_KEYS` in `lib/constants.ts`.
+
+**Form submission goes to wrong row** — The server uses `INSERT_ROWS` with explicit range targeting. Check `server/mutations.ts` to verify the range logic.
+
+**Auto-fill FOC Type not working** — Ensure the Column D header in "Step 1 Data Bank" matches one of the keys in `FOC_TYPE_KEYS` array in `RequestFormModal.tsx` (e.g., `"FOC TYPE"`, `"TYPE OF FOC"`, `"Type of FOC"`).
+
+---
+
+## Shared Components & Hooks
+
+### PageHeader
+`src/components/shared/PageHeader.tsx` — Unified header toolbar rendered on Dashboard, Inventory, and KOL pages. Contains:
+- Theme toggle
+- Sync button (uses `useSyncInventory` hook)
+- Cmd+K search trigger
+- Return and Request form modals
+
+### CommandPalette
+`src/components/shared/CommandPalette.tsx` — Global search accessible via `Ctrl+K` / `⌘K` or `/`. Searches across:
+- Page navigation (Dashboard, Inventory, KOL)
+- Quick filters (Available, Loaned, Unreturned)
+- KOL names (first 10 matches)
+- Campaign names (first 8 matches)
+
+### useSyncInventory
+`src/hooks/useSyncInventory.ts` — Centralized hook for triggering a manual cache-bust sync with Google Sheets. Returns `{ isPending, handleSync }`. Uses `useTransition` for non-blocking UI updates.
+
+### useInventoryStats
+`src/hooks/useInventoryStats.ts` — Derives all dashboard-level statistics from the raw inventory array. Returns: `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `pendingReturnCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity`.
+
+### DashboardDonutChart
+`src/components/dashboard/DashboardDonutChart.tsx` — Pure SVG donut chart replacing the heavy `recharts` dependency. Zero external dependencies. Renders animated SVG arcs with a center label.
+
+---
+
+## Future Development TODOs
+
+The following improvements are planned but not yet implemented:
+
+### UI/UX Improvements
+- [x] **Form Discard Confirmation** — Show "Discard changes?" dialog when closing a dirty form (`isDirty` from react-hook-form)
+- [x] **Scroll-to-Error** — On form validation failure, smooth-scroll to the first error field
+- [ ] **Dashboard Date Range Filter** — Add date range selector to filter dashboard analytics by time period
+- [ ] **Bulk Operations** — Multi-select rows in Master List for batch status updates
+- [ ] **Notification System** — Toast-based alerts for overdue returns and approaching deadlines
+
+### Code Quality
+- [x] **Component Decomposition** — Break down large components:
+  - [x] `RequestFormModal.tsx` (~640 lines) → extract step sections into sub-components
+  - [x] `ModelsTab.tsx` (~530 lines) → extract level views into `ModelLevel1Grid`, `ModelLevel2Cards`, `ModelLevel3Units`
+  - [x] `ReturnFormModal.tsx` (~376 lines) → extract IMEI selector into reusable component
+  - [x] `MasterListTab.tsx` (~370 lines) → extract mobile card view and pagination into sub-components
+- [ ] **React.memo optimization** — Memoize expensive child components (Scorecard, table rows)
+- [ ] **Unit Tests** — Add test coverage for date-utils, validations, and server actions
+
+### Features
+- [ ] **Role-Based Access Control** — Different permission levels (admin vs. viewer)
+- [ ] **Internationalization (i18n)** — Support for Bahasa Indonesia alongside English
+- [ ] **PWA Offline Mode** — Cache critical data for offline dashboard viewing
+- [ ] **QR Code Generation** — Generate QR codes for device IMEI labels
+- [ ] **Export Reports** — Generate PDF/Excel reports for inventory audits
+- [ ] **Activity Audit Log** — Persistent log of all form submissions with timestamps

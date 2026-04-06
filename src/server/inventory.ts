@@ -308,4 +308,44 @@ export const getReturnHistory = unstable_cache(
   ["return-history"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
 );
+import { RequestHistoryItem } from "@/types/inventory";
 
+/**
+ * Fetch request submission history from the "Step 3 FOC Request" sheet.
+ */
+export const getRequestHistory = unstable_cache(
+  async (): Promise<RequestHistoryItem[]> => {
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: SHEET_RANGES.FOC_REQUEST,
+      });
+
+      const rows = response.data.values;
+      if (!rows || rows.length <= 1) return [];
+
+      return rows.slice(1)
+        .filter(row => row && row.length > 0 && row[0]) // skip empty rows
+        .map((row) => ({
+          timestamp: row[0] || "",
+          email: row[1] || "",
+          requestor: row[2] || "",
+          campaignName: row[3] || "",
+          unitName: row[4] || "",
+          imei: row[5] || "",
+          kolName: row[6] || "",
+          kolPhone: row[7] || "",
+          kolAddress: row[8] || "",
+          deliveryDate: row[9] || "",
+          typeOfDelivery: row[10] || "",
+          typeOfFoc: row[11] || "",
+        }))
+        .reverse(); // most recent first
+    } catch (error) {
+      console.error("Failed to fetch request history", error);
+      return [];
+    }
+  },
+  ["request-history"],
+  { revalidate: CACHE_REVALIDATE_SECONDS }
+);

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconMenu2, IconX, IconLayoutDashboard, IconBox, IconUsers } from "@tabler/icons-react";
+import { IconMenu2, IconX, IconLayoutDashboard, IconBox, IconUsers, IconHistory } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +50,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
                     <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
                     <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
+                    <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
                 </nav>
             </motion.div>
 
@@ -81,6 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
                         </nav>
                     </motion.div>
                 )}
@@ -101,8 +103,8 @@ function NavItem({ icon, label, active, open, href, onClick }: { icon: React.Rea
         <Link href={href} onClick={onClick} className={cn(
             "flex items-center h-12 md:h-11 px-3.5 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden group border",
             active
-                ? "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.1)]"
-                : "border-transparent hover:bg-black/5 dark:hover:bg-white/10 dark:hover:border-white/5 text-neutral-500 dark:text-neutral-400 dark:hover:text-white hover:text-neutral-900"
+                ? "bg-blue-500/10 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 dark:border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.1)] border-l-[3px] border-l-blue-500"
+                : "border-transparent hover:bg-neutral-100 dark:hover:bg-white/10 dark:hover:border-white/5 text-neutral-500 dark:text-neutral-400 dark:hover:text-white hover:text-neutral-900"
         )}>
             <div className="shrink-0">{icon}</div>
             <AnimatePresence>

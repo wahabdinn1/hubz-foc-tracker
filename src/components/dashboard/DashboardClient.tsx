@@ -1,27 +1,27 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
-import { revalidateInventory } from "@/server/actions";
 import { Scorecard } from "@/components/shared/Scorecard";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { RequestFormModal } from "@/components/forms/RequestFormModal";
-import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
-import { cn } from "@/lib/utils";
 import { ReturnTrackingTable } from "./ReturnTrackingTable";
 import { ActivityFeed } from "./ActivityFeed";
 import { DashboardDonutChart } from "./DashboardDonutChart";
 import { OverduePanel } from "./OverduePanel";
 import { ReturnHistoryPanel } from "./ReturnHistoryPanel";
-import { useInventoryStats } from "@/hooks/useInventoryStats";
+import { useInventoryStats, DashboardDateRange } from "@/hooks/useInventoryStats";
 import { motion } from "framer-motion";
 import {
-    Package, CheckCircle, Clock, Gift, RefreshCw, ArrowDownRight,
+    Package, CheckCircle, Clock, Gift, ArrowDownRight, Calendar as CalendarIcon
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 interface DashboardClientProps {
     inventory: InventoryItem[];
@@ -33,20 +33,7 @@ interface DashboardClientProps {
 export function DashboardClient({ inventory, isAuthenticated, overdueItems = [], returnHistory = [] }: DashboardClientProps) {
     const router = useRouter();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-
-    // Sync State
-    const [isPending, startTransition] = useTransition();
-
-    const handleSync = () => {
-        startTransition(async () => {
-            const res = await revalidateInventory();
-            if (res.success) {
-                toast.success("Inventory synchronized with Google Sheets");
-            } else {
-                toast.error("Failed to sync inventory");
-            }
-        });
-    };
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
     const {
         totalStock,
@@ -58,7 +45,7 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = [],
         availableUnits,
         loanedItems,
         recentActivity
-    } = useInventoryStats(inventory);
+    } = useInventoryStats(inventory, dateRange as DashboardDateRange);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -83,29 +70,59 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = [],
             )}
 
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white transition-colors">
-                        Inventory Overview
-                    </h1>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1 transition-colors">Real-time status of all FOC devices</p>
-                </div>
+            <PageHeader
+                title="Inventory Overview"
+                subtitle="Real-time status of all FOC devices"
+                availableUnits={availableUnits}
+                loanedItems={loanedItems}
+                allInventory={inventory}
+            />
 
-                <div className="flex items-center gap-2 md:gap-3 bg-white/80 dark:bg-neutral-900/40 p-1 md:p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl transition-colors">
-                    <ThemeToggle />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleSync}
-                        disabled={isPending}
-                        className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
-                        title="Force Sync with Google Sheets"
-                    >
-                        <RefreshCw className={cn("w-5 h-5", isPending && "animate-spin text-blue-500 dark:text-blue-400")} />
-                    </Button>
-                    <div className="w-px h-6 bg-black/10 dark:bg-white/10 transition-colors" />
-                    <ReturnFormModal loanedItems={loanedItems} />
-                    <RequestFormModal availableItems={availableUnits} />
+            {/* Dashboard Controls */}
+            <div className="flex items-center justify-between relative z-10 w-full mb-4">
+                <div className="flex items-center gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                    "w-[260px] justify-start text-left font-normal bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors",
+                                    !dateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                                            {format(dateRange.to, "LLL dd, y")}
+                                        </>
+                                    ) : (
+                                        format(dateRange.from, "LLL dd, y")
+                                    )
+                                ) : (
+                                    <span>Filter by Date Range</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                                className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white rounded-md border-neutral-200 dark:border-neutral-800"
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    {(dateRange?.from || dateRange?.to) && (
+                        <Button variant="ghost" size="sm" onClick={() => setDateRange(undefined)} className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">
+                            Clear Filter
+                        </Button>
+                    )}
                 </div>
             </div>
 

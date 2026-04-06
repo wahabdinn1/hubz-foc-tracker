@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { InventoryItem } from "@/types/inventory";
-import { revalidateInventory } from "@/server/actions";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { RefreshCw, Smartphone, Database, Megaphone } from "lucide-react";
-import { RequestFormModal } from "@/components/forms/RequestFormModal";
-import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Smartphone, Database, Megaphone } from "lucide-react";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
 
 import { ModelsTab } from "./ModelsTab";
@@ -21,49 +15,19 @@ import { CampaignsTab } from "./CampaignsTab";
 export function InventoryClient({ inventory, initialFilter }: { inventory: InventoryItem[]; initialFilter?: string }) {
     // Shared State
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-    const [isPending, startTransition] = useTransition();
 
     const { availableUnits, loanedItems } = useInventoryStats(inventory);
-
-    const handleSync = () => {
-        startTransition(async () => {
-            const res = await revalidateInventory();
-            if (res.success) {
-                toast.success("Inventory synchronized with Google Sheets");
-            } else {
-                toast.error("Failed to sync inventory");
-            }
-        });
-    };
 
     return (
         <div className="w-full h-full space-y-4 md:space-y-6 pb-10 p-4 md:p-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white transition-colors mb-1">
-                        Inventory Bank
-                    </h1>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm">Deeply manage and aggregate the hardware lifecycle.</p>
-                </div>
-
-                <div className="flex items-center gap-2 md:gap-3 bg-white/80 dark:bg-neutral-900/40 p-1 md:p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] transition-colors backdrop-blur-xl shadow-xl">
-                    <ThemeToggle />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleSync}
-                        disabled={isPending}
-                        className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-white/5 rounded-xl transition-colors"
-                        title="Force Sync with Google Sheets"
-                    >
-                        <RefreshCw className={cn("w-5 h-5", isPending && "animate-spin text-blue-400")} />
-                    </Button>
-                    <div className="w-px h-6 bg-black/10 dark:bg-white/10 transition-colors" />
-                    <ReturnFormModal loanedItems={loanedItems} />
-                    <RequestFormModal availableItems={availableUnits} />
-                </div>
-            </div>
+            <PageHeader
+                title="Inventory Bank"
+                subtitle="Deeply manage and aggregate the hardware lifecycle."
+                availableUnits={availableUnits}
+                loanedItems={loanedItems}
+                allInventory={inventory}
+            />
 
             <Tabs defaultValue="master" className="w-full relative z-10">
                 <TabsList className="bg-black/5 dark:bg-neutral-900/50 border border-black/5 dark:border-white/[0.05] p-1 h-auto rounded-2xl mb-4 md:mb-6 w-full sm:w-auto transition-colors">

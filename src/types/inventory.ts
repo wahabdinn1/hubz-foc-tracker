@@ -116,6 +116,26 @@ export interface ReturnHistoryItem {
 }
 
 // ---------------------------------------------------------------------------
+// Request History (Step 3)
+// ---------------------------------------------------------------------------
+
+/** A row from the "Step 3 FOC Request" sheet. */
+export interface RequestHistoryItem {
+  timestamp: string;
+  email: string;
+  requestor: string;
+  campaignName: string;
+  unitName: string;
+  imei: string;
+  kolName: string;
+  kolPhone: string;
+  kolAddress: string;
+  deliveryDate: string;
+  typeOfDelivery: string;
+  typeOfFoc: string;
+}
+
+// ---------------------------------------------------------------------------
 // Server Action Responses
 // ---------------------------------------------------------------------------
 

@@ -6,13 +6,13 @@
  */
 
 // Data fetching
-export { getInventory, revalidateInventory, getOverdueData, getReturnHistory } from "./inventory";
+export { getInventory, revalidateInventory, getOverdueData, getReturnHistory, getRequestHistory } from "./inventory";
 
 // Form mutations
-export { requestUnit, returnUnit } from "./mutations";
+export { requestUnit, returnUnit, returnUnits } from "./mutations";
 
 // Authentication
 export { verifyPin } from "./auth";
 
 // Types (re-export for convenience)
-export type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
+export type { InventoryItem, OverdueItem, ReturnHistoryItem, RequestHistoryItem } from "@/types/inventory";

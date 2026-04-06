@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight, X } from "lucide-react";
 import { QUICKVIEW_HIDDEN_KEYS } from "@/lib/constants";
 import { isEmptyValue, getReturnUrgency } from "@/lib/date-utils";
 
@@ -29,21 +29,30 @@ export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelPro
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent className="overflow-y-auto w-full sm:max-w-lg bg-white/95 dark:bg-neutral-950/95 transition-colors border-l border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 custom-scrollbar shadow-2xl p-4 sm:p-6">
                 <SheetHeader className="mb-4 sm:mb-6 space-y-3">
-                    <div className="flex items-start justify-between gap-3 pr-6">
+                    <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 text-left min-w-0">
                             <SheetTitle className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white transition-colors tracking-tight leading-tight">{item.unitName || "Unnamed Unit"}</SheetTitle>
                             <SheetDescription className="text-neutral-500 dark:text-neutral-400 font-mono text-xs sm:text-sm break-all">
                                 IMEI: {item.imei || "N/A"}
                             </SheetDescription>
                         </div>
-                        <Badge variant="outline" className={cn(
-                            "px-3 py-1 text-xs select-none",
-                            item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                item.statusLocation?.toUpperCase().includes("LOANED") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
-                                    "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
-                        )}>
-                            {item.statusLocation || "UNKNOWN"}
-                        </Badge>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className={cn(
+                                "px-3 py-1 text-xs select-none",
+                                item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                    item.statusLocation?.toUpperCase().includes("LOANED") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                        "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
+                            )}>
+                                {item.statusLocation || "UNKNOWN"}
+                            </Badge>
+                            <button
+                                onClick={() => onOpenChange(false)}
+                                className="sm:hidden p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                aria-label="Close panel"
+                            >
+                                <X className="w-4 h-4 text-neutral-500" />
+                            </button>
+                        </div>
                     </div>
                 </SheetHeader>
 

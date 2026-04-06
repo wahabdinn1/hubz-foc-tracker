@@ -1,7 +1,29 @@
 import { useMemo } from "react";
 import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
+import { parse, isValid } from "date-fns";
 
-export function useInventoryStats(inventory: InventoryItem[]) {
+export interface DashboardDateRange {
+    from?: Date;
+    to?: Date;
+}
+
+function parseDateStr(dateStr: string | undefined): Date | null {
+    if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return null;
+    
+    // Attempt standard JS parse first
+    let d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    
+    // Common GS formats fallback
+    const formats = ["M/d/yyyy H:mm:ss", "M/d/yyyy", "yyyy-MM-dd"];
+    for (const fmt of formats) {
+        d = parse(dateStr, fmt, new Date());
+        if (isValid(d)) return d;
+    }
+    return null;
+}
+
+export function useInventoryStats(inventory: InventoryItem[], dateRange?: DashboardDateRange) {
     const validInventory = useMemo(() =>
         inventory.filter(item => (item.imei && item.imei.trim() !== "") || (item.unitName && item.unitName.trim() !== ""))
     , [inventory]);
@@ -25,7 +47,29 @@ export function useInventoryStats(inventory: InventoryItem[]) {
             const locationStr = item.statusLocation?.toUpperCase() || "";
             if (locationStr.includes('RETURN TO TCC')) return false;
             const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
-            return hasReturnDate;
+            
+            if (!hasReturnDate) return false;
+            
+            // Check against date filter
+            if (dateRange?.from || dateRange?.to) {
+                const returnDate = parseDateStr(item.plannedReturnDate);
+                if (returnDate) {
+                    // Set hours to 0 to compare purely by day
+                    returnDate.setHours(0,0,0,0);
+                    if (dateRange.from) {
+                        const fromD = new Date(dateRange.from);
+                        fromD.setHours(0,0,0,0);
+                        if (returnDate < fromD) return false;
+                    }
+                    if (dateRange.to) {
+                        const toD = new Date(dateRange.to);
+                        toD.setHours(23,59,59,999);
+                        if (returnDate > toD) return false;
+                    }
+                }
+            }
+
+            return true;
         });
 
         // Aggregate Returns by Unit Name, SEIN PIC, and GOAT PIC
@@ -58,7 +102,7 @@ export function useInventoryStats(inventory: InventoryItem[]) {
             const dateB = new Date(b.plannedReturnDate).getTime();
             return dateA - dateB;
         });
-    }, [inventory]);
+    }, [inventory, dateRange]);
 
     const pendingReturnCount = topUrgentReturns.length;
 
@@ -73,13 +117,32 @@ export function useInventoryStats(inventory: InventoryItem[]) {
     const recentActivity = useMemo(() =>
         [...validInventory].filter(item => {
             const dateStr = item.fullData?.["Timestamp"] || item.fullData?.["Date Received"] || item.fullData?.["Request Date"];
-            return !!dateStr && dateStr.trim() !== "" && dateStr.trim() !== "-";
+            if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return false;
+            
+            // Check against date filter
+            if (dateRange?.from || dateRange?.to) {
+                const parsedDate = parseDateStr(dateStr);
+                if (parsedDate) {
+                    if (dateRange.from) {
+                        const fromD = new Date(dateRange.from);
+                        fromD.setHours(0,0,0,0);
+                        if (parsedDate < fromD) return false;
+                    }
+                    if (dateRange.to) {
+                        const toD = new Date(dateRange.to);
+                        toD.setHours(23,59,59,999);
+                        if (parsedDate > toD) return false;
+                    }
+                }
+            }
+            
+            return true;
         }).sort((a, b) => {
             const dateA = new Date(a.fullData?.["Timestamp"] || a.fullData?.["Date Received"] || a.fullData?.["Request Date"] || 0);
             const dateB = new Date(b.fullData?.["Timestamp"] || b.fullData?.["Date Received"] || b.fullData?.["Request Date"] || 0);
             return dateB.getTime() - dateA.getTime();
         }).slice(0, 15)
-    , [validInventory]);
+    , [validInventory, dateRange]);
 
     return {
         totalStock,

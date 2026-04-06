@@ -257,3 +257,71 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
     };
   }
 }
+
+/**
+ * Submit multiple inbound FOC returns (devices coming back from KOLs).
+ * Appends multiple rows to the "Step 4 FOC Return" sheet.
+ *
+ * @param data - Array of validated return payloads.
+ * @returns ActionResult indicating success or failure with an error message.
+ */
+export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionResult> {
+  if (!(await isAuthenticated())) {
+    return { success: false, error: "Unauthorized — please log in first." };
+  }
+
+  if (!dataArray || dataArray.length === 0) {
+    return { success: false, error: "No units provided for return." };
+  }
+
+  try {
+    const valuesToAppend: any[][] = [];
+    
+    for (const data of dataArray) {
+      const validated = returnSchema.parse(data);
+      const timestamp = formatTimestamp(new Date());
+      const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
+      const finalRequestor =
+        validated.requestor === "Other"
+          ? validated.customRequestor || "Other"
+          : validated.requestor;
+
+      valuesToAppend.push([
+        timestamp,
+        emailAddress,
+        finalRequestor,
+        validated.unitName,
+        validated.imei,
+        validated.fromKol,
+        validated.kolAddress,
+        validated.kolPhoneNumber,
+        validated.typeOfFoc,
+      ]);
+    }
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: SHEET_RANGES.FOC_RETURN,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: valuesToAppend,
+      },
+    });
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to append multiple returns", error);
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: "Validation failed for one or more items.",
+      };
+    }
+    return {
+      success: false,
+      error: "Failed to batch return units due to a server error.",
+    };
+  }
+}

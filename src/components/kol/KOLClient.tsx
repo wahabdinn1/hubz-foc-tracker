@@ -6,11 +6,9 @@ import { Search, User, Phone, MapPin, Package, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { RequestFormModal } from "@/components/forms/RequestFormModal";
-import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -156,21 +154,13 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
     return (
         <div className="w-full h-full space-y-8 pb-10 p-6 md:p-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white transition-colors mb-1">
-                        KOL Directory
-                    </h1>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm">Aggregated profiles of all Key Opinion Leaders based on device tracking.</p>
-                </div>
-
-                <div className="flex items-center gap-2 md:gap-3 bg-white/80 dark:bg-neutral-900/40 p-1 md:p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl transition-colors">
-                    <ThemeToggle />
-                    <div className="w-px h-6 bg-black/10 dark:bg-white/10 transition-colors" />
-                    <ReturnFormModal loanedItems={loanedItems} />
-                    <RequestFormModal availableItems={availableUnits} />
-                </div>
-            </div>
+            <PageHeader
+                title="KOL Directory"
+                subtitle="Aggregated profiles of all Key Opinion Leaders based on device tracking."
+                availableUnits={availableUnits}
+                loanedItems={loanedItems}
+                allInventory={inventory}
+            />
 
             <div className="relative z-10">
                 <div className="bg-white/80 dark:bg-neutral-900/40 transition-colors p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl w-full max-w-sm mb-6 flex items-center focus-within:border-black/20 dark:focus-within:border-white/[0.15]">

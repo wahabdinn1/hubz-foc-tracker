@@ -4,11 +4,18 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 
 ## Features
 
-- **Dashboard** — Analytical views showing available stock, outstanding loans, unreturned devices, and pending returns. Includes urgent return tracking and recent activity feeds.
-- **Inventory Bank** — Robust data hub: view all devices in the Master List, group by Device Models, or browse by Campaigns. Equipped with instant multi-select status filters, dynamic sticky headers, and full-text search.
-- **KOL Directory** — Dynamically assembles Key Opinion Leader profiles from device tracking data, displaying combined hardware histories and contact details.
+- **Dashboard** — Analytical views with scorecards for available stock, outstanding loans, unreturned devices, and pending returns. Includes urgent return tracking, overdue surface data, and recent activity feeds.
+- **Inventory Bank** — Robust data hub with three tabs:
+  - **Master List** — Full device table with multi-column sorting, text search, and color-coded FOC Status badges (Return/Unreturn).
+  - **Device Models** — 3-level drill-down hierarchy: Base Model → Variant → Individual Units with IMEI, holder, and FOC status detail cards.
+  - **Campaigns** — Devices grouped by active campaign name.
+- **KOL Directory** — Dynamically assembled Key Opinion Leader profiles from device tracking data, displaying combined hardware histories and contact details.
 - **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
-- **Form Modals** — Outbound (loan) and Inbound (return) data submission forms validated by centralized Zod schemas.
+- **Forms** — Outbound (loan request) and Inbound (return) modals with:
+  - 2-step device selection (Category → Unit/IMEI)
+  - Auto-fill of Type of FOC from spreadsheet data
+  - Timestamp formatting (`M/d/yyyy HH:mm:ss`)
+  - `INSERT_ROWS` for accurate data appending
 - **Micro-Animations** — Framer Motion powers fluid card sorting, sliding, and fading transitions throughout the UI.
 - **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by Edge middleware intercepting all traffic.
 - **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.
@@ -26,6 +33,7 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 | Validation | Zod, `react-hook-form` |
 | Data Source | Google Sheets API (via Server Actions) |
 | Authentication | `jose` (Edge-compatible JWT), HTTP-only cookies |
+| Package Manager | pnpm |
 
 ## Getting Started
 
@@ -65,4 +73,4 @@ pnpm build && pnpm start
 
 ## Documentation
 
-For architecture details, data model documentation, theming conventions, and troubleshooting, see [DEVELOPING.md](./DEVELOPING.md).
+For architecture details, data model documentation, form customization, theming conventions, and troubleshooting, see [DEVELOPING.md](./DEVELOPING.md).

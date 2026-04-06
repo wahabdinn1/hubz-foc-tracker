@@ -20,6 +20,16 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     Form,
     FormControl,
     FormField,
@@ -39,14 +49,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { returnUnit } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { returnSchema, ReturnPayload } from "@/lib/validations"
+import { REQUESTORS, FOC_TYPES } from "@/lib/constants"
+import { ImeiReturnSelector } from "./ImeiReturnSelector"
 
 export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
+    const [showDiscardDialog, setShowDiscardDialog] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const form = useForm<z.infer<typeof returnSchema>>({
-        resolver: zodResolver(returnSchema as any),
+        resolver: zodResolver(returnSchema),
         defaultValues: {
             username: "",
             requestor: "",
@@ -90,8 +103,54 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         }
     }
 
+    // Scroll to the first error field on invalid form submission
+    function onInvalid(errors: any) {
+        const firstErrorName = Object.keys(errors)[0]
+        const element = document.getElementsByName(firstErrorName)[0]
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.focus()
+        }
+    }
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <>
+            <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+                <AlertDialogContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You have unsaved changes. Are you sure you want to discard them?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setShowDiscardDialog(false);
+                                setOpen(false);
+                                form.reset();
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Discard
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Dialog open={open} onOpenChange={(v) => {
+                if (!v) {
+                    if (form.formState.isDirty) {
+                        setShowDiscardDialog(true);
+                    } else {
+                        setOpen(false);
+                        form.reset();
+                    }
+                } else {
+                    setOpen(true);
+                }
+            }}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white text-neutral-900 dark:text-white gap-2 transition-all">
                     <Undo2 className="w-4 h-4" />
@@ -103,7 +162,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                     <DialogTitle className="text-xl font-semibold">Inbound (Return) Form</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                             {/* Username with Suffix (Full Width) */}
@@ -144,7 +203,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                                {["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"].map((req) => (
+                                                {REQUESTORS.map((req) => (
                                                     <SelectItem key={req} value={req} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                                         {req}
                                                     </SelectItem>
@@ -176,97 +235,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                             )}
 
                             {/* IMEI Selection */}
-                            <FormField
-                                control={form.control}
-                                name="imei"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-2 flex flex-col">
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">IMEI/SN - Unit Name - KOL Holder</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className={cn(
-                                                            "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal whitespace-pre-wrap h-auto min-h-[40px] text-left",
-                                                            !field.value && "text-neutral-500 dark:text-neutral-400"
-                                                        )}
-                                                    >
-                                                        {field.value
-                                                            ? (() => {
-                                                                const item = loanedItems.find(i => i.imei === field.value);
-                                                                return item ? `${item.imei} - ${item.unitName} - ${item.onHolder || "Unknown KOL"}` : field.value;
-                                                            })()
-                                                            : "Select IMEI to return"}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                                                <Command>
-                                                    <CommandInput placeholder="Search IMEI or Unit Name..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No loaned items found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {loanedItems.map((item) => (
-                                                                <CommandItem
-                                                                    value={`${item.imei} ${item.unitName} ${item.onHolder}`}
-                                                                    key={item.imei}
-                                                                    onSelect={() => {
-                                                                        field.onChange(item.imei);
-                                                                        form.setValue("unitName", item.unitName || "");
-                                                                        form.setValue("fromKol", item.onHolder || "");
-                                                                        
-                                                                        const phone = item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "";
-                                                                        const address = item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "";
-                                                                        form.setValue("kolPhoneNumber", phone);
-                                                                        form.setValue("kolAddress", address);
-
-                                                                        const requestor = item.fullData?.["Step 3 Requestor"];
-                                                                        if (requestor) {
-                                                                            const predefinedReq = ["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni"];
-                                                                            // find case insensitive match
-                                                                            const matchedReq = predefinedReq.find(r => r.toLowerCase() === requestor.toLowerCase());
-                                                                            if (matchedReq) {
-                                                                                form.setValue("requestor", matchedReq);
-                                                                                form.setValue("customRequestor", "");
-                                                                            } else {
-                                                                                form.setValue("requestor", "Other");
-                                                                                form.setValue("customRequestor", requestor);
-                                                                            }
-                                                                        }
-
-                                                                        const typeOfFoc = item.fullData?.["Step 3 Type of FOC"];
-                                                                        if (typeOfFoc) {
-                                                                            const predefinedFoc = ["ACCESORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES"];
-                                                                            const mappedType = typeOfFoc.toUpperCase();
-                                                                            // Find exact match in enum
-                                                                            const matchedFoc = predefinedFoc.find(f => f === mappedType);
-                                                                            if (matchedFoc) {
-                                                                                form.setValue("typeOfFoc", matchedFoc as any);
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            item.imei === field.value ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    {item.imei} - {item.unitName} - {item.onHolder || "Unknown KOL"}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
+                            <ImeiReturnSelector loanedItems={loanedItems} />
 
                             {/* Unit Name (Read Only if IMEI selected) */}
                             <FormField
@@ -331,7 +300,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                                {["ACCESORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES"].map((type) => (
+                                                {FOC_TYPES.map((type) => (
                                                     <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                                         {type}
                                                     </SelectItem>
@@ -371,5 +340,6 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 </Form>
             </DialogContent>
         </Dialog>
+        </>
     )
 }
