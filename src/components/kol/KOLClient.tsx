@@ -11,11 +11,14 @@ import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedKOL, setSelectedKOL] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
 
     const { availableUnits, loanedItems } = useInventoryStats(inventory);
 
@@ -53,6 +56,10 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
     }, [inventory]);
 
     const filteredKOLs = kolData.filter(k => k.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const totalPages = Math.ceil(filteredKOLs.length / ITEMS_PER_PAGE);
+    const paginatedKOLs = Math.max(1, currentPage) > totalPages 
+        ? filteredKOLs.slice(0, ITEMS_PER_PAGE) // fallback if page is out of bounds
+        : filteredKOLs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     const activeKOLData = selectedKOL ? kolData.find(k => k.name === selectedKOL) : null;
 
@@ -169,7 +176,10 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                         placeholder="Search KOL name..."
                         className="border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white transition-colors placeholder:text-neutral-500 shadow-none"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
                     />
                 </div>
 
@@ -182,61 +192,95 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                         />
                     </div>
                 ) : (
-                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-                        <AnimatePresence mode="popLayout">
-                            {filteredKOLs.map((kol, idx) => {
-                                // Deterministic color from name hash
-                                const hash = kol.name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-                                const hue = hash % 360;
-                                const initials = kol.name.split(/\s+/).map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
-                                const latestDevice = kol.items[kol.items.length - 1]?.unitName;
+                    <>
+                        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                            <AnimatePresence mode="popLayout">
+                                {paginatedKOLs.map((kol, idx) => {
+                                    // Deterministic color from name hash
+                                    const hash = kol.name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                                    const hue = hash % 360;
+                                    const initials = kol.name.split(/\s+/).map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
+                                    const latestDevice = kol.items[kol.items.length - 1]?.unitName;
 
-                                return (
-                                <motion.div
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ duration: 0.2, delay: Math.min(idx * 0.05, 0.2) }}
-                                    key={kol.name}
-                                    onClick={() => setSelectedKOL(kol.name)}
-                                    className="group cursor-pointer bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.05] hover:border-blue-500/30 rounded-xl md:rounded-2xl p-4 md:p-5 backdrop-blur-xl transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800/60 hover:-translate-y-1 shadow-lg"
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        {/* Avatar with unique color */}
-                                        <div
-                                            className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-md border border-white/20 dark:border-white/10"
-                                            style={{
-                                                background: `linear-gradient(135deg, hsl(${hue}, 60%, 65%), hsl(${(hue + 40) % 360}, 50%, 55%))`,
-                                            }}
-                                        >
-                                            <span className="text-white font-bold text-sm tracking-wide">{initials}</span>
+                                    return (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2, delay: Math.min(idx * 0.05, 0.2) }}
+                                        key={kol.name}
+                                        onClick={() => setSelectedKOL(kol.name)}
+                                        className="group cursor-pointer bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.05] hover:border-blue-500/30 rounded-xl md:rounded-2xl p-4 md:p-5 backdrop-blur-xl transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800/60 hover:-translate-y-1 shadow-lg"
+                                    >
+                                        <div className="flex items-center justify-between mb-4">
+                                            {/* Avatar with unique color */}
+                                            <div
+                                                className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-md border border-white/20 dark:border-white/10"
+                                                style={{
+                                                    background: `linear-gradient(135deg, hsl(${hue}, 60%, 65%), hsl(${(hue + 40) % 360}, 50%, 55%))`,
+                                                }}
+                                            >
+                                                <span className="text-white font-bold text-sm tracking-wide">{initials}</span>
+                                            </div>
+                                            <Badge variant="outline" className={cn(
+                                                "px-2 shadow-sm font-medium text-xs",
+                                                kol.activeCount > 0
+                                                    ? "bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)]"
+                                                    : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                            )}>
+                                                {kol.activeCount > 0 ? `${kol.activeCount} active` : "All returned"}
+                                            </Badge>
                                         </div>
-                                        <Badge variant="outline" className={cn(
-                                            "px-2 shadow-sm font-medium text-xs",
-                                            kol.activeCount > 0
-                                                ? "bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)]"
-                                                : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                        )}>
-                                            {kol.activeCount > 0 ? `${kol.activeCount} active` : "All returned"}
-                                        </Badge>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-neutral-900 dark:text-white transition-colors truncate leading-tight mb-1" title={kol.name}>{kol.name}</h3>
-                                    <p className="text-xs text-neutral-500 flex items-center gap-1.5 font-medium">
-                                        <Package className="w-3.5 h-3.5 opacity-70" />
-                                        {kol.totalItems} Total Devices Handled
-                                    </p>
-                                    {latestDevice && (
-                                        <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2 truncate flex items-center gap-1">
-                                            <Smartphone className="w-3 h-3 shrink-0" />
-                                            Latest: {latestDevice}
+                                        <h3 className="font-bold text-lg text-neutral-900 dark:text-white transition-colors truncate leading-tight mb-1" title={kol.name}>{kol.name}</h3>
+                                        <p className="text-xs text-neutral-500 flex items-center gap-1.5 font-medium">
+                                            <Package className="w-3.5 h-3.5 opacity-70" />
+                                            {kol.totalItems} Total Devices Handled
                                         </p>
-                                    )}
-                                </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
-                    </motion.div>
+                                        {latestDevice && (
+                                            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2 truncate flex items-center gap-1">
+                                                <Smartphone className="w-3 h-3 shrink-0" />
+                                                Latest: {latestDevice}
+                                            </p>
+                                        )}
+                                    </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
+                        </motion.div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 bg-white/50 dark:bg-neutral-900/40 p-4 rounded-xl border border-black/5 dark:border-white/[0.05]">
+                                <p className="text-sm text-neutral-500 text-center sm:text-left">
+                                    Showing <span className="font-medium text-neutral-900 dark:text-white">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium text-neutral-900 dark:text-white">{Math.min(currentPage * ITEMS_PER_PAGE, filteredKOLs.length)}</span> of <span className="font-medium text-neutral-900 dark:text-white">{filteredKOLs.length}</span> KOLs
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage <= 1}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <div className="text-sm font-medium px-3 text-neutral-600 dark:text-neutral-300">
+                                        Page {currentPage} of {totalPages}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage >= totalPages}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
