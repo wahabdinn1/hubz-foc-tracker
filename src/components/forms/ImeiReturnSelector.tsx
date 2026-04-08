@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface ImeiReturnSelectorProps {
 
 export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
     const form = useFormContext(); // Assumes it is wrapped in <Form>
+    const [open, setOpen] = useState(false);
 
     return (
         <FormField
@@ -24,7 +26,7 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
             render={({ field }) => (
                 <FormItem className="md:col-span-2 flex flex-col">
                     <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">IMEI/SN - Unit Name - KOL Holder</FormLabel>
-                    <Popover>
+                    <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>
                             <FormControl>
                                 <Button
@@ -38,7 +40,7 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
                                     {field.value
                                         ? (() => {
                                             const item = loanedItems.find(i => i.imei === field.value);
-                                            return item ? `${item.imei} - ${item.unitName} - ${item.onHolder || "Unknown KOL"}` : field.value;
+                                            return item ? item.imei : field.value;
                                         })()
                                         : "Select IMEI to return"}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -87,6 +89,8 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
                                                             form.setValue("typeOfFoc", matchedFoc as any);
                                                         }
                                                     }
+
+                                                    setOpen(false);
                                                 }}
                                             >
                                                 <Check
@@ -95,7 +99,25 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
                                                         item.imei === field.value ? "opacity-100" : "opacity-0"
                                                     )}
                                                 />
-                                                {item.imei} - {item.unitName} - {item.onHolder || "Unknown KOL"}
+                                                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                                    <span className="font-medium text-sm truncate">{item.unitName}</span>
+                                                    <span className="text-xs text-neutral-400 font-mono truncate">{item.imei}</span>
+                                                    <span className="text-xs text-amber-500 dark:text-amber-400 truncate">
+                                                        Held by: {item.onHolder || "Unknown KOL"}
+                                                    </span>
+                                                </div>
+                                                {item.focStatus && (
+                                                    <span className={cn(
+                                                        "ml-auto text-[10px] px-1.5 py-0.5 rounded uppercase font-medium flex-shrink-0",
+                                                        item.focStatus.toUpperCase().includes("UNRETURN") 
+                                                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                            : item.focStatus.toUpperCase().includes("RETURN")
+                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                            : "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                                                    )}>
+                                                        {item.focStatus}
+                                                    </span>
+                                                )}
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>

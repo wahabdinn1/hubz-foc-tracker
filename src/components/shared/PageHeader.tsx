@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { RequestFormModal } from "@/components/forms/RequestFormModal";
 import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
+import { TransferFormModal } from "@/components/forms/TransferFormModal";
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { useSyncInventory } from "@/hooks/useSyncInventory";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ export function PageHeader({ title, subtitle, availableUnits, loanedItems, allIn
                 <div className="w-px h-6 bg-black/10 dark:bg-white/10 transition-colors" />
                 {children}
                 <ReturnFormModal loanedItems={loanedItems} />
+                <TransferFormModal loanedItems={loanedItems} />
                 <RequestFormModal availableItems={availableUnits} />
             </div>
         </div>

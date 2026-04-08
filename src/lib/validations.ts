@@ -52,3 +52,39 @@ export const returnSchema = z.object({
 });
 
 export type ReturnPayload = z.infer<typeof returnSchema>;
+
+// --- TRANSFER (KOL-TO-KOL) SCHEMAS ---
+
+// Client-side: uses Date object for the calendar picker
+export const transferFormSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+    requestor: z.string().min(1, "Requestor is required"),
+    customRequestor: z.string().optional(),
+    imei: z.string().min(1, "IMEI is required"),
+    unitName: z.string().min(1, "Unit Name is required"),
+    typeOfFoc: z.string().min(1, "Type of FOC is required"),
+    currentHolder: z.string().min(1, "Current holder is required"),
+    kol2Name: z.string().min(1, "KOL 2 Name is required"),
+    kol2Phone: z.string().min(1, "KOL 2 Phone is required"),
+    kol2Address: z.string().min(1, "KOL 2 Address is required"),
+    transferDate: z.date({ error: "Transfer Date is required" }),
+    transferReason: z.string().min(1, "Transfer reason/campaign is required"),
+});
+
+// Server-side: Date serialized to string
+export const transferPayloadSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+    requestor: z.string().min(1, "Requestor is required"),
+    customRequestor: z.string().optional(),
+    imei: z.string().min(1, "IMEI is required"),
+    unitName: z.string().min(1, "Unit Name is required"),
+    typeOfFoc: z.string().min(1, "Type of FOC is required"),
+    currentHolder: z.string().min(1, "Current holder is required"),
+    kol2Name: z.string().min(1, "KOL 2 Name is required"),
+    kol2Phone: z.string().min(1, "KOL 2 Phone is required"),
+    kol2Address: z.string().min(1, "KOL 2 Address is required"),
+    transferDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+    transferReason: z.string().min(1, "Transfer reason/campaign is required"),
+});
+
+export type TransferPayload = z.infer<typeof transferPayloadSchema>;

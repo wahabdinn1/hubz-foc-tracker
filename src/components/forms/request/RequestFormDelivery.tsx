@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -18,6 +19,7 @@ interface RequestFormDeliveryProps {
 export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps) {
     const form = useFormContext();
     const watchTypeOfFoc = useWatch({ name: "typeOfFoc" });
+    const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
     return (
         <>
@@ -28,7 +30,7 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Delivery Date</FormLabel>
-                        <Popover>
+                        <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
                                     <Button
@@ -51,7 +53,10 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                                 <Calendar
                                     mode="single"
                                     selected={field.value}
-                                    onSelect={field.onChange}
+                                    onSelect={(date) => {
+                                        field.onChange(date);
+                                        setDatePopoverOpen(false);
+                                    }}
                                     disabled={(date) =>
                                         date < new Date("1900-01-01")
                                     }

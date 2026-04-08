@@ -112,7 +112,7 @@ export function RequestFormDevice({
                                                     ? `Select from ${filteredItems.length} available unit${filteredItems.length !== 1 ? "s" : ""}...`
                                                     : (() => {
                                                         const item = filteredItems.find(i => i.imei === field.value);
-                                                        return item ? `${item.imei} — ${item.unitName}` : field.value;
+                                                        return item ? item.imei : field.value;
                                                     })()
                                         }
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -166,10 +166,22 @@ export function RequestFormDevice({
                                                             item.imei === field.value ? "opacity-100" : "opacity-0"
                                                         )}
                                                     />
-                                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                                                         <span className="font-medium text-sm truncate">{item.unitName}</span>
                                                         <span className="text-xs text-neutral-400 font-mono truncate">{item.imei}</span>
                                                     </div>
+                                                    {item.focStatus && (
+                                                        <span className={cn(
+                                                            "ml-auto text-[10px] px-1.5 py-0.5 rounded uppercase font-medium flex-shrink-0",
+                                                            item.focStatus.toUpperCase().includes("UNRETURN") 
+                                                                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                                : item.focStatus.toUpperCase().includes("RETURN")
+                                                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                                : "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                                                        )}>
+                                                            {item.focStatus}
+                                                        </span>
+                                                    )}
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>

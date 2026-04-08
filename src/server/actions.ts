@@ -9,7 +9,7 @@
 export { getInventory, revalidateInventory, getOverdueData, getReturnHistory, getRequestHistory } from "./inventory";
 
 // Form mutations
-export { requestUnit, returnUnit, returnUnits } from "./mutations";
+export { requestUnit, returnUnit, returnUnits, transferUnit } from "./mutations";
 
 // Authentication
 export { verifyPin } from "./auth";
