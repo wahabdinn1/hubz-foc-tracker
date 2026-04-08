@@ -36,7 +36,7 @@ export function PageHeader({ title, subtitle, availableUnits, loanedItems, allIn
                 <p className="text-neutral-500 dark:text-neutral-400 text-sm">{subtitle}</p>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3 bg-white/80 dark:bg-neutral-900/40 p-1 md:p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] transition-colors backdrop-blur-xl shadow-xl">
+            <div className="flex items-center gap-2 md:gap-3 bg-white/80 dark:bg-neutral-900/40 p-1 md:p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] transition-colors backdrop-blur-xl shadow-xl overflow-x-auto max-w-full scrollbar-none shrink-0">
                 <CommandPalette inventory={allInventory || [...availableUnits, ...loanedItems]} />
                 <ThemeToggle />
                 <Button

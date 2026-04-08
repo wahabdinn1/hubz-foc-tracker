@@ -301,7 +301,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                 <DialogTrigger asChild>
                     <Button className="bg-amber-600 hover:bg-amber-500 text-white gap-2 shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all">
                         <ArrowLeftRight className="w-4 h-4" />
-                        Transfer
+                        <span className="hidden sm:inline">Transfer</span>
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">

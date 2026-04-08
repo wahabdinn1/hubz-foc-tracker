@@ -274,10 +274,10 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                 }
             }}>
                 <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
-                    <Plus className="w-4 h-4" />
-                    New Request
-                </Button>
+                    <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
+                        <Plus className="w-4 h-4" />
+                        <span className="hidden sm:inline">New Request</span>
+                    </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">
                 <DialogHeader>

@@ -154,7 +154,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
             <DialogTrigger asChild>
                 <Button variant="outline" className="bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white text-neutral-900 dark:text-white gap-2 transition-all">
                     <Undo2 className="w-4 h-4" />
-                    Inbound (Return)
+                    <span className="hidden sm:inline">Inbound (Return)</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">
