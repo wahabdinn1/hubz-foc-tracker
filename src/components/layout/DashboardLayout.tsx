@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconMenu2, IconX, IconLayoutDashboard, IconBox, IconUsers, IconHistory } from "@tabler/icons-react";
+import { IconMenu2, IconX, IconLayoutDashboard, IconBox, IconUsers, IconHistory, IconHelp } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
                     <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
                     <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
+                    <NavItem href="/faq" icon={<IconHelp className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={open} />
                 </nav>
             </motion.div>
 
@@ -83,6 +84,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/faq" icon={<IconHelp className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setOpen(false)} />
                         </nav>
                     </motion.div>
                 )}
