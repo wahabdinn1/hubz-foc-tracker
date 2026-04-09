@@ -113,6 +113,8 @@ export interface ReturnHistoryItem {
   kolPhone: string;
   /** Type of FOC. */
   typeOfFoc: string;
+  /** Return date (Column J) */
+  returnDate: string;
 }
 
 // ---------------------------------------------------------------------------

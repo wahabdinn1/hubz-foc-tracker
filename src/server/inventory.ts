@@ -285,7 +285,7 @@ export const getReturnHistory = unstable_cache(
       const rows = response.data.values;
       if (!rows || rows.length <= 1) return [];
 
-      // Step 4 headers: Timestamp | Email Address | Requestor | Unit Name | IMEI/SN | From KOL | KOL address | KOL Phone Number | Type of FOC
+      // Step 4 headers: Timestamp | Email Address | Requestor | Unit Name | IMEI/SN | From KOL | KOL address | KOL Phone Number | Type of FOC | Delivery Date
       return rows.slice(1)
         .filter(row => row && row.length > 0 && row[0]) // skip empty rows
         .map((row) => ({
@@ -298,6 +298,7 @@ export const getReturnHistory = unstable_cache(
           kolAddress: row[6] || "",
           kolPhone: row[7] || "",
           typeOfFoc: row[8] || "",
+          returnDate: row[9] || "",
         }))
         .reverse(); // most recent first
     } catch (error) {

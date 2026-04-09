@@ -33,7 +33,7 @@ const faqs = [
         <p>Dashboard adalah halaman utama yang menyajikan ringkasan data inventaris secara <em>real-time</em>.</p>
         <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Cara Membaca Data Utama di Dashboard:</h4>
         <ul className="list-decimal pl-5 space-y-2">
-          <li><strong>Status Perangkat:</strong> Menampilkan alokasi unit yang sedang <code>AVAILABLE</code> (Tersedia di gudang/bank invetaris) dan yang sedang <code>IN USE</code> (Sedang dipinjamkan/digunakan oleh KOL).</li>
+          <li><strong>Status Perangkat:</strong> Menampilkan alokasi unit yang sedang <code>AVAILABLE</code> (Tersedia di Loker/bank invetaris) dan yang sedang <code>ON LOANED</code> (Sedang dipinjamkan/digunakan oleh KOL).</li>
           <li><strong>Return Tracking:</strong> Memantau unit mana saja yang sebentar lagi harus dikembalikan atau sudah melewati tenggat waktu (Overdue).</li>
           <li><strong>Recent Activities:</strong> Menampilkan log pergerakan barang terbaru, seperti <em>Request</em> baru, <em>Return</em>, atau <em>Transfer</em>.</li>
         </ul>
@@ -50,8 +50,8 @@ const faqs = [
         <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Langkah-langkah Outbound (Request):</h4>
         <ul className="list-decimal pl-5 space-y-2">
           <li>Buka form <strong>New Request</strong>.</li>
-          <li><strong>Pilih Kategori (Step 1):</strong> Pilih kategori perangkat terlebih dahulu (misal: Smartphone, Tablet, dsb).</li>
-          <li><strong>Pilih Unit/IMEI (Step 2):</strong> Setelah kategori dipilih, sistem hanya akan memunculkan unit yang berstatus <strong><code>AVAILABLE</code></strong> di <em>dropdown</em>. Anda tidak bisa memilih unit yang sedang dipinjam (sedang <em>In Use</em>).</li>
+          <li><strong>Pilih Kategori (Step 1):</strong> Pilih kategori perangkat terlebih dahulu (misal: Handphone, Tablet, dsb).</li>
+          <li><strong>Pilih Unit/IMEI (Step 2):</strong> Setelah kategori dipilih, sistem hanya akan memunculkan unit yang berstatus <strong><code>AVAILABLE</code></strong> di <em>dropdown</em>. Anda tidak bisa memilih unit yang sedang dipinjam (sedang <em>On Loaned</em>).</li>
           <li>Isi data Kampanye, nama KOL, Tujuan Pengiriman, dll.</li>
           <li>Secara otomatis sistem akan mengisi field <strong>Type of FOC</strong> berdasarkan data master dari IMEI yang dipilih.</li>
           <li>Klik <strong>Submit Request</strong>. Data akan langsung sinkron dengan Google Sheets.</li>
@@ -68,11 +68,11 @@ const faqs = [
     title: "4. Inbound / Return Process",
     content: (
       <div className="space-y-4">
-        <p>Proses ini dilakukan ketika perangkat dikembalikan oleh KOL ke Hubz / Gudang.</p>
+        <p>Proses ini dilakukan ketika perangkat dikembalikan oleh KOL ke Hubz / Locker.</p>
         <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Langkah-langkah Inbound (Return):</h4>
         <ul className="list-decimal pl-5 space-y-2">
           <li>Pada tabel atau detail KOL, pilih opsi <strong>Return</strong> untuk unit yang sedang dipinjam.</li>
-          <li>Pastikan Anda mencocokkan IMEI fisik dengan IMEI pada sistem.</li>
+          <li>Pastikan Anda mencocokkan IMEI fisik dan box dengan IMEI pada sistem.</li>
           <li>Update kondisi perangkat saat dikembalikan (Baik, Layar Retak, Hilang, dll).</li>
           <li>Setelah di-submit, status unit akan secara otomatis kembali menjadi <strong>AVAILABLE</strong> di bank inventaris.</li>
         </ul>
@@ -175,15 +175,15 @@ export default function FAQPage() {
     );
   };
 
-  const filteredFaqs = faqs.filter(faq => 
-    faq.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredFaqs = faqs.filter(faq =>
+    faq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     faq.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-20">
-        
+
         {/* Header Section */}
         <div className="space-y-2 mt-4">
           <div className="inline-flex items-center justify-center p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl mb-4">
@@ -200,11 +200,11 @@ export default function FAQPage() {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-neutral-400 group-focus-within:text-blue-500 transition-colors" />
           </div>
-          <Input 
+          <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-14 rounded-xl text-lg bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
-            placeholder="Cari kata kunci... (misal: Transfer)" 
+            placeholder="Cari kata kunci... (misal: Transfer)"
           />
         </div>
 
@@ -228,7 +228,7 @@ export default function FAQPage() {
             )}
           </CardContent>
         </Card>
-        
+
       </div>
     </DashboardLayout>
   );
