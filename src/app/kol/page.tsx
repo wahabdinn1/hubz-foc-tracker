@@ -16,24 +16,21 @@ export const metadata: Metadata = {
 };
 
 async function KOLFetcher() {
+    const authed = await isAuthenticated();
+    if (!authed) return <PinModal />;
+
     const inventory = await getInventory();
     return <KOLClient inventory={inventory} />;
 }
 
-export default async function KOLPage() {
-    const authed = await isAuthenticated();
-
+export default function KOLPage() {
     return (
         <DashboardLayout>
-            {!authed ? (
-                <PinModal />
-            ) : (
-                <ErrorBoundary fallbackTitle="Failed to load KOL data">
-                    <Suspense fallback={<PageSkeleton />}>
-                        <KOLFetcher />
-                    </Suspense>
-                </ErrorBoundary>
-            )}
+            <ErrorBoundary fallbackTitle="Failed to load KOL data">
+                <Suspense fallback={<PageSkeleton />}>
+                    <KOLFetcher />
+                </Suspense>
+            </ErrorBoundary>
         </DashboardLayout>
     );
 }

@@ -16,6 +16,9 @@ export const metadata: Metadata = {
 export const revalidate = 60; // Revalidate every minute
 
 async function AuditFetcher() {
+    const authed = await isAuthenticated();
+    if (!authed) return <PinModal />;
+
     const [requests, returns] = await Promise.all([
         getRequestHistory(),
         getReturnHistory()
@@ -38,20 +41,14 @@ async function AuditFetcher() {
     );
 }
 
-export default async function AuditPage() {
-    const authed = await isAuthenticated();
-
+export default function AuditPage() {
     return (
         <DashboardLayout>
-            {!authed ? (
-                <PinModal />
-            ) : (
-                <ErrorBoundary fallbackTitle="Failed to load audit log">
-                    <Suspense fallback={<PageSkeleton />}>
-                        <AuditFetcher />
-                    </Suspense>
-                </ErrorBoundary>
-            )}
+            <ErrorBoundary fallbackTitle="Failed to load audit log">
+                <Suspense fallback={<PageSkeleton />}>
+                    <AuditFetcher />
+                </Suspense>
+            </ErrorBoundary>
         </DashboardLayout>
     );
 }

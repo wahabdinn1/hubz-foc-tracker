@@ -16,6 +16,9 @@ export const metadata: Metadata = {
 };
 
 async function DashboardFetcher() {
+  const authed = await isAuthenticated();
+  if (!authed) return <PinModal />;
+
   const [inventory, overdueItems, returnHistory] = await Promise.all([
     getInventory(),
     getOverdueData(),
@@ -24,20 +27,14 @@ async function DashboardFetcher() {
   return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
 }
 
-export default async function Page() {
-  const authed = await isAuthenticated();
-
+export default function Page() {
   return (
     <DashboardLayout>
-      {!authed ? (
-        <PinModal />
-      ) : (
-        <ErrorBoundary fallbackTitle="Failed to load dashboard">
-          <Suspense fallback={<PageSkeleton />}>
-            <DashboardFetcher />
-          </Suspense>
-        </ErrorBoundary>
-      )}
+      <ErrorBoundary fallbackTitle="Failed to load dashboard">
+        <Suspense fallback={<PageSkeleton />}>
+          <DashboardFetcher />
+        </Suspense>
+      </ErrorBoundary>
     </DashboardLayout>
   );
 }
