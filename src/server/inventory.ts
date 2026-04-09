@@ -131,7 +131,7 @@ export const getInventory = unstable_cache(
           statusLocation: resolveColumn(row, colIndex, COLUMN_HEADERS.STATUS_LOCATION, 13),
           onHolder: kol,
           plannedReturnDate: resolveColumn(row, colIndex, COLUMN_HEADERS.PLANNED_RETURN, 8),
-          campaignName: resolveColumn(row, colIndex, COLUMN_HEADERS.CAMPAIGN, 11),
+          campaignName: resolveColumn(row, colIndex, COLUMN_HEADERS.CAMPAIGN, 10),
           fullData,
         };
       });
@@ -188,8 +188,8 @@ function buildRequestDataMap(
       const dataObj: Record<string, string> = {
         [REQUEST_HEADERS.TIMESTAMP]: timestamp,
         [REQUEST_HEADERS.REQUESTOR]: reqIdx >= 0 ? r[reqIdx] || "" : "",
-        [REQUEST_HEADERS.PHONE]: phoneIdx >= 0 ? r[phoneIdx] || "" : "",
-        [REQUEST_HEADERS.ADDRESS]: addrIdx >= 0 ? r[addrIdx] || "" : "",
+        [REQUEST_HEADERS.PHONE]: phoneIdx >= 0 ? r[phoneIdx] || "" : (r[7] || ""),
+        [REQUEST_HEADERS.ADDRESS]: addrIdx >= 0 ? r[addrIdx] || "" : (r[8] || ""),
         [REQUEST_HEADERS.TYPE_FOC]: typeFocIdx >= 0 ? r[typeFocIdx] || "" : "",
       };
 
