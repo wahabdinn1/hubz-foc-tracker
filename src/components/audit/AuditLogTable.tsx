@@ -49,26 +49,26 @@ interface AuditLogTableProps {
 
 function parseDateSafely(dateStr: string | undefined): Date {
     if (!dateStr || dateStr === "-") return new Date(0);
-    
+
     // Check YYYY-MM-DD
     const yyyyMmDdMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (yyyyMmDdMatch) {
-       const [_, y, m, d] = yyyyMmDdMatch;
-       return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        const [_, y, m, d] = yyyyMmDdMatch;
+        return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
     }
 
     // Google Sheets default timestamp format is usually M/D/YYYY H:mm:ss
     const mdYyyyMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?: (\d{1,2}):(\d{2}):(\d{2}))?/);
     if (mdYyyyMatch) {
-       const [_, m, d, y, h, min, s] = mdYyyyMatch;
-       return new Date(
-           parseInt(y), 
-           parseInt(m) - 1, 
-           parseInt(d),
-           h ? parseInt(h) : 0,
-           min ? parseInt(min) : 0,
-           s ? parseInt(s) : 0
-       );
+        const [_, m, d, y, h, min, s] = mdYyyyMatch;
+        return new Date(
+            parseInt(y),
+            parseInt(m) - 1,
+            parseInt(d),
+            h ? parseInt(h) : 0,
+            min ? parseInt(min) : 0,
+            s ? parseInt(s) : 0
+        );
     }
 
     const d = new Date(dateStr);
@@ -85,7 +85,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
     const [typeFilter, setTypeFilter] = useState<"ALL" | "REQUEST" | "RETURN">("ALL");
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    
+
     const [sortCol, setSortCol] = useState<SortColumn>("date");
     const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
@@ -227,7 +227,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
                                 </TableHead>
                                 <TableHead>
                                     <button onClick={() => handleSort("event")} className="flex items-center gap-1 hover:text-neutral-900 dark:hover:text-neutral-100 focus:outline-none transition-colors font-medium">
-                                        Event
+                                        FOC Status
                                         <ArrowUpDown className={`w-3 h-3 transition-opacity ${sortCol === "event" ? "opacity-100 text-blue-500" : "opacity-30"}`} />
                                     </button>
                                 </TableHead>
@@ -262,8 +262,8 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={event.type === "REQUEST" ? "outline" : "secondary"} className={
-                                                event.type === "REQUEST" 
-                                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/50" 
+                                                event.type === "REQUEST"
+                                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/50"
                                                     : "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
                                             }>
                                                 {event.type}

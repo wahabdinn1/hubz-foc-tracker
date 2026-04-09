@@ -87,8 +87,8 @@ export const STATUS = {
 /** Cache tag for inventory data. */
 export const CACHE_TAG_INVENTORY = "inventory-data";
 
-/** Cache revalidation interval in seconds. */
-export const CACHE_REVALIDATE_SECONDS = 30;
+/** Cache revalidation interval in seconds. Set to 1 hour since mutations force revalidation */
+export const CACHE_REVALIDATE_SECONDS = 3600;
 
 // ---------------------------------------------------------------------------
 // QuickView Panel

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, RotateCcw, AlertTriangle, ChevronRight } from "lucide-react";
+import { Smartphone, RotateCcw, AlertTriangle, ArrowLeft, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { DeviceModelGroup, VariantGroup } from "./types";
 import type { InventoryItem } from "@/types/inventory";
@@ -16,25 +18,40 @@ interface ModelLevel3UnitsProps {
 }
 
 export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseModel, setSelectedVariant, setSelectedItem }: ModelLevel3UnitsProps) {
+    const [search, setSearch] = useState("");
+
+    const filteredItems = activeVariant.items.filter(item => 
+        item.imei?.toLowerCase().includes(search.toLowerCase()) ||
+        item.goatPic?.toLowerCase().includes(search.toLowerCase()) ||
+        item.seinPic?.toLowerCase().includes(search.toLowerCase()) ||
+        item.onHolder?.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm flex-wrap">
-                <button
-                    onClick={() => { setSelectedBaseModel(null); setSelectedVariant(null); }}
-                    className="text-neutral-400 hover:text-blue-400 transition-colors"
-                >
-                    Models
-                </button>
-                <ChevronRight className="w-3.5 h-3.5 text-neutral-500" />
-                <button
-                    onClick={() => setSelectedVariant(null)}
-                    className="text-neutral-400 hover:text-blue-400 transition-colors"
-                >
-                    {activeGroup.baseModel}
-                </button>
-                <ChevronRight className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="text-neutral-900 dark:text-white font-semibold truncate">{activeVariant.name}</span>
+            {/* Breadcrumb & Search */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <button
+                        onClick={() => setSelectedVariant(null)}
+                        className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors font-medium bg-black/5 dark:bg-neutral-900/50 px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5 w-fit hover:bg-white/10"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to {activeGroup.baseModel}
+                    </button>
+                    <span className="text-neutral-300 dark:text-neutral-700 mx-1">/</span>
+                    <span className="text-neutral-900 dark:text-white font-semibold truncate bg-white/50 dark:bg-neutral-800/50 px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5">{activeVariant.name}</span>
+                </div>
+
+                <div className="bg-white/80 dark:bg-neutral-900/40 p-1 rounded-xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-sm w-full sm:max-w-xs flex items-center focus-within:border-white/[0.15] transition-colors">
+                    <Search className="w-4 h-4 text-neutral-500 ml-2.5 shrink-0" />
+                    <Input
+                        placeholder="Search IMEI or Holder..."
+                        className="h-8 text-sm border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white placeholder:text-neutral-500 shadow-none px-2"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
             </div>
 
             <div className="w-full bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl">
@@ -80,7 +97,12 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                 {/* Unit Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[calc(100vh-380px)] overflow-y-auto custom-scrollbar pr-1">
                     <AnimatePresence>
-                        {activeVariant.items.map((item, idx) => {
+                        {filteredItems.length === 0 ? (
+                            <div className="col-span-full py-12 text-center text-neutral-500">
+                                <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                <p>No units found matching "{search}"</p>
+                            </div>
+                        ) : filteredItems.map((item, idx) => {
                             const focUp = item.focStatus?.toUpperCase().trim();
                             return (
                                 <motion.div

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Smartphone, CheckCircle2, Package, RotateCcw, AlertTriangle, ChevronRight } from "lucide-react";
+import { ArrowLeft, Smartphone, CheckCircle2, Package, RotateCcw, AlertTriangle, ChevronRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { DeviceModelGroup } from "./types";
 import { getModelIcon } from "./utils";
@@ -14,17 +16,35 @@ interface ModelLevel2CardsProps {
 }
 
 export function ModelLevel2Cards({ activeGroup, setSelectedBaseModel, setSelectedVariant }: ModelLevel2CardsProps) {
+    const [search, setSearch] = useState("");
+
+    const filteredVariants = activeGroup.variants.filter(v => 
+        v.name.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm">
-                <button
-                    onClick={() => setSelectedBaseModel(null)}
-                    className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors font-medium bg-black/5 dark:bg-neutral-900/50 px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5 w-fit hover:bg-white/10"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Models
-                </button>
+            {/* Breadcrumb & Search */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                    <button
+                        onClick={() => setSelectedBaseModel(null)}
+                        className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors font-medium bg-black/5 dark:bg-neutral-900/50 px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5 w-fit hover:bg-white/10"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Models
+                    </button>
+                </div>
+
+                <div className="bg-white/80 dark:bg-neutral-900/40 p-1 rounded-xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-sm w-full sm:max-w-xs flex items-center focus-within:border-white/[0.15] transition-colors">
+                    <Search className="w-4 h-4 text-neutral-500 ml-2.5 shrink-0" />
+                    <Input
+                        placeholder="Search variants..."
+                        className="h-8 text-sm border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white placeholder:text-neutral-500 shadow-none px-2"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
             </div>
 
             <div className="w-full bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl">
@@ -66,7 +86,12 @@ export function ModelLevel2Cards({ activeGroup, setSelectedBaseModel, setSelecte
                 {/* Variant Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[calc(100vh-380px)] overflow-y-auto custom-scrollbar pr-1">
                     <AnimatePresence>
-                        {activeGroup.variants.map((variant, vIdx) => {
+                        {filteredVariants.length === 0 ? (
+                            <div className="col-span-full py-12 text-center text-neutral-500">
+                                <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                <p>No variants found matching "{search}"</p>
+                            </div>
+                        ) : filteredVariants.map((variant, vIdx) => {
                             const loanPercent = variant.total > 0 ? (variant.loaned / variant.total) * 100 : 0;
 
                             return (
