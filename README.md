@@ -11,11 +11,11 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
   - **Campaigns** — Devices grouped by active campaign name.
 - **KOL Directory** — Dynamically assembled Key Opinion Leader profiles from device tracking data, displaying combined hardware histories and contact details.
 - **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
-- **Forms** — Outbound (loan request) and Inbound (return) modals with:
+- **Forms** — Outbound (loan request), Inbound (return), and Direct Transfer modals with:
   - 2-step device selection (Category → Unit/IMEI)
+  - Standardized **Campaign Dropdowns** with "Other" fallback
   - Auto-fill of Type of FOC from spreadsheet data
-  - Timestamp formatting (`M/d/yyyy HH:mm:ss`)
-  - `INSERT_ROWS` for accurate data appending
+  - Precise `writeToNextRow` logic with GMT+7 timestamping
 - **Micro-Animations** — Framer Motion powers fluid card sorting, sliding, and fading transitions throughout the UI.
 - **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by Edge middleware intercepting all traffic.
 - **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.

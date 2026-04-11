@@ -8,6 +8,7 @@ export const requestFormSchema = z.object({
     requestor: z.string().min(1, "Requestor is required"),
     customRequestor: z.string().optional(),
     campaignName: z.string().min(1, "Campaign Name is required"),
+    customCampaign: z.string().optional(),
     unitName: z.string().min(1, "Unit Name is required"),
     imeiIfAny: z.string().optional(),
     kolName: z.string().min(1, "KOL Name is required"),
@@ -24,6 +25,7 @@ export const requestPayloadSchema = z.object({
     requestor: z.string().min(1, "Requestor is required"),
     customRequestor: z.string().optional(),
     campaignName: z.string().min(1, "Campaign Name is required"),
+    customCampaign: z.string().optional(),
     unitName: z.string().min(1, "Unit Name is required"),
     imeiIfAny: z.string().optional(),
     kolName: z.string().min(1, "KOL Name is required"),
@@ -68,7 +70,8 @@ export const transferFormSchema = z.object({
     kol2Phone: z.string().min(1, "KOL 2 Phone is required"),
     kol2Address: z.string().min(1, "KOL 2 Address is required"),
     transferDate: z.date({ error: "Transfer Date is required" }),
-    transferReason: z.string().min(1, "Transfer reason/campaign is required"),
+    campaignName: z.string().min(1, "Transfer reason/campaign is required"),
+    customCampaign: z.string().optional(),
 });
 
 // Server-side: Date serialized to string
@@ -84,7 +87,8 @@ export const transferPayloadSchema = z.object({
     kol2Phone: z.string().min(1, "KOL 2 Phone is required"),
     kol2Address: z.string().min(1, "KOL 2 Address is required"),
     transferDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
-    transferReason: z.string().min(1, "Transfer reason/campaign is required"),
+    campaignName: z.string().min(1, "Transfer reason/campaign is required"),
+    customCampaign: z.string().optional(),
 });
 
 export type TransferPayload = z.infer<typeof transferPayloadSchema>;

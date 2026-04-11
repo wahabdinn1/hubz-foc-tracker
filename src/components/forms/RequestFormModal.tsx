@@ -128,6 +128,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
             requestor: "",
             customRequestor: "",
             campaignName: "",
+            customCampaign: "",
             unitName: "",
             imeiIfAny: "",
             kolName: "",

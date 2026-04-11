@@ -38,9 +38,10 @@ This process is used when a device will be sent out to a KOL or third party.
 1. Open the **New Request** form.
 2. **Select Category (Step 1):** Select the device category first (e.g., Mobile Phone, Tablet, etc.).
 3. **Select Unit/IMEI (Step 2):** Once the category is selected, the system will only show units with an **`AVAILABLE`** status in the *dropdown*. You cannot select units that are currently borrowed (currently *On Loaned*).
-4. Fill in Campaign data, KOL name, Delivery Destination, etc.
-5. The system will automatically fill in the **Type of FOC** field based on the master data of the selected IMEI.
-6. Click **Submit Request**. Data will immediately sync with Google Sheets.
+4. **Standardized Campaign Selection:** Select the campaign name from the provided dropdown list. If the campaign is not listed, select **"Other"** and enter the name manually in the text field that appears.
+5. Fill in KOL name, Delivery Destination, and other required details.
+6. The system will automatically fill in the **Type of FOC** field based on the master data of the selected IMEI.
+7. Click **Submit Request**. Data will immediately sync with Google Sheets.
 
 > **Important Note:** Only units with an **AVAILABLE** status can be checked out. If a unit does not appear, ensure that the unit has been marked as returned (*Return*) in the system.
 
@@ -63,7 +64,7 @@ This feature is used when a device changes hands from one KOL to another KOL dir
 **Direct Transfer Flow:**
 1. Use the **Transfer** button/form on a unit that is currently borrowed (*On Loaned*).
 2. The system will automatically detect and **fill in the "Current Holder" field** based on the KOL currently holding the unit.
-3. You just need to fill in the **New Receiver (New KOL)** along with their campaign and delivery details.
+3. You just need to select the **Campaign** for the transfer (use the dropdown list) and fill in the **New Receiver (New KOL)** along with their delivery details.
 4. Click Submit. The form will perform a double entry (*Double Append*) in the database to keep the history neat: it records that the item was returned by the old KOL, and instantly loaned out to the new KOL.
 
 ---

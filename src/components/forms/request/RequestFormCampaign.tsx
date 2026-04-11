@@ -1,14 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { REQUESTORS } from "@/lib/constants";
+import { CAMPAIGNS, REQUESTORS } from "@/lib/constants";
 
 export function RequestFormCampaign() {
     const form = useFormContext();
+    const [campaignOpen, setCampaignOpen] = useState(false);
     const watchRequestor = useWatch({ name: "requestor" });
+    const watchCampaign = useWatch({ name: "campaignName" });
 
     return (
         <>
@@ -17,15 +25,76 @@ export function RequestFormCampaign() {
                 control={form.control}
                 name="campaignName"
                 render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem className="md:col-span-2 flex flex-col">
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Campaign Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Galaxy S24 Ultra Content" className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500" {...field} />
-                        </FormControl>
+                        <Popover open={campaignOpen} onOpenChange={setCampaignOpen}>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className={cn(
+                                            "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal",
+                                            !field.value && "text-neutral-500"
+                                        )}
+                                    >
+                                        {field.value
+                                            ? CAMPAIGNS.find((campaign) => campaign === field.value)
+                                            : "Select Campaign"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Search campaign..." />
+                                    <CommandList>
+                                        <CommandEmpty>No campaign found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {CAMPAIGNS.map((campaign) => (
+                                                <CommandItem
+                                                    key={campaign}
+                                                    value={campaign}
+                                                    onSelect={() => {
+                                                        form.setValue("campaignName", campaign);
+                                                        setCampaignOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            campaign === field.value ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {campaign}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                         <FormMessage className="text-red-400" />
                     </FormItem>
                 )}
             />
+
+            {/* Conditional Custom Campaign */}
+            {watchCampaign === "Other" && (
+                <FormField
+                    control={form.control}
+                    name="customCampaign"
+                    render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Custom Campaign Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Enter custom campaign name" className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500" {...field} />
+                            </FormControl>
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
 
             {/* Username with Suffix (Full Width) */}
             <FormField

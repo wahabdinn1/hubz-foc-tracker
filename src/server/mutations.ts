@@ -254,13 +254,17 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
       validated.requestor === "Other"
         ? validated.customRequestor || "Other"
         : validated.requestor;
+    const finalCampaign =
+      validated.campaignName === "Other"
+        ? validated.customCampaign || "Other"
+        : validated.campaignName;
 
     await writeToNextRow(SHEETS.FOC_REQUEST, [
       [
         timestamp,              // A: Timestamp
         emailAddress,           // B: Email Address
         finalRequestor,         // C: Requestor
-        validated.campaignName, // D: Campaign Name
+        finalCampaign,          // D: Campaign Name
         validated.unitName,     // E: Unit Name
         validated.imeiIfAny || "", // F: IMEI if any
         validated.kolName,      // G: KOL Name
@@ -490,8 +494,12 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
       validated.requestor === "Other"
         ? validated.customRequestor || "Other"
         : validated.requestor;
+    const finalCampaign =
+      validated.campaignName === "Other"
+        ? validated.customCampaign || "Other"
+        : validated.campaignName;
 
-    const remarksText = `Direct Transfer to ${validated.kol2Name} - ${validated.transferReason}`;
+    const remarksText = `Direct Transfer to ${validated.kol2Name} - ${finalCampaign}`;
 
     // -----------------------------------------------------------------------
     // Transaction A: Write to Step 4 FOC Return (return from KOL 1)
@@ -529,7 +537,7 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
           timestamp,                  // A: Timestamp
           emailAddress,               // B: Email Address
           finalRequestor,             // C: Requestor
-          validated.transferReason,    // D: Campaign Name (Transfer Reason)
+          finalCampaign,              // D: Campaign Name (Transfer Reason)
           validated.unitName,         // E: Unit Name
           validated.imei,             // F: IMEI if any
           validated.kol2Name,         // G: KOL Name (KOL 2)

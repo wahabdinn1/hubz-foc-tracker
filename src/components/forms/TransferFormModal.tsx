@@ -71,7 +71,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { transferUnit } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { transferFormSchema, type TransferPayload } from "@/lib/validations"
-import { DEVICE_CATEGORIES, REQUESTORS, FOC_TYPES } from "@/lib/constants"
+import { DEVICE_CATEGORIES, REQUESTORS, FOC_TYPES, CAMPAIGNS } from "@/lib/constants"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -112,6 +112,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>("");
+    const [campaignPopoverOpen, setCampaignPopoverOpen] = useState(false);
     const [imeiPopoverOpen, setImeiPopoverOpen] = useState(false);
     const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
@@ -167,11 +168,13 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
             kol2Name: "",
             kol2Phone: "",
             kol2Address: "",
-            transferReason: "",
+            campaignName: "",
+            customCampaign: "",
         },
     });
 
     const watchRequestor = form.watch("requestor");
+    const watchCampaign = form.watch("campaignName");
     const watchImei = form.watch("imei");
     const watchCurrentHolder = form.watch("currentHolder");
 
@@ -733,23 +736,89 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                                 {/* Transfer Reason / Campaign */}
                                 <FormField
                                     control={form.control}
-                                    name="transferReason"
+                                    name="campaignName"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem className="flex flex-col">
                                             <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
                                                 Transfer Reason / Campaign
                                             </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="e.g. Galaxy S25 Launch Campaign"
-                                                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
-                                                    {...field}
-                                                />
-                                            </FormControl>
+                                            <Popover
+                                                open={campaignPopoverOpen}
+                                                onOpenChange={setCampaignPopoverOpen}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            className={cn(
+                                                                "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal",
+                                                                !field.value && "text-neutral-500"
+                                                            )}
+                                                        >
+                                                            {field.value
+                                                                ? CAMPAIGNS.find((campaign) => campaign === field.value)
+                                                                : "Select Campaign"}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search campaign..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>No campaign found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {CAMPAIGNS.map((campaign) => (
+                                                                    <CommandItem
+                                                                        key={campaign}
+                                                                        value={campaign}
+                                                                        onSelect={() => {
+                                                                            form.setValue("campaignName", campaign)
+                                                                            setCampaignPopoverOpen(false)
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4",
+                                                                                campaign === field.value ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        {campaign}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                             <FormMessage className="text-red-400" />
                                         </FormItem>
                                     )}
                                 />
+
+                                {/* Conditional Custom Campaign */}
+                                {watchCampaign === "Other" && (
+                                    <FormField
+                                        control={form.control}
+                                        name="customCampaign"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                                    Custom Campaign Name
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Enter custom campaign name"
+                                                        className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage className="text-red-400" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
 
                                 {/* KOL 2 Name */}
                                 <FormField

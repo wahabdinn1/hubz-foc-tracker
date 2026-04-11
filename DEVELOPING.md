@@ -60,8 +60,8 @@ src/
   lib/
     auth.ts                    # Shared server-side JWT verification
     constants.ts               # Centralized constants: REQUESTORS, FOC_TYPES,
-                               #   DELIVERY_TYPES, DEVICE_CATEGORIES, sheet names,
-                               #   column headers, auth config, etc.
+                               #   DELIVERY_TYPES, CAMPAIGNS, DEVICE_CATEGORIES,
+                               #   sheet names, column headers, auth config, etc.
     date-utils.ts              # Shared date/urgency helpers
     validations.ts             # Centralized Zod schemas (request + return)
     utils.ts                   # Tailwind class merge & helpers
@@ -89,7 +89,7 @@ src/
 | `server/mutations.ts` | Appends rows to "Step 3" (request) and "Step 4" (return) sheets |
 | `server/auth.ts` | PIN verification, JWT signing, cookie management |
 | `types/inventory.ts` | `InventoryItem`, `ReturnTrackingItem`, `KOLProfile`, `ActionResult` type definitions |
-| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `DEVICE_CATEGORIES`, sheet names, column headers |
+| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, sheet names, column headers |
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
 | `lib/validations.ts` | Zod schemas shared between client forms and server actions |
 | `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions |
@@ -265,6 +265,22 @@ Edit this array to add/remove requestors. Both forms will update automatically.
 
 ---
 
+### How to Add or Remove a Campaign
+
+Campaigns appear in the "Campaign Name" dropdown on the Outbound (Request) form and the "Transfer Reason / Campaign" dropdown on the Transfer form.
+
+**File to edit:** `src/lib/constants.ts`
+
+**Steps:**
+
+1. Open `src/lib/constants.ts`.
+2. Locate the `CAMPAIGNS` array.
+3. Add, remove, or rename entries in the array.
+4. **Keep `"Other"` last** — it triggers a conditional "Custom Campaign Name" text input.
+5. Save the file. All forms will update automatically.
+
+---
+
 ### How to Add or Remove a Device Category
 
 Device categories control the first dropdown in the 2-step unit selection ("Select Device Category").
@@ -379,27 +395,18 @@ The email domain suffix shown next to the Username field (currently `@wppmedia.c
 
 ### How to Change Form Field Layout
 
-The Request form uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). Each field is one column unless it has `md:col-span-2` (full width).
+The Request form layout is defined in `src/components/forms/RequestFormModal.tsx` and its sub-components in `src/components/forms/request/`.
 
-**Current layout order (top to bottom):**
+The main grid uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). To change the order of field groups, rearrange the sub-component tags in `RequestFormModal.tsx`:
 
-| Row | Left Column | Right Column |
-|---|---|---|
-| 1 | Campaign Name (full width) | — |
-| 2 | Username + @domain (full width) | — |
-| 3 | Requestor | Custom Requestor (if "Other") |
-| 4 | Device Category | Unit / IMEI |
-| 5 | Unit Name (full width) | — |
-| 6 | KOL Name | KOL Phone Number |
-| 7 | KOL Address (full width) | — |
-| 8 | Delivery Date | Type of Delivery |
-| 9 | Type of FOC | (empty) |
+```tsx
+<RequestFormCampaign />
+<RequestFormDevice ... />
+<RequestFormKol />
+<RequestFormDelivery ... />
+```
 
-**To rearrange fields:** Move the `<FormField>` JSX blocks within the `<div className="grid ...">` container. The grid automatically wraps items into 2 columns on desktop.
-
-**To make a field full-width:** Add `className="md:col-span-2"` to its `<FormItem>`.
-
-**To make a field half-width:** Remove `md:col-span-2` from its `<FormItem>`.
+To change individual fields within a group (e.g., swapping KOL Name and Phone), edit the corresponding sub-component file (e.g., `RequestFormKol.tsx`). Each `<FormItem>` can use `className="md:col-span-2"` to take up the full width or omit it to take up a single column.
 
 ---
 
@@ -465,7 +472,7 @@ const values = [[
     timestamp,
     payload.username + EMAIL_DOMAIN,
     payload.requestor === "Other" ? payload.customRequestor : payload.requestor,
-    payload.campaignName,
+    payload.campaignName === "Other" ? payload.customCampaign : payload.campaignName,
     payload.unitName,
     payload.imeiIfAny || "",
     payload.kolName,
@@ -616,10 +623,10 @@ The following improvements are planned but not yet implemented:
 
 ### Code Quality
 - [x] **Component Decomposition** — Break down large components:
-  - [x] `RequestFormModal.tsx` (~640 lines) → extract step sections into sub-components
-  - [x] `ModelsTab.tsx` (~530 lines) → extract level views into `ModelLevel1Grid`, `ModelLevel2Cards`, `ModelLevel3Units`
-  - [x] `ReturnFormModal.tsx` (~376 lines) → extract IMEI selector into reusable component
-  - [x] `MasterListTab.tsx` (~370 lines) → extract mobile card view and pagination into sub-components
+  - [x] `RequestFormModal.tsx` → extracted step sections into `RequestFormCampaign`, `RequestFormDevice`, `RequestFormKol`, `RequestFormDelivery`
+  - [x] `ModelsTab.tsx` → extracted level views into `ModelLevel1Grid`, `ModelLevel2Cards`, `ModelLevel3Units`
+  - [x] `ReturnFormModal.tsx` → extracted IMEI selector into reusable component
+  - [x] `MasterListTab.tsx` → extracted mobile card view and pagination into sub-components
 - [ ] **React.memo optimization** — Memoize expensive child components (Scorecard, table rows)
 - [ ] **Unit Tests** — Add test coverage for date-utils, validations, and server actions
 
