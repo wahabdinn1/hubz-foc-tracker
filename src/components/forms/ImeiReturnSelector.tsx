@@ -62,28 +62,28 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
                                                     form.setValue("unitName", item.unitName || "");
                                                     form.setValue("fromKol", item.onHolder || "");
 
-                                                    const phone = item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "";
-                                                    const address = item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "";
+                                                    const phone = item.step3Data?.kolPhone || item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "";
+                                                    const address = item.step3Data?.kolAddress || item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "";
                                                     form.setValue("kolPhoneNumber", phone);
                                                     form.setValue("kolAddress", address);
 
-                                                    const requestor = item.fullData?.["Step 3 Requestor"];
-                                                    if (requestor) {
+                                                    const rawRequestor = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || "";
+                                                    if (rawRequestor) {
                                                         const predefinedReq = REQUESTORS.filter(r => r !== "Other");
-                                                        const matchedReq = predefinedReq.find(r => r.toLowerCase() === requestor.toLowerCase());
+                                                        const matchedReq = predefinedReq.find(r => r.toLowerCase() === rawRequestor.toLowerCase());
                                                         if (matchedReq) {
                                                             form.setValue("requestor", matchedReq);
                                                             form.setValue("customRequestor", "");
                                                         } else {
                                                             form.setValue("requestor", "Other");
-                                                            form.setValue("customRequestor", requestor);
+                                                            form.setValue("customRequestor", rawRequestor);
                                                         }
                                                     }
 
-                                                    const typeOfFoc = item.fullData?.["Step 3 Type of FOC"];
-                                                    if (typeOfFoc) {
+                                                    const rawFocType = item.step3Data?.typeOfFoc || item.fullData?.["Step 3 Type of FOC"] || "";
+                                                    if (rawFocType) {
                                                         const predefinedFoc = [...FOC_TYPES];
-                                                        const mappedType = typeOfFoc.toUpperCase();
+                                                        const mappedType = rawFocType.toUpperCase();
                                                         const matchedFoc = predefinedFoc.find(f => f === mappedType);
                                                         if (matchedFoc) {
                                                             form.setValue("typeOfFoc", matchedFoc as typeof FOC_TYPES[number]);

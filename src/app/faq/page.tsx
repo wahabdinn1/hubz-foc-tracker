@@ -102,7 +102,7 @@ const faqsData = {
             <li>On the table or KOL details, select the <strong>Return</strong> option for the unit currently being borrowed.</li>
             <li>Ensure you match the physical IMEI and box with the IMEI in the system.</li>
             <li>Update the device condition upon return (Good, Cracked Screen, Lost, etc.).</li>
-            <li>Once submitted, the unit's status will automatically revert to <strong>AVAILABLE</strong> in the inventory bank.</li>
+            <li>Once submitted, the unit&apos;s status will automatically revert to <strong>AVAILABLE</strong> in the inventory bank.</li>
           </ul>
         </div>
       )
@@ -117,7 +117,7 @@ const faqsData = {
           <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Direct Transfer Flow:</h4>
           <ul className="list-decimal pl-5 space-y-2">
             <li>Use the <strong>Transfer</strong> button/form on a unit that is currently borrowed (<em>On Loaned</em>).</li>
-            <li>The system will automatically detect and <strong>fill in the "Current Holder" field</strong> based on the KOL currently holding the unit.</li>
+            <li>The system will automatically detect and <strong>fill in the &ldquo;Current Holder&rdquo; field</strong> based on the KOL currently holding the unit.</li>
             <li>You just need to fill in the <strong>New Receiver (New KOL)</strong> along with their campaign and delivery details.</li>
             <li>Click Submit. The form will perform a double entry (<em>Double Append</em>) in the database to keep the history neat: it records that the item was returned by the old KOL, and instantly loaned out to the new KOL.</li>
           </ul>
@@ -132,11 +132,11 @@ const faqsData = {
         <div className="space-y-6">
           <div className="space-y-2">
             <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Unit does not appear in the dropdown during Request:</h4>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Cause:</em> The item's status is not yet <code>AVAILABLE</code> or is already borrowed by someone else.</p>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Solution:</em> Check the item's location in the Inventory Bank menu. If the item was just returned, make sure the Inbound (Return) process has been completed.</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Cause:</em> The item&apos;s status is not yet <code>AVAILABLE</code> or is already borrowed by someone else.</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Solution:</em> Check the item&apos;s location in the Inventory Bank menu. If the item was just returned, make sure the Inbound (Return) process has been completed.</p>
           </div>
           <div className="space-y-2">
-            <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">"Conflict / Unit Unavailable" Error appears when Submitting Request:</h4>
+            <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">&ldquo;Conflict / Unit Unavailable&rdquo; Error appears when Submitting Request:</h4>
             <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Cause:</em> Another team member has just requested the same unit at the exact same exact second/minute (Race Condition).</p>
             <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Solution:</em> The system will reset your dropdown. Please select another available unit/IMEI.</p>
           </div>
@@ -240,7 +240,7 @@ const faqsData = {
           <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Alur Direct Transfer:</h4>
           <ul className="list-decimal pl-5 space-y-2">
             <li>Gunakan tombol / form <strong>Transfer</strong> pada unit yang statusnya sedang dipinjam (<em>On Loaned</em>).</li>
-            <li>Sistem akan secara otomatis mendeteksi dan <strong>mengisi field "Current Holder"</strong> berdasarkan KOL yang sedang memegang unit tersebut saat ini.</li>
+            <li>Sistem akan secara otomatis mendeteksi dan <strong>mengisi field &ldquo;Current Holder&rdquo;</strong> berdasarkan KOL yang sedang memegang unit tersebut saat ini.</li>
             <li>Anda cukup mengisi <strong>Penerima Baru (New KOL)</strong> beserta detail kampanye dan pengirimannya.</li>
             <li>Klik Submit. Form akan melakukan pencatatan ganda (<em>Double Append</em>) di database agar riwayat tetap rapi: tercatat bahwa barang dikembalikan oleh KOL lama, dan langsung dipinjamkan ke KOL baru.</li>
           </ul>
@@ -259,7 +259,7 @@ const faqsData = {
             <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Solusi:</em> Cek lokasi barang di menu Inventory Bank. Jika barang baru saja dikembalikan, pastikan proses Inbound (Return) sudah diselesaikan.</p>
           </div>
           <div className="space-y-2">
-            <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Muncul Error "Conflict / Unit Unavailable" saat Submit Request:</h4>
+            <h4 className="font-semibold text-neutral-900 dark:text-neutral-100">Muncul Error &ldquo;Conflict / Unit Unavailable&rdquo; saat Submit Request:</h4>
             <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Penyebab:</em> Ada anggota tim lain yang baru saja me-request unit yang sama pada detik/menit yang bersamaan (Race Condition).</p>
             <p className="text-sm text-neutral-600 dark:text-neutral-400"><em>Solusi:</em> Sistem akan me-reset dropdown Anda. Silakan pilih unit/IMEI lain yang masih tersedia.</p>
           </div>

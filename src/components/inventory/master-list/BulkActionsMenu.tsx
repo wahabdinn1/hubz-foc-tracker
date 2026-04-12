@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, PlusSquare, ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BulkActionsMenuProps {

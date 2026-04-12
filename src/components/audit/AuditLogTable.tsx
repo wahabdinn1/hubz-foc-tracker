@@ -83,7 +83,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [typeFilter, setTypeFilter] = useState<"ALL" | "REQUEST" | "RETURN">("ALL");
     const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = useState(15);
 
     const [sortCol, setSortCol] = useState<SortColumn>("date");
     const [sortDir, setSortDir] = useState<SortDirection>("desc");

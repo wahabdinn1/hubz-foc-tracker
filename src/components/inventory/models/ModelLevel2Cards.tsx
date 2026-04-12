@@ -89,7 +89,7 @@ export function ModelLevel2Cards({ activeGroup, setSelectedBaseModel, setSelecte
                         {filteredVariants.length === 0 ? (
                             <div className="col-span-full py-12 text-center text-neutral-500">
                                 <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                <p>No variants found matching "{search}"</p>
+                                <p>No variants found matching &ldquo;{search}&rdquo;</p>
                             </div>
                         ) : filteredVariants.map((variant, vIdx) => {
                             const loanPercent = variant.total > 0 ? (variant.loaned / variant.total) * 100 : 0;

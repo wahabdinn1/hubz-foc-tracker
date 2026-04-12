@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "KOL Management — Hubz FOC Tracker",

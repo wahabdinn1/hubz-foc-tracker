@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { InventoryItem } from "@/types/inventory";
 import { MasterListFilters } from "./master-list/MasterListFilters";
 import { MasterListMobileCards } from "./master-list/MasterListMobileCards";
@@ -24,7 +24,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         if (initialFilter === "loaned") return "LOANED";
         return "ALL";
     });
-    const [currentPage, setCurrentPage] = useState(1);
+    const [rawPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState<{ key: keyof InventoryItem, direction: 'asc' | 'desc' } | null>(null);
 
@@ -74,12 +74,10 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
     };
 
     const totalPages = Math.ceil(sortedInventory.length / rowsPerPage) || 1;
-    const paginatedInventory = sortedInventory.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-    // Fix: Move page reset to useEffect instead of during render (#8)
-    useEffect(() => {
-        if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
-    }, [currentPage, totalPages]);
+    // Clamp page during render instead of using useEffect + setState (avoids cascading renders)
+    const currentPage = rawPage > totalPages && totalPages > 0 ? 1 : rawPage;
+    const paginatedInventory = sortedInventory.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     return (
         <div className="border border-black/5 dark:border-white/[0.08] rounded-xl md:rounded-2xl bg-white/80 dark:bg-neutral-900/40 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col">

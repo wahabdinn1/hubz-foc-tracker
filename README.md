@@ -13,13 +13,16 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 - **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
 - **Forms** — Outbound (loan request), Inbound (return), and Direct Transfer modals with:
   - 2-step device selection (Category → Unit/IMEI)
+  - **Multi-unit returns** — select multiple loaned devices at once; per-item data auto-resolved from Step 3 sheet
   - Standardized **Campaign Dropdowns** with "Other" fallback
   - Auto-fill of Type of FOC from spreadsheet data
   - Precise `writeToNextRow` logic with GMT+7 timestamping
+- **Email Notifications** — Automatic email alerts (via Nodemailer + Gmail) sent to admins on every Request, Return, and Transfer action. Modern Shadcn-style HTML template with color-coded action badges. All notifications thread into a **single Gmail conversation** via static subject + `In-Reply-To`/`References` headers.
 - **Micro-Animations** — Framer Motion powers fluid card sorting, sliding, and fading transitions throughout the UI.
-- **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by Edge middleware intercepting all traffic.
+- **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by the Next.js 16 Edge proxy intercepting all traffic.
 - **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.
 - **Mobile Responsive** — Full mobile support with collapsible sidebar, touch-friendly cards, and adaptive typography.
+- **Error & Loading States** — Global `error.tsx` boundary with retry UI, `not-found.tsx` for 404s, and skeleton `loading.tsx` on every route.
 
 ## Technology Stack
 
@@ -29,10 +32,12 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 | Styling | Tailwind CSS v4 |
 | UI Components | Shadcn UI, Framer Motion |
 | State & Theming | `next-themes`, React Hooks |
-| Icons | Lucide React, Tabler Icons |
+| Icons | Lucide React |
 | Validation | Zod, `react-hook-form` |
 | Data Source | Google Sheets API (via Server Actions) |
 | Authentication | `jose` (Edge-compatible JWT), HTTP-only cookies |
+| Email | Nodemailer + Gmail SMTP |
+| Testing | Vitest, React Testing Library |
 | Package Manager | pnpm |
 
 ## Getting Started
@@ -47,9 +52,14 @@ GOOGLE_CLIENT_EMAIL="your-service-account@your-project.iam.gserviceaccount.com"
 GOOGLE_SHEET_ID="your_google_sheet_id_here"
 AUTHORIZED_PINS="123456,654321"
 JWT_SECRET="your_jwt_signing_secret_here"
+EMAIL_USER="your-gmail@gmail.com"
+EMAIL_PASS="your-app-password"
+ADMIN_EMAIL="admin@wppmedia.com"
 ```
 
-All Google variables are required. The application will fail at runtime if `GOOGLE_PRIVATE_KEY` is not set. `JWT_SECRET` is **required** for JWT signing — the application will reject all authentication attempts without it.
+All Google variables are required. The application performs **validation at startup** and will fail to initialize if these are missing. `JWT_SECRET` is **required** for JWT signing — authentication will reject all attempts without it.
+
+Email notifications are **optional** — if `EMAIL_USER`, `EMAIL_PASS`, or `ADMIN_EMAIL` are not configured, the system will skip notifications silently without crashing (but will log a warning). To enable, use a [Gmail App Password](https://myaccount.google.com/apppasswords).
 
 ### 2. Install Dependencies
 
@@ -69,6 +79,13 @@ Open [http://localhost:3000](http://localhost:3000) to access the application. Y
 
 ```bash
 pnpm build && pnpm start
+```
+
+### 5. Run Tests
+
+```bash
+pnpm test          # single run
+pnpm test:watch    # watch mode
 ```
 
 ## Documentation

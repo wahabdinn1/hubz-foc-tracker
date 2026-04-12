@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -18,16 +18,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import {
     Form,
 } from "@/components/ui/form"
 import { requestUnit } from "@/server/actions"
@@ -38,6 +28,10 @@ import { RequestFormCampaign } from "./request/RequestFormCampaign"
 import { RequestFormDevice } from "./request/RequestFormDevice"
 import { RequestFormKol } from "./request/RequestFormKol"
 import { RequestFormDelivery } from "./request/RequestFormDelivery"
+import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
+import { UsernameEmailInput } from "./shared/UsernameEmailInput"
+import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
+import { useDeviceCategories } from "@/hooks/useDeviceCategories"
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
@@ -47,41 +41,13 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
     const [selectedCategory, setSelectedCategory] = useState<string>("")
     const [imeiPopoverOpen, setImeiPopoverOpen] = useState(false)
 
-    // Build category → items map from AVAILABLE items only
-    const categoryMap = useMemo(() => {
-        const map = new Map<string, InventoryItem[]>();
+    const filterAvailable = useCallback((item: InventoryItem) => {
+        return item.statusLocation?.toUpperCase().includes("AVAILABLE") ?? false
+    }, [])
 
-        availableItems
-            .filter(item => item.statusLocation?.toUpperCase().includes("AVAILABLE"))
-            .forEach(item => {
-                const category = getDeviceCategory(item.unitName || "");
-                const list = map.get(category) || [];
-                list.push(item);
-                map.set(category, list);
-            });
+    const { categories, getFilteredItems } = useDeviceCategories(availableItems, filterAvailable)
 
-        return map;
-    }, [availableItems]);
-
-    // Sorted category names with counts
-    const categories = useMemo(() => {
-        const allCats = Array.from(categoryMap.entries()).map(([name, items]) => ({
-            name,
-            count: items.length,
-        }));
-        // Sort so defined categories come first alphabetically, "Others" last
-        return allCats.sort((a, b) => {
-            if (a.name === "Others") return 1;
-            if (b.name === "Others") return -1;
-            return a.name.localeCompare(b.name);
-        });
-    }, [categoryMap]);
-
-    // Items filtered by selected category
-    const filteredItems = useMemo(() => {
-        if (!selectedCategory) return [];
-        return categoryMap.get(selectedCategory) || [];
-    }, [selectedCategory, categoryMap]);
+    const filteredItems = useMemo(() => getFilteredItems(selectedCategory), [selectedCategory, getFilteredItems])
 
     // React Hook Form setup
     const form = useForm<z.infer<typeof requestFormSchema>>({
@@ -169,41 +135,21 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         }
     }
 
-    // Scroll to the first error field on invalid form submission
-    function onInvalid(errors: Record<string, { message?: string }>) {
-        const firstErrorName = Object.keys(errors)[0]
-        const element = document.getElementsByName(firstErrorName)[0]
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            element.focus()
-        }
-    }
+    const onInvalid = useScrollToFirstError()
+
+    const handleDiscard = useCallback(() => {
+        setShowDiscardDialog(false)
+        setOpen(false)
+        resetFormState()
+    }, [resetFormState])
 
     return (
         <>
-            <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-                <AlertDialogContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Discard changes?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            You have unsaved changes. Are you sure you want to discard them?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel className="border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => {
-                                setShowDiscardDialog(false);
-                                setOpen(false);
-                                resetFormState();
-                            }}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                            Discard
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <DiscardGuardDialog
+                open={showDiscardDialog}
+                onOpenChange={setShowDiscardDialog}
+                onDiscard={handleDiscard}
+            />
 
             <Dialog open={open} onOpenChange={(v) => {
                 if (!v) {

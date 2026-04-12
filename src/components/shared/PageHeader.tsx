@@ -14,8 +14,8 @@ import type { InventoryItem } from "@/types/inventory";
 interface PageHeaderProps {
     title: string;
     subtitle: string;
-    availableUnits: InventoryItem[];
-    loanedItems: InventoryItem[];
+    availableUnits?: InventoryItem[];
+    loanedItems?: InventoryItem[];
     allInventory?: InventoryItem[];
     children?: React.ReactNode;
 }
@@ -24,7 +24,7 @@ interface PageHeaderProps {
  * Shared page header toolbar with theme toggle, sync button, and action buttons.
  * De-duplicates the identical header from Dashboard, Inventory, and KOL clients.
  */
-export function PageHeader({ title, subtitle, availableUnits, loanedItems, allInventory, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, availableUnits = [], loanedItems = [], allInventory, children }: PageHeaderProps) {
     const { isPending, handleSync } = useSyncInventory();
 
     return (

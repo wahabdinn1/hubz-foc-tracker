@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getInventory, getOverdueData, getReturnHistory } from "@/server/actions";
+import { getDashboardData } from "@/server/actions";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
@@ -8,7 +8,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Dashboard — Hubz FOC Tracker",
@@ -19,11 +19,7 @@ async function DashboardFetcher() {
   const authed = await isAuthenticated();
   if (!authed) return <PinModal />;
 
-  const [inventory, overdueItems, returnHistory] = await Promise.all([
-    getInventory(),
-    getOverdueData(),
-    getReturnHistory(),
-  ]);
+  const { inventory, overdueItems, returnHistory } = await getDashboardData();
   return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
 }
 

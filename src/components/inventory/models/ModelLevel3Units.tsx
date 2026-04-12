@@ -17,7 +17,7 @@ interface ModelLevel3UnitsProps {
     setSelectedItem: (item: InventoryItem) => void;
 }
 
-export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseModel, setSelectedVariant, setSelectedItem }: ModelLevel3UnitsProps) {
+export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseModel: _setSelectedBaseModel, setSelectedVariant, setSelectedItem }: ModelLevel3UnitsProps) {
     const [search, setSearch] = useState("");
 
     const filteredItems = activeVariant.items.filter(item => 
@@ -100,7 +100,7 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                         {filteredItems.length === 0 ? (
                             <div className="col-span-full py-12 text-center text-neutral-500">
                                 <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                <p>No units found matching "{search}"</p>
+                                <p>No units found matching &ldquo;{search}&rdquo;</p>
                             </div>
                         ) : filteredItems.map((item, idx) => {
                             const focUp = item.focStatus?.toUpperCase().trim();

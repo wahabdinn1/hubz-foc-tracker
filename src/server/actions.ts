@@ -6,7 +6,7 @@
  */
 
 // Data fetching
-export { getInventory, revalidateInventory, getOverdueData, getReturnHistory, getRequestHistory } from "./inventory";
+export { getInventory, revalidateInventory, getOverdueData, getReturnHistory, getRequestHistory, getDashboardData } from "./inventory";
 
 // Form mutations
 export { requestUnit, returnUnit, returnUnits, transferUnit } from "./mutations";

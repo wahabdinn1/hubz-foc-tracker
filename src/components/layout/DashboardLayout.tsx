@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconMenu2, IconX, IconLayoutDashboard, IconBox, IconUsers, IconHistory, IconHelp } from "@tabler/icons-react";
+import { Menu, X, LayoutDashboard, Package, Users, History, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             >
                 <div className="flex h-[72px] items-center flex-shrink-0 px-[22px] gap-4 border-b border-black/5 dark:border-white/[0.05] overflow-hidden transition-colors">
                     <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)] ring-1 ring-blue-400/30">
-                        <IconBox className="text-white h-5 w-5" />
+                        <Package className="text-white h-5 w-5" />
                     </div>
                     <AnimatePresence>
                         {open && (
@@ -47,11 +47,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <nav className="flex-1 px-3 py-8 space-y-2">
-                    <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
-                    <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
-                    <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
-                    <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
-                    <NavItem href="/faq" icon={<IconHelp className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={open} />
+                    <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
+                    <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
+                    <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
+                    <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
+                    <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={open} />
                 </nav>
             </motion.div>
 
@@ -59,13 +59,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex md:hidden h-16 w-full border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md items-center justify-between px-4 fixed top-0 z-50 transition-colors">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-                        <IconBox className="text-white h-5 w-5" />
+                        <Package className="text-white h-5 w-5" />
                     </div>
                     <span className="text-neutral-900 dark:text-white font-bold tracking-wide">Hubz FOC</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={() => setOpen(!open)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none" aria-label={open ? "Close navigation menu" : "Open navigation menu"} aria-expanded={open} aria-controls="mobile-menu">
-                        {open ? <IconX /> : <IconMenu2 />}
+                        {open ? <X /> : <Menu />}
                     </button>
                 </div>
             </div>
@@ -81,11 +81,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-3xl p-4 border-t border-black/5 dark:border-white/5 transition-colors"
                     >
                         <nav className="space-y-2">
-                            <NavItem href="/" icon={<IconLayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/inventory" icon={<IconBox className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/kol" icon={<IconUsers className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/audit" icon={<IconHistory className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/faq" icon={<IconHelp className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setOpen(false)} />
                         </nav>
                     </motion.div>
                 )}

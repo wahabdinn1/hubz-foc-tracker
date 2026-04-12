@@ -6,7 +6,7 @@ This document covers the architecture, data flow, conventions, security model, a
 
 ## Architecture
 
-The application is built on **Next.js (App Router)** with **Server Actions** acting as the data layer between client components and the Google Sheets API.
+The application is built on **Next.js 16 (App Router)** with **Server Actions** acting as the data layer between client components and the Google Sheets API.
 
 ### Directory Structure
 
@@ -16,8 +16,13 @@ src/
     page.tsx                   # Analytics Dashboard (root)
     inventory/page.tsx         # Dedicated Inventory Bank
     kol/page.tsx               # Dedicated KOL Directory
+    audit/page.tsx             # Audit Log
+    faq/page.tsx               # Help Center / FAQ
     layout.tsx                 # Root layout + ThemeProvider
     globals.css                # Design tokens, custom scrollbars
+    error.tsx                  # Global error boundary with retry
+    not-found.tsx              # 404 page
+    loading.tsx                 # Root loading skeleton
 
   components/
     layout/                    # App-shell components
@@ -31,17 +36,26 @@ src/
       Scorecard.tsx            # Animated stat card with spotlight effect
       PinModal.tsx             # Authentication PIN lock screen
       ErrorBoundary.tsx        # React error boundary with retry UI
+      DiscardGuardDialog.tsx   # Reusable "Discard changes?" confirmation dialog
       Skeletons.tsx            # Loading skeleton components
-     forms/                     # Data-entry modals
-       RequestFormModal.tsx     # Outbound (loan) request form
-       ReturnFormModal.tsx      # Inbound (return) form
-       TransferFormModal.tsx    # Direct transfer between KOLs
-       ImeiReturnSelector.tsx   # Reusable IMEI combobox for return form
-       request/                 # Request form sub-components
-         RequestFormCampaign.tsx
-         RequestFormDevice.tsx
-         RequestFormKol.tsx
-         RequestFormDelivery.tsx
+    forms/                     # Data-entry modals
+      RequestFormModal.tsx     # Outbound (loan) request form
+      ReturnFormModal.tsx      # Inbound (return) form — multi-unit selection
+      TransferFormModal.tsx    # Direct transfer between KOLs (orchestrator only)
+      MultiImeiReturnSelector.tsx  # Multi-select IMEI combobox for return form
+      ImeiReturnSelector.tsx   # Single-select IMEI combobox (legacy)
+      BatchReturnDialog.tsx    # Batch return dialog (legacy, unused)
+      shared/                  # Shared form sub-components
+        UsernameEmailInput.tsx # Username + EMAIL_DOMAIN suffix input
+      request/                 # Request form sub-components
+        RequestFormCampaign.tsx
+        RequestFormDevice.tsx
+        RequestFormKol.tsx
+        RequestFormDelivery.tsx
+      transfer/               # Transfer form sub-components
+        TransferFormDevice.tsx # Requestor + category + IMEI + holder
+        TransferFormDetails.tsx # FOC type + date + campaign
+        TransferFormNewKol.tsx  # KOL 2 fields
     dashboard/                 # Dashboard-specific widgets
       DashboardClient.tsx      # Dashboard state orchestrator
       DashboardDonutChart.tsx  # Lightweight SVG donut chart (replaces recharts)
@@ -61,47 +75,64 @@ src/
 
   types/
     inventory.ts               # Centralized TypeScript interfaces
-                               #   InventoryItem, ReturnTrackingItem,
-                               #   KOLProfile, ActionResult
+                               #   InventoryItem, Step1Data, Step3RefData,
+                               #   KOLProfile, ActionResult, OverdueItem,
+                               #   ReturnHistoryItem, RequestHistoryItem
 
   lib/
     auth.ts                    # Shared server-side JWT verification
-    constants.ts               # Centralized constants: REQUESTORS, FOC_TYPES,
+    constants.ts               # Centralized constants: STEP1_COLS, STEP3_COLS,
+                               #   STEP4_COLS, REQUESTORS, FOC_TYPES,
                                #   DELIVERY_TYPES, CAMPAIGNS, DEVICE_CATEGORIES,
-                               #   FOC_TYPE_KEYS, sheet names, column headers, auth config, etc.
+                               #   FOC_TYPE_KEYS, sheet names, auth config, etc.
+    form-utils.ts              # Shared form helpers: resolveRequestorWithFallback(),
+                               #   resolveFocTypeWithMatch()
     device-utils.ts            # Shared device helpers: getDeviceCategory(), getCategoryIcon(), extractFocType()
     date-utils.ts              # Shared date/urgency helpers
     validations.ts             # Centralized Zod schemas (request + return + transfer)
     utils.ts                   # Tailwind class merge & helpers
     rate-limit.ts              # In-memory per-IP PIN brute-force prevention
+    mailer.ts                  # Nodemailer email notification utility (Gmail-threaded)
 
   hooks/
     useInventoryStats.ts       # Derives stats (available, loaned, etc.) from inventory
     useSyncInventory.ts        # Centralized sync-with-Sheets + transition state
+    useScrollToFirstError.ts   # Shared onInvalid handler for react-hook-form
+    useDeviceCategories.ts     # Shared category → items map + sorted categories
 
   server/
     actions.ts                 # Barrel re-export of all server actions
-    inventory.ts               # getInventory() + revalidateInventory()
-    mutations.ts               # requestUnit() + returnUnit() + transferUnit()
+    inventory.ts               # getInventory() + revalidateInventory() + getDashboardData()
+    mutations.ts               # requestUnit() + returnUnit() + returnUnits() + transferUnit()
     auth.ts                    # verifyPin() server action (timing-safe PIN comparison)
     google.ts                  # Google Sheets API client setup
 
   proxy.ts                     # Edge proxy (JWT verification, Next.js 16 convention)
+
+  __tests__/                   # Vitest test suites
+    setup.ts                   # Test environment setup (jsdom + jest-dom)
+    constants.test.ts          # Column index and form constant tests
+    form-utils.test.ts         # Requestor/FOC type resolution tests
+    device-utils.test.ts       # Device category classification tests
 ```
 
 ### Module Responsibilities
 
 | Module | Responsibility |
 |---|---|
-| `server/inventory.ts` | Fetches and transforms data from Google Sheets; cached with 30s TTL |
-| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization |
+| `server/inventory.ts` | Fetches and transforms data from Google Sheets using **positional column parsing** (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`); cached with 60s ISR |
+| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; batch size limits |
+| `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; threads all emails into a single Gmail conversation |
 | `server/auth.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
-| `types/inventory.ts` | `InventoryItem`, `ReturnTrackingItem`, `KOLProfile`, `ActionResult` type definitions |
-| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, `FOC_TYPE_KEYS`, sheet names, column headers |
+| `types/inventory.ts` | `InventoryItem`, `Step1Data`, `Step3RefData`, `KOLProfile`, `ActionResult` type definitions |
+| `lib/constants.ts` | Centralized constants: `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`, `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, `FOC_TYPE_KEYS`, sheet names, column headers |
+| `lib/form-utils.ts` | `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` — shared form data resolution |
 | `lib/device-utils.ts` | Shared device helpers: `getDeviceCategory()`, `getCategoryIcon()`, `extractFocType()` |
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
 | `lib/validations.ts` | Zod schemas shared between client forms and server actions (request, return, transfer) |
 | `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions (requires `JWT_SECRET`) |
+| `hooks/useDeviceCategories.ts` | `useDeviceCategories(items, filterFn)` — builds category map, sorted categories, and filtered items |
+| `hooks/useScrollToFirstError.ts` | `useScrollToFirstError()` — shared `onInvalid` handler that scrolls to and focuses the first error field |
 | `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity` from raw inventory (single-pass) |
 | `hooks/useSyncInventory.ts` | Centralized `handleSync()` + `isPending` state for all pages |
 
@@ -113,21 +144,31 @@ src/
 
 Data is sourced from the sheet named **"Step 1 Data Bank"**, columns A through P.
 
-The `getInventory()` server action reads the sheet and maps each row to the `InventoryItem` interface:
+The `getInventory()` server action reads the sheet and maps each row to the `InventoryItem` interface using **positional column parsing**:
 
-| Field | Sheet Column (2026) | Lookup Header |
+| Field | Sheet Column | Index (`STEP1_COLS`) |
 |---|---|---|
-| `imei` | F (index 5) | SERIAL NUMBER (IMEI/SN) |
-| `unitName` | G (index 6) | UNIT NAME |
-| `focStatus` | H (index 7) | FOC STATUS |
-| `plannedReturnDate` | I (index 8) | PLANNED RETURN DATE |
-| `seinPic` | D (index 3) | SEIN PIC NAME |
-| `goatPic` | K (index 10) | GOAT PIC (PLANNER) |
-| `campaignName` | L (index 11) | CAMPAIGN NAME |
-| `statusLocation` | N (index 13) | STATUS LOCATION |
-| `onHolder` | O (index 14) | ON HOLDER |
+| `imei` | SERIAL NUMBER (IMEI/SN) | `STEP1_COLS.IMEI` (4) |
+| `unitName` | UNIT NAME | `STEP1_COLS.UNIT_NAME` (5) |
+| `focStatus` | FOC STATUS | `STEP1_COLS.FOC_STATUS` (6) |
+| `plannedReturnDate` | PLANNED RETURN DATE | `STEP1_COLS.PLANNED_RETURN` (7) |
+| `seinPic` | SEIN PIC NAME | `STEP1_COLS.SEIN_PIC_NAME` (2) |
+| `goatPic` | GOAT PIC (PLANNER) | `STEP1_COLS.GOAT_PIC` (9) |
+| `campaignName` | CAMPAIGN NAME | `STEP1_COLS.CAMPAIGN_NAME` (10) |
+| `statusLocation` | STATUS LOCATION | `STEP1_COLS.STATUS_LOCATION` (12) |
+| `onHolder` | ON HOLDER | `STEP1_COLS.ON_HOLDER` (13) |
 
-Column lookups use **header-name matching first** (defined in `lib/constants.ts` → `COLUMN_HEADERS`), falling back to positional indices. This means the sheet columns can be reordered without breaking the application, as long as header names are preserved.
+Column lookups use **positional indices** defined in `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS` (in `lib/constants.ts`), validated against the FOC.xlsx spreadsheet structure. This replaces the previous header-name matching approach with a deterministic, index-based parser (`cell(row, index)`) that is faster and immune to header renames.
+
+The legacy `COLUMN_HEADERS` header-name lookup is still exported but deprecated — it exists only for backward compatibility with `fullData`.
+
+### Typed Step Data
+
+Every `InventoryItem` now includes:
+
+- **`step1Data: Step1Data`** — Typed column data from "Step 1 Data Bank" with named fields (e.g., `step1Data.imei`, `step1Data.focType`, `step1Data.statusLocation`).
+- **`step3Data: Step3RefData | null`** — Cross-referenced data from "Step 3 FOC Request", matched by IMEI or composite key (UnitName||KOL). Provides `requestor`, `kolPhone`, `kolAddress`, `typeOfFoc`, etc.
+- **`fullData: Record<string, string>`** — Deprecated backward-compat dictionary for QuickView panel.
 
 ### Dynamic Full Data
 
@@ -135,7 +176,9 @@ Every row also generates a `fullData` dictionary keyed by header names. This pow
 
 ### Real-time Caching and Revalidation
 
-- `getInventory()` is wrapped in `unstable_cache` with a 30-second TTL (configured via `CACHE_REVALIDATE_SECONDS` in constants).
+- `getInventory()` is wrapped in `unstable_cache` with a 60-second TTL (configured via `CACHE_REVALIDATE_SECONDS` in constants).
+- Pages use **ISR** (`revalidate = 60`) instead of `force-dynamic` for better Vercel free-tier compatibility.
+- `getDashboardData()` combines `getInventory()`, `getOverdueData()`, and `getReturnHistory()` into a single `Promise.all` call.
 - Mutations immediately fire `revalidatePath('/', 'layout')` to drop the cache.
 - The request-date cross-reference reads **"Step 3 FOC Request"** to resolve timestamps per device.
 
@@ -148,7 +191,7 @@ Every row also generates a `fullData` dictionary keyed by header names. This pow
 1. User enters a 6-digit PIN via `PinModal`.
 2. `verifyPin()` (in `server/auth.ts`) checks against `AUTHORIZED_PINS` using timing-safe comparison.
 3. On success, a JWT is signed (using `JWT_SECRET` from env) and set as HTTP-only cookie (`foc_auth_token`).
-4. The edge proxy (`src/proxy.ts`) intercepts all routes and verifies the JWT.
+4. The edge proxy (`src/proxy.ts`) intercepts all routes and verifies the JWT. This is the **Next.js 16 approach** — the `proxy()` export replaces the legacy `middleware.ts` pattern.
 5. Server actions independently verify authentication before processing mutations.
 
 ### Rate Limiting
@@ -162,6 +205,39 @@ Failed PIN attempts are tracked per-IP by `lib/rate-limit.ts`. After exceeding t
 - **`secure` flag** — Cookie is HTTPS-only in production.
 - **`sameSite: "lax"`** — Prevents cross-site request attachment.
 - **Server action auth gates** — Mutations reject unauthenticated callers.
+
+---
+
+## Email Notifications
+
+Every FOC mutation (Request, Return, Transfer) triggers an email notification to the admin via `lib/mailer.ts`.
+
+### Configuration
+
+Add these environment variables to `.env.local`:
+
+```env
+EMAIL_USER="your-gmail@gmail.com"
+EMAIL_PASS="your-app-password"
+ADMIN_EMAIL="admin@wppmedia.com"
+```
+
+- Use a [Gmail App Password](https://myaccount.google.com/apppasswords), not your regular Gmail password.
+- If any of these variables are missing, the system logs a warning and skips the notification — **the mutation still succeeds**.
+
+### How It Works
+
+1. After a successful Google Sheets write, the mutation calls `await sendFocNotification(data)` inside a try-catch.
+2. The email uses a **static subject** (`📱 FOC Tracker Log - System Notifications`) so all notifications thread into a **single Gmail conversation**.
+3. Gmail threading headers are injected into every email:
+   - `messageId` — Unique per email (`<timestamp-random@wppmedia.com>`)
+   - `inReplyTo` — Points to the static thread ID (`<foc-tracker-main-thread@wppmedia.com>`)
+   - `references` — Contains the static thread ID
+4. An HTML email is sent via Gmail SMTP with:
+   - Color-coded action badge (blue = REQUEST, green = RETURN, yellow = TRANSFER)
+   - Data table with unit name, IMEI, KOL, requestor, and timestamp
+   - Optional `additionalData` fields (campaign, delivery date, etc.)
+5. For batch returns (`returnUnits`), a single `sendFocBatchNotification()` email is sent with stacked cards for all items (max 50 items per batch).
 
 ---
 
@@ -197,13 +273,16 @@ Custom scrollbar styles are defined in `globals.css` with separate light and dar
 ### Performance Conventions
 
 - **`useMemo`** — Wrap expensive array computations (filter, sort, reduce) in `useMemo`. Both `DashboardClient` and `MasterListTab` follow this pattern.
+- **`useDeviceCategories` hook** — Shared hook replacing duplicated category-map building in Request and Transfer forms.
 - **Avoid render-time state updates** — Use `useEffect` when resetting `currentPage` or similar derived state, not inline during render.
 - **Stable React keys** — Use composite keys (`${item.imei}-${item.unitName}-${idx}`) instead of array indices.
 
 ### Error Handling
 
-- **Form submissions** — All server action calls in form modals (`RequestFormModal`, `ReturnFormModal`) are wrapped in `try/catch` to handle network-level failures with user-friendly toast messages.
+- **Form submissions** — All server action calls in form modals (`RequestFormModal`, `ReturnFormModal`, `TransferFormModal`) are wrapped in `try/catch` to handle network-level failures with user-friendly toast messages.
 - **PinModal** — Shows a loading spinner overlay during authentication and catches network errors.
+- **Global error boundary** — `src/app/error.tsx` provides a retry UI for unhandled errors.
+- **Batch mutations** — `returnUnits()` validates batch size (max 50) and provides descriptive errors on write failures.
 
 ### ESLint
 
@@ -234,43 +313,24 @@ The following guides explain how to make common changes to the Request/Return fo
 
 Requestors appear in the "Requestor" dropdown on both the Outbound (Request) and Inbound (Return) forms.
 
-**File to edit:** `src/components/forms/RequestFormModal.tsx` (Request) and `src/components/forms/ReturnFormModal.tsx` (Return)
+**File to edit:** `src/lib/constants.ts`
 
 **Steps:**
 
-1. Open the form component file.
-2. Search for the string array that populates the `<SelectItem>` elements inside the Requestor field. It looks like this:
+1. Open `src/lib/constants.ts`.
+2. Locate the `REQUESTORS` array:
 
-   ```tsx
-   {["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"].map((req) => (
-       <SelectItem key={req} value={req} ...>
-           {req}
-       </SelectItem>
-   ))}
+   ```ts
+   export const REQUESTORS = [
+     "Abigail", "Aliya", "Khalida", "Oliv", "Sulu", "Tashya", "Venni", "Other",
+   ] as const;
    ```
 
-3. Add, remove, or rename entries inside the array:
-
-   ```tsx
-   // Example: Adding "Diana" and removing "Oliv"
-   {["Abigail", "Diana", "Khalida", "Salma", "Tashya", "Venni", "Other"].map((req) => (
-   ```
-
+3. Add, remove, or rename entries.
 4. **Keep `"Other"` last** — it triggers a conditional "Custom Requestor" text input below the dropdown.
-5. Repeat the same change in `ReturnFormModal.tsx` so both forms stay consistent.
-6. Save and test with `pnpm dev`.
+5. Save the file. All forms will update automatically.
 
-> **Note:** No backend or validation changes are needed. The Zod schema only requires `requestor` to be a non-empty string, it does not enforce specific values.
-
-> **Centralized Constants:** Since the 2026-04 refactoring, all dropdown values are defined in `src/lib/constants.ts`. The forms import from there — you no longer need to edit each form file separately.
-
-**Single source of truth (`src/lib/constants.ts`):**
-
-```ts
-export const REQUESTORS = ["Abigail", "Khalida", "Oliv", "Salma", "Tashya", "Venni", "Other"] as const;
-```
-
-Edit this array to add/remove requestors. Both forms will update automatically.
+> **Note:** The `resolveRequestorWithFallback()` function in `lib/form-utils.ts` handles case-insensitive matching against this array. No backend or validation changes are needed — the Zod schema only requires `requestor` to be a non-empty string.
 
 ---
 
@@ -294,33 +354,31 @@ Campaigns appear in the "Campaign Name" dropdown on the Outbound (Request) form 
 
 Device categories control the first dropdown in the 2-step unit selection ("Select Device Category").
 
-**File to edit:** `src/components/forms/RequestFormModal.tsx`
+**File to edit:** `src/lib/constants.ts`
 
 **Steps:**
 
-1. Find the `DEVICE_CATEGORIES` constant at the top of the file:
+1. Locate the `DEVICE_CATEGORIES` array:
 
-   ```tsx
-   const DEVICE_CATEGORIES = [
-       { prefix: "G-S", label: "S Series", icon: "📱" },
-       { prefix: "G-A", label: "A Series", icon: "📱" },
-       { prefix: "G-T", label: "Tab",      icon: "📋" },
-       { prefix: "G-B", label: "Buds",     icon: "🎧" },
-       { prefix: "G-W", label: "Wearable", icon: "⌚" },
+   ```ts
+   export const DEVICE_CATEGORIES = [
+     { prefix: "G-S", label: "S Series", icon: "📱" },
+     { prefix: "G-A", label: "A Series", icon: "📱" },
+     { prefix: "G-T", label: "Tab",      icon: "📋" },
+     { prefix: "G-B", label: "Buds",     icon: "🎧" },
+     { prefix: "G-W", label: "Wearable", icon: "⌚" },
    ] as const;
    ```
 
 2. Add a new object for a new category:
 
-   ```tsx
+   ```ts
    { prefix: "G-R", label: "Rugged", icon: "🛡️" },
    ```
 
 3. Or remove an existing entry to merge it into "Others".
 
-**How it works:** The `prefix` is matched against the start of each item's `unitName` (after uppercasing). If no prefix matches, the unit falls into the automatic "Others" bucket. The `label` is what appears in the dropdown, and `icon` is the emoji shown next to it.
-
-> **Note:** Since the 2026-04 refactoring, `DEVICE_CATEGORIES` is defined in `src/lib/constants.ts` and imported by `RequestFormModal.tsx`. Edit the constant there.
+**How it works:** The `prefix` is matched against the start of each item's `unitName` (after uppercasing). If no prefix matches, the unit falls into the automatic "Others" bucket. The `label` is what appears in the dropdown, and `icon` is the emoji shown next to it. The category grouping is handled by the shared `useDeviceCategories` hook.
 
 ---
 
@@ -328,29 +386,13 @@ Device categories control the first dropdown in the 2-step unit selection ("Sele
 
 Delivery types appear in the "Type of Delivery" dropdown on the Request form.
 
-**File to edit:** `src/components/forms/RequestFormModal.tsx`
+**File to edit:** `src/lib/constants.ts`
 
 **Steps:**
 
-1. Search for the delivery type array. It looks like:
-
-   ```tsx
-   {["BLUEBIRD", "TIKI"].map((type) => (
-       <SelectItem key={type} value={type} ...>
-           {type}
-       </SelectItem>
-   ))}
-   ```
-
-2. Add or remove entries:
-
-   ```tsx
-   {["BLUEBIRD", "GOSEND", "TIKI", "PICKUP"].map((type) => (
-   ```
-
+1. Locate the `DELIVERY_TYPES` array.
+2. Add or remove entries.
 3. Save and test. No backend changes needed.
-
-> **Note:** Since the 2026-04 refactoring, delivery types are defined in `src/lib/constants.ts` as `DELIVERY_TYPES`. Edit the constant there.
 
 ---
 
@@ -358,25 +400,13 @@ Delivery types appear in the "Type of Delivery" dropdown on the Request form.
 
 FOC Types appear in the "Type of FOC" dropdown on both the Request and Return forms. This field can be **auto-filled** from the Google Sheet data (Column D of "Step 1 Data Bank"), but the user can still override the selection.
 
-**File to edit:** `src/components/forms/RequestFormModal.tsx` and `src/components/forms/ReturnFormModal.tsx`
+**File to edit:** `src/lib/constants.ts`
 
 **Steps:**
 
-1. Search for the FOC type array:
-
-   ```tsx
-   {["ACCESORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES"].map((type) => (
-   ```
-
-2. Add, remove, or rename entries:
-
-   ```tsx
-   {["ACCESSORIES", "APS", "BUDS", "HANDPHONE", "PACKAGES", "RUGGED", "TAB", "WEARABLES", "MONITOR"].map((type) => (
-   ```
-
-3. If Google Sheets Column D uses a value not in this array, the auto-fill will set it but it may not match a dropdown option. Make sure the sheet values match the array entries (case-insensitive matching is handled by the `extractFocType` function).
-
-> **Note:** Since the 2026-04 refactoring, FOC types are defined in `src/lib/constants.ts` as `FOC_TYPES`. Edit the constant there — both forms import from it.
+1. Locate the `FOC_TYPES` array.
+2. Add, remove, or rename entries.
+3. If Google Sheets Column D uses a value not in this array, the auto-fill will set it but it may not match a dropdown option. Make sure the sheet values match the array entries (case-insensitive matching is handled by `resolveFocTypeWithMatch()` in `lib/form-utils.ts`).
 
 ---
 
@@ -384,21 +414,15 @@ FOC Types appear in the "Type of FOC" dropdown on both the Request and Return fo
 
 The email domain suffix shown next to the Username field (currently `@wppmedia.com`).
 
-**Files to edit:**
+**File to edit:** `src/lib/constants.ts`
 
-1. `src/lib/constants.ts` — Change the canonical value:
+Change the canonical value:
 
-   ```tsx
-   export const EMAIL_DOMAIN = "@newdomain.com";
-   ```
+```ts
+export const EMAIL_DOMAIN = "@newdomain.com";
+```
 
-2. `src/components/forms/RequestFormModal.tsx` — Update the visible suffix text:
-
-   ```tsx
-   <span className="...">@newdomain.com</span>
-   ```
-
-3. `src/server/mutations.ts` — The server action reads `EMAIL_DOMAIN` from constants, so updating `constants.ts` is sufficient for the backend.
+The shared `UsernameEmailInput` component and `mutations.ts` both read from this constant — no other files need updating.
 
 ---
 
@@ -415,7 +439,16 @@ The main grid uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). To ch
 <RequestFormDelivery ... />
 ```
 
-To change individual fields within a group (e.g., swapping KOL Name and Phone), edit the corresponding sub-component file (e.g., `RequestFormKol.tsx`). Each `<FormItem>` can use `className="md:col-span-2"` to take up the full width or omit it to take up a single column.
+The Transfer form follows the same pattern with sub-components in `src/components/forms/transfer/`:
+
+```tsx
+<UsernameEmailInput />
+<TransferFormDevice ... />
+<TransferFormDetails />
+<TransferFormNewKol />
+```
+
+To change individual fields within a group, edit the corresponding sub-component file. Each `<FormItem>` can use `className="md:col-span-2"` to take up the full width or omit it to take up a single column.
 
 ---
 
@@ -437,64 +470,24 @@ newFieldName: z.string().min(1, "Field is required"),
 // Type (auto-inferred by z.infer, no manual change needed)
 ```
 
-#### 2. Form UI — `src/components/forms/RequestFormModal.tsx`
+#### 2. Form UI — the relevant form sub-component
 
-Add a default value in the `useForm` setup:
-
-```tsx
-defaultValues: {
-    // ... existing fields
-    newFieldName: "",
-},
-```
-
-Add the JSX `<FormField>` block in the desired position within the grid:
-
-```tsx
-<FormField
-    control={form.control}
-    name="newFieldName"
-    render={({ field }) => (
-        <FormItem>
-            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                New Field Label
-            </FormLabel>
-            <FormControl>
-                <Input
-                    placeholder="Enter value"
-                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
-                    {...field}
-                />
-            </FormControl>
-            <FormMessage className="text-red-400" />
-        </FormItem>
-    )}
-/>
-```
+Add a default value in the `useForm` setup (in the parent modal), then add the `<FormField>` JSX in the desired sub-component.
 
 #### 3. Server Action — `src/server/mutations.ts`
 
-Add the new field to the row array that gets appended to Google Sheets. Find the `requestUnit` function and locate the `values` array:
+Add the new field to the row array that gets appended to Google Sheets. Find the mutation function and locate the `values` array:
 
 ```tsx
-const values = [[
+await writeToNextRow(SHEETS.FOC_REQUEST, [[
     timestamp,
-    payload.username + EMAIL_DOMAIN,
-    payload.requestor === "Other" ? payload.customRequestor : payload.requestor,
-    payload.campaignName === "Other" ? payload.customCampaign : payload.campaignName,
-    payload.unitName,
-    payload.imeiIfAny || "",
-    payload.kolName,
-    payload.kolAddress,
-    payload.kolPhoneNumber,
-    payload.deliveryDate,
-    payload.typeOfDelivery,
-    payload.typeOfFoc,
-    payload.newFieldName,      // ← Add the new field here
-]];
+    emailAddress,
+    // ... existing fields
+    validated.newFieldName,      // ← Add the new field here
+]]);
 ```
 
-> **Important:** The position in the array must match the target column in the Google Sheet. If the new field maps to Column N, place it as the 14th element (0-indexed: 13th).
+> **Important:** The position in the array must match the target column in the Google Sheet. Refer to `STEP3_COLS` in `lib/constants.ts` for the exact column positions.
 
 ---
 
@@ -514,15 +507,15 @@ PINs are comma-separated strings. Restart the dev server after changing.
 
 **File to edit:** `src/components/layout/DashboardLayout.tsx`
 
-The sidebar renders a list of navigation items. Each item has:
+The sidebar renders a list of navigation items using Lucide React icons. Each item has:
 - `href` — the route path
 - `icon` — a Lucide React icon component
 - `label` — the visible text
 
-Search for the navigation items array and add/modify entries:
+Search for the navigation items and add/modify entries:
 
 ```tsx
-{ href: "/new-page", icon: SomeIcon, label: "New Page" },
+<NavItem href="/new-page" icon={<SomeIcon className={...} />} label="New Page" active={pathname.startsWith("/new-page")} open={open} />
 ```
 
 Then create the corresponding page at `src/app/new-page/page.tsx`.
@@ -549,16 +542,19 @@ If the Google Sheet columns are renamed or reordered:
 
 **File to edit:** `src/lib/constants.ts`
 
-Update the `COLUMN_HEADERS` object. Each key maps to an **ordered array** of possible header names:
+Update the positional index constants (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`):
 
 ```tsx
-export const COLUMN_HEADERS = {
-  IMEI: ["SERIAL NUMBER (IMEI/SN)", "IMEI", "Serial Number"],
-  // ... add fallback names as needed
-};
+export const STEP1_COLS = {
+  IMEI: 4,          // Column E
+  UNIT_NAME: 5,      // Column F
+  // ... update indices as needed
+} as const;
 ```
 
-The system tries each name in order and uses the first match. This makes the app robust against minor header renames.
+Also update the corresponding `Step1Data` / `Step3RefData` interfaces in `types/inventory.ts` and the parser functions in `server/inventory.ts`.
+
+> **Legacy:** The `COLUMN_HEADERS` header-name lookup still exists but is deprecated. Positional parsing is the preferred approach.
 
 ---
 
@@ -576,9 +572,9 @@ The application currently uses Google Sheets as its only data source. To add a d
 
 ## Troubleshooting
 
-**Sheet column headers changed** — Update the corresponding entry in `lib/constants.ts` → `COLUMN_HEADERS`. The lookup system tries multiple header names in priority order.
+**Sheet column headers changed** — Update the positional index in `STEP1_COLS`, `STEP3_COLS`, or `STEP4_COLS` in `lib/constants.ts`. Also update the corresponding `Step1Data` / `Step3RefData` interface in `types/inventory.ts`.
 
-**Google API 429 errors** — The cache TTL is 30 seconds. Adjust `CACHE_REVALIDATE_SECONDS` in `lib/constants.ts` if needed.
+**Google API 429 errors** — The cache TTL is 60 seconds. Adjust `CACHE_REVALIDATE_SECONDS` in `lib/constants.ts` if needed.
 
 **Missing KOL entries** — The KOL directory groups by the `ON HOLDER` field. Inconsistent spelling in the sheet creates duplicate profiles.
 
@@ -588,13 +584,23 @@ The application currently uses Google Sheets as its only data source. To add a d
 
 **Form submission goes to wrong row** — The server uses `INSERT_ROWS` with explicit range targeting. Check `server/mutations.ts` to verify the range logic.
 
-**Auto-fill FOC Type not working** — Ensure the Column D header in "Step 1 Data Bank" matches one of the keys in `FOC_TYPE_KEYS` array in `lib/constants.ts` (e.g., `"FOC TYPE"`, `"TYPE OF FOC"`, `"Type of Foc"`).
+**Auto-fill FOC Type not working** — Ensure the Column D index matches `STEP1_COLS.FOC_TYPE` (3) in `lib/constants.ts`. The `resolveFocTypeWithMatch()` function in `lib/form-utils.ts` handles case-insensitive matching.
 
 **"Server misconfigured — JWT_SECRET is not set" error** — The `JWT_SECRET` environment variable is required. Add it to `.env.local` and restart the dev server.
+
+**Email notifications not sending** — Check that `EMAIL_USER`, `EMAIL_PASS`, and `ADMIN_EMAIL` are set in `.env.local`. Use a [Gmail App Password](https://myaccount.google.com/apppasswords), not your regular password. Check server logs for `[MAILER]` prefixed messages. If env vars are missing, notifications are skipped silently — the mutation still succeeds.
+
+**Emails not threading in Gmail** — Verify the `THREAD_ID` constant in `lib/mailer.ts` is set to `<foc-tracker-main-thread@wppmedia.com>`. All emails share `inReplyTo` and `references` headers pointing to this ID.
 
 ---
 
 ## Shared Components & Hooks
+
+### DiscardGuardDialog
+`src/components/shared/DiscardGuardDialog.tsx` — Reusable "Discard changes?" confirmation dialog used by all three form modals. Replaces the previous 3x duplicated AlertDialog pattern.
+
+### UsernameEmailInput
+`src/components/forms/shared/UsernameEmailInput.tsx` — Reusable username input with `EMAIL_DOMAIN` suffix. Uses `useFormContext()` to integrate with any parent form. Replaces 3x duplicated email suffix inputs.
 
 ### PageHeader
 `src/components/shared/PageHeader.tsx` — Unified header toolbar rendered on Dashboard, Inventory, and KOL pages. Contains:
@@ -610,6 +616,12 @@ The application currently uses Google Sheets as its only data source. To add a d
 - KOL names (first 10 matches)
 - Campaign names (first 8 matches)
 
+### useDeviceCategories
+`src/hooks/useDeviceCategories.ts` — Shared hook that builds a category → items map, sorted category list, and filtered items from a flat `InventoryItem[]` and a filter function. Used by both `RequestFormModal` and `TransferFormModal`.
+
+### useScrollToFirstError
+`src/hooks/useScrollToFirstError.ts` — Shared `onInvalid` handler for react-hook-form that smooth-scrolls to and focuses the first error field. Replaces 3x duplicated scroll-to-error logic.
+
 ### useSyncInventory
 `src/hooks/useSyncInventory.ts` — Centralized hook for triggering a manual cache-bust sync with Google Sheets. Returns `{ isPending, handleSync }`. Uses `useTransition` for non-blocking UI updates.
 
@@ -621,6 +633,31 @@ The application currently uses Google Sheets as its only data source. To add a d
 
 ---
 
+## Testing
+
+The project uses **Vitest** with `jsdom` environment and React Testing Library.
+
+### Running Tests
+
+```bash
+pnpm test          # single run
+pnpm test:watch    # watch mode
+```
+
+### Test Files
+
+| File | Coverage |
+|---|---|
+| `src/__tests__/constants.test.ts` | Column indices (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`), form constants, status values |
+| `src/__tests__/form-utils.test.ts` | `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` |
+| `src/__tests__/device-utils.test.ts` | `getDeviceCategory()` classification |
+
+### Adding Tests
+
+New test files go in `src/__tests__/`. Import from `@/` aliases (configured in `vitest.config.ts`). Use `@testing-library/jest-dom/vitest` matchers (auto-loaded via `setup.ts`).
+
+---
+
 ## Future Development TODOs
 
 The following improvements are planned but not yet implemented:
@@ -629,19 +666,41 @@ The following improvements are planned but not yet implemented:
 - [x] **Form Discard Confirmation** — Show "Discard changes?" dialog when closing a dirty form (`isDirty` from react-hook-form)
 - [x] **Scroll-to-Error** — On form validation failure, smooth-scroll to the first error field
 - [ ] **Dashboard Date Range Filter** — Add date range selector to filter dashboard analytics by time period
+- [x] **Multi-Unit Return** — Select multiple loaned devices in the Inbound (Return) form; per-item data auto-resolved from Step 3 sheet
 - [ ] **Bulk Operations** — Multi-select rows in Master List for batch status updates
 - [ ] **Notification System** — Toast-based alerts for overdue returns and approaching deadlines
 
 ### Code Quality
 - [x] **Component Decomposition** — Break down large components:
   - [x] `RequestFormModal.tsx` → extracted step sections into `RequestFormCampaign`, `RequestFormDevice`, `RequestFormKol`, `RequestFormDelivery`
+  - [x] `TransferFormModal.tsx` → extracted into `TransferFormDevice`, `TransferFormDetails`, `TransferFormNewKol`
   - [x] `ModelsTab.tsx` → extracted level views into `ModelLevel1Grid`, `ModelLevel2Cards`, `ModelLevel3Units`
-  - [x] `ReturnFormModal.tsx` → extracted IMEI selector into reusable component
+  - [x] `ReturnFormModal.tsx` → extracted IMEI selector into `MultiImeiReturnSelector` (multi-select)
   - [x] `MasterListTab.tsx` → extracted mobile card view and pagination into sub-components
+- [x] **Shared Device Utilities** — Extracted `getDeviceCategory()`, `getCategoryIcon()`, `extractFocType()` to `lib/device-utils.ts`
+- [x] **Shared Form Utilities** — Extracted `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` to `lib/form-utils.ts`
+- [x] **Shared Form Components** — `DiscardGuardDialog`, `UsernameEmailInput` eliminate 3x duplication across form modals
+- [x] **Shared Hooks** — `useDeviceCategories`, `useScrollToFirstError` eliminate duplicated logic
+- [x] **Consolidated Stats Hook** — Single-pass `useInventoryStats` with `parseDateStr` for reliable sorting
+- [x] **Unit Tests** — Vitest setup with 23 tests covering constants, form-utils, and device-utils
+- [x] **Positional Column Parsing** — Replaced header-name matching with `STEP1_COLS`/`STEP3_COLS`/`STEP4_COLS` index constants + `cell(row, idx)` parser
 - [ ] **React.memo optimization** — Memoize expensive child components (Scorecard, table rows)
-- [ ] **Unit Tests** — Add test coverage for date-utils, validations, and server actions
+
+### Security
+- [x] **Per-IP Rate Limiting** — Rate limit key derived from `x-forwarded-for` header instead of global key
+- [x] **Timing-Safe PIN Comparison** — Prevents timing attacks on PIN verification
+- [x] **Formula Injection Protection** — `sanitizeCell()` prefixes `=`, `+`, `-`, `@` with apostrophe before writing to Sheets
+- [x] **Required JWT_SECRET** — No fallback to `GOOGLE_PRIVATE_KEY`; application rejects auth without it
+- [x] **Race Condition Fix** — `writeToNextRow` uses `values.append` + `INSERT_ROWS` instead of read-then-write
+- [x] **Accessible Interactive Elements** — Keyboard support (`role="button"`, `tabIndex`, `onKeyDown`) on clickable divs
 
 ### Features
+- [x] **Email Notifications** — Nodemailer + Gmail SMTP sends styled HTML emails on every Request, Return, and Transfer
+- [x] **Gmail Thread Grouping** — Static subject + `In-Reply-To`/`References` headers thread all notifications into a single conversation
+- [x] **Batch Email** — `sendFocBatchNotification()` sends one email with stacked cards for multi-unit returns
+- [x] **Error/Loading/Not-Found Pages** — Global `error.tsx`, `not-found.tsx`, and `loading.tsx` on all routes
+- [x] **Icon Standardization** — Migrated from `@tabler/icons-react` to Lucide React exclusively
+- [x] **ISR Caching** — Switched from `force-dynamic` to `revalidate = 60` for Vercel free-tier compatibility
 - [ ] **Role-Based Access Control** — Different permission levels (admin vs. viewer)
 - [ ] **Internationalization (i18n)** — Support for Bahasa Indonesia alongside English
 - [ ] **PWA Offline Mode** — Cache critical data for offline dashboard viewing

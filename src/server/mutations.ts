@@ -13,10 +13,16 @@ import {
   type TransferPayload,
 } from "@/lib/validations";
 import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN } from "@/lib/constants";
+import { sendFocNotification, sendFocBatchNotification } from "@/lib/mailer";
 import type { ActionResult } from "@/types/inventory";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
+// ---------------------------------------------------------------------------
+// Shared Mutation Helpers
+// ---------------------------------------------------------------------------
+
+/** Format a GMT+7 timestamp for Google Sheets rows. */
 function formatTimestampGMT7(): string {
   const now = new Date();
 
@@ -45,6 +51,7 @@ function formatTimestampGMT7(): string {
   return `${month}/${day}/${year} ${hour}:${minute}:${second}`;
 }
 
+/** Prefix formula-injection characters to prevent Code Injection via spreadsheet cells. */
 function sanitizeCell(value: string): string {
   if (!value) return value;
   const first = value[0];
@@ -56,6 +63,21 @@ function sanitizeCell(value: string): string {
 
 function sanitizeRow(row: string[]): string[] {
   return row.map(sanitizeCell);
+}
+
+/** Build a full email address from a username. */
+function resolveEmailAddress(username: string): string {
+  return `${username}${EMAIL_DOMAIN}`;
+}
+
+/** Resolve the effective requestor name, handling "Other" → custom fallback. */
+function resolveRequestor(requestor: string, customRequestor?: string): string {
+  return requestor === "Other" ? customRequestor || "Other" : requestor;
+}
+
+/** Resolve the effective campaign name, handling "Other" → custom fallback. */
+function resolveCampaign(campaignName: string, customCampaign?: string): string {
+  return campaignName === "Other" ? customCampaign || "Other" : campaignName;
 }
 
 async function writeToNextRow(
@@ -182,15 +204,9 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
     }
 
     const timestamp = formatTimestampGMT7();
-    const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
-    const finalRequestor =
-      validated.requestor === "Other"
-        ? validated.customRequestor || "Other"
-        : validated.requestor;
-    const finalCampaign =
-      validated.campaignName === "Other"
-        ? validated.customCampaign || "Other"
-        : validated.campaignName;
+    const emailAddress = resolveEmailAddress(validated.username);
+    const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
+    const finalCampaign = resolveCampaign(validated.campaignName, validated.customCampaign);
 
     await writeToNextRow(SHEETS.FOC_REQUEST, [
       [
@@ -209,6 +225,25 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
         "TRUE",
       ],
     ]);
+
+    try {
+      await sendFocNotification({
+        actionType: "REQUEST",
+        unitName: validated.unitName,
+        imei: validated.imeiIfAny || "-",
+        kolName: validated.kolName,
+        requestor: finalRequestor,
+        timestamp,
+        additionalData: {
+          Campaign: finalCampaign,
+          "Delivery Date": validated.deliveryDate,
+          "Type of Delivery": validated.typeOfDelivery,
+          "Type of FOC": validated.typeOfFoc,
+        },
+      });
+    } catch (mailError) {
+      console.error("[MAILER] Failed to send request notification:", mailError);
+    }
 
     revalidatePath("/", "layout");
     return { success: true };
@@ -236,11 +271,8 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
     const validated = returnSchema.parse(data);
 
     const timestamp = formatTimestampGMT7();
-    const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
-    const finalRequestor =
-      validated.requestor === "Other"
-        ? validated.customRequestor || "Other"
-        : validated.requestor;
+    const emailAddress = resolveEmailAddress(validated.username);
+    const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
 
     await writeToNextRow(SHEETS.FOC_RETURN, [
       [
@@ -256,6 +288,22 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
         "",
       ],
     ]);
+
+    try {
+      await sendFocNotification({
+        actionType: "RETURN",
+        unitName: validated.unitName,
+        imei: validated.imei,
+        kolName: validated.fromKol,
+        requestor: finalRequestor,
+        timestamp,
+        additionalData: {
+          "Type of FOC": validated.typeOfFoc,
+        },
+      });
+    } catch (mailError) {
+      console.error("[MAILER] Failed to send return notification:", mailError);
+    }
 
     revalidatePath("/", "layout");
     return { success: true };
@@ -283,17 +331,18 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
     return { success: false, error: "No units provided for return." };
   }
 
+  if (dataArray.length > 50) {
+    return { success: false, error: `Batch size too large (${dataArray.length} items). Maximum 50 items per batch.` };
+  }
+
   try {
     const valuesToWrite: string[][] = [];
     
     for (const data of dataArray) {
       const validated = returnSchema.parse(data);
       const timestamp = formatTimestampGMT7();
-      const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
-      const finalRequestor =
-        validated.requestor === "Other"
-          ? validated.customRequestor || "Other"
-          : validated.requestor;
+      const emailAddress = resolveEmailAddress(validated.username);
+      const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
 
       valuesToWrite.push([
         timestamp,
@@ -309,7 +358,38 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
       ]);
     }
 
-    await writeMultipleRows(SHEETS.FOC_RETURN, valuesToWrite);
+    let writtenCount = 0;
+    try {
+      await writeMultipleRows(SHEETS.FOC_RETURN, valuesToWrite);
+      writtenCount = valuesToWrite.length;
+    } catch (writeError) {
+      console.error("Failed to write batch return rows", writeError);
+      return {
+        success: false,
+        error: `Failed to write ${valuesToWrite.length} return rows to Google Sheets. No rows were saved. Please try again.`,
+      };
+    }
+
+    try {
+      const batchItems = dataArray.map((data) => {
+        const v = returnSchema.parse(data);
+        const req = resolveRequestor(v.requestor, v.customRequestor);
+        return {
+          actionType: "RETURN" as const,
+          unitName: v.unitName,
+          imei: v.imei,
+          kolName: v.fromKol,
+          requestor: req,
+          timestamp: formatTimestampGMT7(),
+          additionalData: {
+            "Type of FOC": v.typeOfFoc,
+          },
+        };
+      });
+      await sendFocBatchNotification(batchItems);
+    } catch (mailError) {
+      console.error("[MAILER] Failed to send batch return notification:", mailError);
+    }
 
     revalidatePath("/", "layout");
     return { success: true };
@@ -383,15 +463,9 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
     }
 
     const timestamp = formatTimestampGMT7();
-    const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
-    const finalRequestor =
-      validated.requestor === "Other"
-        ? validated.customRequestor || "Other"
-        : validated.requestor;
-    const finalCampaign =
-      validated.campaignName === "Other"
-        ? validated.customCampaign || "Other"
-        : validated.campaignName;
+    const emailAddress = resolveEmailAddress(validated.username);
+    const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
+    const finalCampaign = resolveCampaign(validated.campaignName, validated.customCampaign);
 
     const remarksText = `Direct Transfer to ${validated.kol2Name} - ${finalCampaign}`;
 
@@ -442,6 +516,24 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
         success: false,
         error: `PARTIAL: Return from KOL 1 was recorded, but issuing to KOL 2 failed. Manual reconciliation needed. Return timestamp: ${timestamp}. Please create a manual request for ${validated.kol2Name}.`,
       };
+    }
+
+    try {
+      await sendFocNotification({
+        actionType: "TRANSFER",
+        unitName: validated.unitName,
+        imei: validated.imei,
+        kolName: `${validated.currentHolder} → ${validated.kol2Name}`,
+        requestor: finalRequestor,
+        timestamp,
+        additionalData: {
+          Campaign: finalCampaign,
+          "Transfer Date": validated.transferDate,
+          "Type of FOC": validated.typeOfFoc,
+        },
+      });
+    } catch (mailError) {
+      console.error("[MAILER] Failed to send transfer notification:", mailError);
     }
 
     revalidatePath("/", "layout");

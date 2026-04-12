@@ -26,19 +26,96 @@ export const SHEET_RANGES = {
 } as const;
 
 /**
+ * Exact column indices for the "Step 1 Data Bank" sheet.
+ * Validated against FOC.xlsx structure:
+ *
+ *   0: (row marker)  1: DATE OF RECEIPT  2: SEIN PIC NAME
+ *   3: FOC TYPE      4: SERIAL NUMBER     5: UNIT NAME
+ *   6: FOC STATUS    7: PLANNED RETURN    8: RECEIVED DATE TIME STAMP
+ *   9: GOAT PIC     10: CAMPAIGN NAME    11: STATUS
+ *  12: STATUS LOC   13: ON HOLDER        14: RETURN TO TCC RECEIPT
+ *  15: COMMENTS
+ */
+export const STEP1_COLS = {
+  ROW_MARKER: 0,
+  DATE_OF_RECEIPT: 1,
+  SEIN_PIC_NAME: 2,
+  FOC_TYPE: 3,
+  IMEI: 4,
+  UNIT_NAME: 5,
+  FOC_STATUS: 6,
+  PLANNED_RETURN: 7,
+  RECEIVED_DATE_STAMP: 8,
+  GOAT_PIC: 9,
+  CAMPAIGN_NAME: 10,
+  STATUS: 11,
+  STATUS_LOCATION: 12,
+  ON_HOLDER: 13,
+  RETURN_TO_TCC: 14,
+  COMMENTS: 15,
+} as const;
+
+/**
+ * Exact column indices for the "Step 3 FOC Request" sheet.
+ * Validated against FOC.xlsx:
+ *
+ *   0: Timestamp  1: Email Address  2: Requestor  3: Campaign Name
+ *   4: Unit Name  5: IMEI if any   6: KOL Name    7: KOL Phone Number
+ *   8: KOL address 9: Delivery Date 10: Type Of Delivery
+ *  11: Type of FOC  12: Deliver
+ */
+export const STEP3_COLS = {
+  TIMESTAMP: 0,
+  EMAIL: 1,
+  REQUESTOR: 2,
+  CAMPAIGN_NAME: 3,
+  UNIT_NAME: 4,
+  IMEI: 5,
+  KOL_NAME: 6,
+  KOL_PHONE: 7,
+  KOL_ADDRESS: 8,
+  DELIVERY_DATE: 9,
+  TYPE_OF_DELIVERY: 10,
+  TYPE_OF_FOC: 11,
+  DELIVER: 12,
+} as const;
+
+/**
+ * Exact column indices for the "Step 4 FOC Return" sheet.
+ * Validated against FOC.xlsx:
+ *
+ *   0: Timestamp  1: Email Address  2: Requestor  3: Unit Name
+ *   4: IMEI/SN    5: From KOL       6: KOL address 7: KOL Phone Number
+ *   8: Type of FOC  9: Remarks
+ */
+export const STEP4_COLS = {
+  TIMESTAMP: 0,
+  EMAIL: 1,
+  REQUESTOR: 2,
+  UNIT_NAME: 3,
+  IMEI: 4,
+  FROM_KOL: 5,
+  KOL_ADDRESS: 6,
+  KOL_PHONE: 7,
+  TYPE_OF_FOC: 8,
+  REMARKS: 9,
+} as const;
+
+/**
  * Header-name lookup chains for the "Step 1 Data Bank" sheet.
  * Each key maps to an ordered list of possible header names,
  * allowing the app to survive minor header renames.
+ * @deprecated Use STEP1_COLS positional indices instead.
  */
 export const COLUMN_HEADERS = {
   IMEI: ["SERIAL NUMBER (IMEI/SN)", "IMEI"],
   UNIT_NAME: ["UNIT NAME", "Unit Name"],
   FOC_STATUS: ["FOC STATUS", "RETURN / UNRETURN"],
-  GOAT_PIC: ["GOAT PIC\n(PLANNER)", "PIC GOAT"],
+  GOAT_PIC: ["GOAT PIC (PLANNER)", "PIC GOAT"],
   SEIN_PIC: ["SEIN PIC NAME", "PIC SEIN"],
   STATUS_LOCATION: ["STATUS LOCATION"],
   ON_HOLDER: ["ON HOLDER"],
-  PLANNED_RETURN: ["PLANNED \nRETURN DATE", "Planned Return Date"],
+  PLANNED_RETURN: ["PLANNED RETURN DATE", "Planned Return Date"],
   CAMPAIGN: ["CAMPAIGN NAME", "Campaign Name"],
 } as const;
 
@@ -55,6 +132,22 @@ export const REQUEST_HEADERS = {
   PHONE: "KOL Phone Number",
   ADDRESS: "KOL address",
   TYPE_FOC: "Type of FOC",
+} as const;
+
+/**
+ * Header-name lookup chains for the "Step 4 FOC Return" sheet.
+ */
+export const RETURN_HEADERS = {
+  TIMESTAMP: "Timestamp",
+  EMAIL: "Email Address",
+  REQUESTOR: "Requestor",
+  UNIT_NAME: "Unit Name",
+  IMEI: "IMEI/SN",
+  FROM_KOL: "From KOL",
+  KOL_ADDRESS: "KOL address",
+  KOL_PHONE: "KOL Phone Number",
+  TYPE_FOC: "Type of FOC",
+  RETURN_DATE: "Delivery Date",
 } as const;
 
 // ---------------------------------------------------------------------------

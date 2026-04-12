@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -17,31 +17,19 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import {
     Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { returnUnit, returnUnits } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { ReturnPayload } from "@/lib/validations"
-import { REQUESTORS, FOC_TYPES, EMAIL_DOMAIN } from "@/lib/constants"
+import { FOC_TYPES, EMAIL_DOMAIN } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { MultiImeiReturnSelector } from "./MultiImeiReturnSelector"
+import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
+import { UsernameEmailInput } from "./shared/UsernameEmailInput"
+import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
+import { resolveRequestorWithFallback, resolveFocTypeWithMatch } from "@/lib/form-utils"
 
 const returnFormSchema = z.object({
     username: z.string().min(1, "Username is required"),
@@ -50,31 +38,47 @@ const returnFormSchema = z.object({
 type ReturnFormValues = z.infer<typeof returnFormSchema>;
 
 function resolveEmail(item: InventoryItem): string {
-    return item.fullData?.["Step 3 Email"] || item.fullData?.["Email"] || item.fullData?.["Email Address"] || "-"
+    return item.step3Data?.email || item.fullData?.["Step 3 Email"] || item.fullData?.["Email"] || item.fullData?.["Email Address"] || "-"
 }
 
 function resolveRequestor(item: InventoryItem): string {
-    const raw = item.fullData?.["Step 3 Requestor"] || ""
+    const raw = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || ""
     if (!raw) return "-"
-    const predefined = REQUESTORS.filter(r => r !== "Other")
-    const matched = predefined.find(r => r.toLowerCase() === raw.toLowerCase())
-    return matched || raw
+    const { requestor } = resolveRequestorWithFallback(raw)
+    return requestor === "Other" ? item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || "-" : requestor
 }
 
 function resolveFocType(item: InventoryItem): string {
-    const raw = item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
+    const raw = item.step3Data?.typeOfFoc || item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
     if (!raw) return "-"
-    const mappedType = raw.toUpperCase()
-    const matched = [...FOC_TYPES].find(f => f === mappedType)
-    return matched || mappedType
+    return resolveFocTypeWithMatch(raw)
 }
 
 function resolvePhone(item: InventoryItem): string {
-    return item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "-"
+    return item.step3Data?.kolPhone || item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "-"
 }
 
 function resolveAddress(item: InventoryItem): string {
-    return item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "-"
+    return item.step3Data?.kolAddress || item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "-"
+}
+
+function buildReturnPayload(item: InventoryItem, username: string): ReturnPayload {
+    const rawReq = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || ""
+    const { requestor, customRequestor } = resolveRequestorWithFallback(rawReq)
+    const rawFoc = resolveFocType(item)
+    const typeOfFoc = resolveFocTypeWithMatch(rawFoc)
+
+    return {
+        username,
+        requestor,
+        customRequestor: customRequestor || undefined,
+        unitName: item.unitName || "",
+        imei: item.imei || "",
+        fromKol: item.onHolder || "",
+        kolAddress: resolveAddress(item),
+        kolPhoneNumber: resolvePhone(item),
+        typeOfFoc,
+    }
 }
 
 export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] }) {
@@ -91,6 +95,8 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         },
     })
 
+    const onInvalid = useScrollToFirstError()
+
     async function onSubmit(values: ReturnFormValues) {
         if (selectedItems.length === 0) {
             toast.error("No units selected", {
@@ -102,35 +108,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         setIsSubmitting(true)
 
         if (selectedItems.length === 1) {
-            const item = selectedItems[0]
-            const rawReq = item.fullData?.["Step 3 Requestor"] || ""
-            let requestor = rawReq
-            let customRequestor = ""
-            const predefined = REQUESTORS.filter(r => r !== "Other")
-            const matchedReq = predefined.find(r => r.toLowerCase() === rawReq.toLowerCase())
-            if (matchedReq) {
-                requestor = matchedReq
-            } else if (rawReq) {
-                requestor = "Other"
-                customRequestor = rawReq
-            }
-
-            const rawFoc = resolveFocType(item)
-            let typeOfFoc = rawFoc
-            const matchedFoc = [...FOC_TYPES].find(f => f === rawFoc)
-            if (matchedFoc) typeOfFoc = matchedFoc
-
-            const payload: ReturnPayload = {
-                username: values.username,
-                requestor,
-                customRequestor: customRequestor || undefined,
-                unitName: item.unitName || "",
-                imei: item.imei || "",
-                fromKol: item.onHolder || "",
-                kolAddress: resolveAddress(item),
-                kolPhoneNumber: resolvePhone(item),
-                typeOfFoc,
-            }
+            const payload = buildReturnPayload(selectedItems[0], values.username)
 
             form.reset()
             setSelectedItems([])
@@ -154,36 +132,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
             return
         }
 
-        const payloadArray: ReturnPayload[] = selectedItems.map((item) => {
-            const rawReq = item.fullData?.["Step 3 Requestor"] || ""
-            let requestor = rawReq
-            let customRequestor = ""
-            const predefined = REQUESTORS.filter(r => r !== "Other")
-            const matchedReq = predefined.find(r => r.toLowerCase() === rawReq.toLowerCase())
-            if (matchedReq) {
-                requestor = matchedReq
-            } else if (rawReq) {
-                requestor = "Other"
-                customRequestor = rawReq
-            }
-
-            const rawFoc = resolveFocType(item)
-            let typeOfFoc = rawFoc
-            const matchedFoc = [...FOC_TYPES].find(f => f === rawFoc)
-            if (matchedFoc) typeOfFoc = matchedFoc
-
-            return {
-                username: values.username,
-                requestor,
-                customRequestor: customRequestor || undefined,
-                unitName: item.unitName || "",
-                imei: item.imei || "",
-                fromKol: item.onHolder || "",
-                kolAddress: resolveAddress(item),
-                kolPhoneNumber: resolvePhone(item),
-                typeOfFoc,
-            }
-        })
+        const payloadArray = selectedItems.map((item) => buildReturnPayload(item, values.username))
 
         form.reset()
         setSelectedItems([])
@@ -207,43 +156,22 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         }
     }
 
-    function onInvalid(errors: Record<string, { message?: string }>) {
-        const firstErrorName = Object.keys(errors)[0]
-        const element = document.getElementsByName(firstErrorName)[0]
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            element.focus()
-        }
-    }
-
     const isDirty = form.formState.isDirty || selectedItems.length > 0
+
+    const handleDiscard = useCallback(() => {
+        setShowDiscardDialog(false)
+        setOpen(false)
+        form.reset()
+        setSelectedItems([])
+    }, [form])
 
     return (
         <>
-            <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-                <AlertDialogContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Discard changes?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            You have unsaved changes. Are you sure you want to discard them?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel className="border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => {
-                                setShowDiscardDialog(false);
-                                setOpen(false);
-                                form.reset();
-                                setSelectedItems([]);
-                            }}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                            Discard
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <DiscardGuardDialog
+                open={showDiscardDialog}
+                onOpenChange={setShowDiscardDialog}
+                onDiscard={handleDiscard}
+            />
 
             <Dialog open={open} onOpenChange={(v) => {
                 if (!v) {
@@ -271,32 +199,8 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <UsernameEmailInput />
 
-                            {/* Username with Suffix */}
-                            <FormField
-                                control={form.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-2">
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Username (Email)</FormLabel>
-                                        <FormControl>
-                                            <div className="flex rounded-md shadow-sm">
-                                                <Input
-                                                    placeholder="wahabdin.sangadji"
-                                                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors rounded-r-none focus-visible:ring-blue-500 flex-1 min-w-0"
-                                                    {...field}
-                                                />
-                                                <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-neutral-300 dark:border-neutral-800 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-sm">
-                                                    {EMAIL_DOMAIN}
-                                                </span>
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Multi-IMEI Selection */}
                             <MultiImeiReturnSelector
                                 loanedItems={loanedItems}
                                 selectedItems={selectedItems}
@@ -304,7 +208,6 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                             />
                         </div>
 
-                        {/* Per-Unit Detail Cards */}
                         {selectedItems.length > 0 && (
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -319,7 +222,6 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                         >
                                             <div className="flex items-start gap-3">
                                                 <div className="flex-1 min-w-0 space-y-2">
-                                                    {/* Row 1: Unit Name + IMEI */}
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">{item.unitName || "Unknown Unit"}</span>
                                                         <span className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.imei}</span>
@@ -336,7 +238,6 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    {/* Row 2: Email + Requestor + From KOL + Phone */}
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                         <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
                                                             <Mail className="w-3 h-3 shrink-0" />
