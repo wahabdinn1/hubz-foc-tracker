@@ -108,7 +108,7 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = [],
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors" align="start">
                             <Calendar
-                                initialFocus
+                                autoFocus
                                 mode="range"
                                 defaultMonth={dateRange?.from}
                                 selected={dateRange}

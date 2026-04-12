@@ -4,14 +4,11 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Undo2, Check, ChevronsUpDown } from "lucide-react"
+import { Undo2, X, Smartphone, User, Phone, MapPin, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
     Dialog,
     DialogContent,
@@ -38,61 +35,168 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { returnUnit } from "@/server/actions"
+import { Badge } from "@/components/ui/badge"
+import { returnUnit, returnUnits } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
-import { returnSchema, ReturnPayload } from "@/lib/validations"
-import { REQUESTORS, FOC_TYPES } from "@/lib/constants"
-import { ImeiReturnSelector } from "./ImeiReturnSelector"
+import { ReturnPayload } from "@/lib/validations"
+import { REQUESTORS, FOC_TYPES, EMAIL_DOMAIN } from "@/lib/constants"
+import { cn } from "@/lib/utils"
+import { MultiImeiReturnSelector } from "./MultiImeiReturnSelector"
+
+const returnFormSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+});
+
+type ReturnFormValues = z.infer<typeof returnFormSchema>;
+
+function resolveEmail(item: InventoryItem): string {
+    return item.fullData?.["Step 3 Email"] || item.fullData?.["Email"] || item.fullData?.["Email Address"] || "-"
+}
+
+function resolveRequestor(item: InventoryItem): string {
+    const raw = item.fullData?.["Step 3 Requestor"] || ""
+    if (!raw) return "-"
+    const predefined = REQUESTORS.filter(r => r !== "Other")
+    const matched = predefined.find(r => r.toLowerCase() === raw.toLowerCase())
+    return matched || raw
+}
+
+function resolveFocType(item: InventoryItem): string {
+    const raw = item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
+    if (!raw) return "-"
+    const mappedType = raw.toUpperCase()
+    const matched = [...FOC_TYPES].find(f => f === mappedType)
+    return matched || mappedType
+}
+
+function resolvePhone(item: InventoryItem): string {
+    return item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "-"
+}
+
+function resolveAddress(item: InventoryItem): string {
+    return item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "-"
+}
 
 export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [showDiscardDialog, setShowDiscardDialog] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [selectedItems, setSelectedItems] = useState<InventoryItem[]>([])
 
-    const form = useForm<z.infer<typeof returnSchema>>({
-        resolver: zodResolver(returnSchema),
+    const form = useForm<ReturnFormValues>({
+        resolver: zodResolver(returnFormSchema),
         defaultValues: {
             username: "",
-            requestor: "",
-            customRequestor: "",
-            unitName: "",
-            imei: "",
-            fromKol: "",
-            kolAddress: "",
-            kolPhoneNumber: "",
-            typeOfFoc: "",
         },
     })
 
-    const watchRequestor = form.watch("requestor")
+    async function onSubmit(values: ReturnFormValues) {
+        if (selectedItems.length === 0) {
+            toast.error("No units selected", {
+                description: "Please select at least one unit to return.",
+            })
+            return
+        }
 
-    async function onSubmit(values: z.infer<typeof returnSchema>) {
         setIsSubmitting(true)
 
-        const payload: ReturnPayload = values;
+        if (selectedItems.length === 1) {
+            const item = selectedItems[0]
+            const rawReq = item.fullData?.["Step 3 Requestor"] || ""
+            let requestor = rawReq
+            let customRequestor = ""
+            const predefined = REQUESTORS.filter(r => r !== "Other")
+            const matchedReq = predefined.find(r => r.toLowerCase() === rawReq.toLowerCase())
+            if (matchedReq) {
+                requestor = matchedReq
+            } else if (rawReq) {
+                requestor = "Other"
+                customRequestor = rawReq
+            }
 
-        // Optimistic: close modal and show success immediately
+            const rawFoc = resolveFocType(item)
+            let typeOfFoc = rawFoc
+            const matchedFoc = [...FOC_TYPES].find(f => f === rawFoc)
+            if (matchedFoc) typeOfFoc = matchedFoc
+
+            const payload: ReturnPayload = {
+                username: values.username,
+                requestor,
+                customRequestor: customRequestor || undefined,
+                unitName: item.unitName || "",
+                imei: item.imei || "",
+                fromKol: item.onHolder || "",
+                kolAddress: resolveAddress(item),
+                kolPhoneNumber: resolvePhone(item),
+                typeOfFoc,
+            }
+
+            form.reset()
+            setSelectedItems([])
+            setOpen(false)
+            toast.success("Return logged — syncing with Google Sheets...")
+
+            try {
+                const result = await returnUnit(payload)
+                if (result.success) {
+                    router.refresh()
+                } else {
+                    toast.error("Return failed to save", { description: result.error })
+                }
+            } catch {
+                toast.error("Network error", {
+                    description: "Could not reach the server. Please check your connection and try again.",
+                })
+            } finally {
+                setIsSubmitting(false)
+            }
+            return
+        }
+
+        const payloadArray: ReturnPayload[] = selectedItems.map((item) => {
+            const rawReq = item.fullData?.["Step 3 Requestor"] || ""
+            let requestor = rawReq
+            let customRequestor = ""
+            const predefined = REQUESTORS.filter(r => r !== "Other")
+            const matchedReq = predefined.find(r => r.toLowerCase() === rawReq.toLowerCase())
+            if (matchedReq) {
+                requestor = matchedReq
+            } else if (rawReq) {
+                requestor = "Other"
+                customRequestor = rawReq
+            }
+
+            const rawFoc = resolveFocType(item)
+            let typeOfFoc = rawFoc
+            const matchedFoc = [...FOC_TYPES].find(f => f === rawFoc)
+            if (matchedFoc) typeOfFoc = matchedFoc
+
+            return {
+                username: values.username,
+                requestor,
+                customRequestor: customRequestor || undefined,
+                unitName: item.unitName || "",
+                imei: item.imei || "",
+                fromKol: item.onHolder || "",
+                kolAddress: resolveAddress(item),
+                kolPhoneNumber: resolvePhone(item),
+                typeOfFoc,
+            }
+        })
+
         form.reset()
+        setSelectedItems([])
         setOpen(false)
-        toast.success("Return logged — syncing with Google Sheets...")
+        toast.success(`Logging returns for ${selectedItems.length} units — syncing...`)
 
         try {
-            const result = await returnUnit(payload)
+            const result = await returnUnits(payloadArray)
             if (result.success) {
+                toast.success(`Successfully returned ${selectedItems.length} units.`)
                 router.refresh()
             } else {
-                toast.error("Return failed to save", {
-                    description: result.error,
-                })
+                toast.error("Batch return failed", { description: result.error })
             }
         } catch {
             toast.error("Network error", {
@@ -103,8 +207,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         }
     }
 
-    // Scroll to the first error field on invalid form submission
-    function onInvalid(errors: any) {
+    function onInvalid(errors: Record<string, { message?: string }>) {
         const firstErrorName = Object.keys(errors)[0]
         const element = document.getElementsByName(firstErrorName)[0]
         if (element) {
@@ -112,6 +215,8 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
             element.focus()
         }
     }
+
+    const isDirty = form.formState.isDirty || selectedItems.length > 0
 
     return (
         <>
@@ -130,6 +235,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                 setShowDiscardDialog(false);
                                 setOpen(false);
                                 form.reset();
+                                setSelectedItems([]);
                             }}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
@@ -141,11 +247,12 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
 
             <Dialog open={open} onOpenChange={(v) => {
                 if (!v) {
-                    if (form.formState.isDirty) {
+                    if (isDirty) {
                         setShowDiscardDialog(true);
                     } else {
                         setOpen(false);
                         form.reset();
+                        setSelectedItems([]);
                     }
                 } else {
                     setOpen(true);
@@ -165,7 +272,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                     <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                            {/* Username with Suffix (Full Width) */}
+                            {/* Username with Suffix */}
                             <FormField
                                 control={form.control}
                                 name="username"
@@ -180,7 +287,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                     {...field}
                                                 />
                                                 <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-neutral-300 dark:border-neutral-800 bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-sm">
-                                                    @wppmedia.com
+                                                    {EMAIL_DOMAIN}
                                                 </span>
                                             </div>
                                         </FormControl>
@@ -189,152 +296,89 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                 )}
                             />
 
-                            {/* Requestor Select */}
-                            <FormField
-                                control={form.control}
-                                name="requestor"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Requestor</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                            <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                                    <SelectValue placeholder="Select Requestor" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                                {REQUESTORS.map((req) => (
-                                                    <SelectItem key={req} value={req} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
-                                                        {req}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
+                            {/* Multi-IMEI Selection */}
+                            <MultiImeiReturnSelector
+                                loanedItems={loanedItems}
+                                selectedItems={selectedItems}
+                                onSelectionChange={setSelectedItems}
                             />
-
-                            {/* Conditional Custom Requestor */}
-                            {watchRequestor === "Other" ? (
-                                <FormField
-                                    control={form.control}
-                                    name="customRequestor"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Custom Requestor</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Enter custom name" className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500" {...field} />
-                                            </FormControl>
-                                            <FormMessage className="text-red-400" />
-                                        </FormItem>
-                                    )}
-                                />
-                            ) : (
-                                <div className="hidden md:block"></div>
-                            )}
-
-                            {/* IMEI Selection */}
-                            <ImeiReturnSelector loanedItems={loanedItems} />
-
-                            {/* Unit Name (Read Only if IMEI selected) */}
-                            <FormField
-                                control={form.control}
-                                name="unitName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Unit Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="e.g. S24 Ultra Titanium"
-                                                className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500 disabled:opacity-50"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* From KOL Name */}
-                            <FormField
-                                control={form.control}
-                                name="fromKol"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">From KOL</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="John Doe" className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500" {...field} />
-                                        </FormControl>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* KOL Phone Number */}
-                            <FormField
-                                control={form.control}
-                                name="kolPhoneNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">KOL Phone Number</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="0812xxxxxxx" className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500" {...field} />
-                                        </FormControl>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Type of FOC */}
-                            <FormField
-                                control={form.control}
-                                name="typeOfFoc"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of FOC</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                            <FormControl>
-                                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                                    <SelectValue placeholder="Select FOC Type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                                {FOC_TYPES.map((type) => (
-                                                    <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
-                                                        {type}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* KOL Address (Full Width) */}
-                            <FormField
-                                control={form.control}
-                                name="kolAddress"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-2">
-                                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">KOL Address</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Full return address context or notes"
-                                                className="resize-none bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
-                                                rows={3}
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage className="text-red-400" />
-                                    </FormItem>
-                                )}
-                            />
-
                         </div>
-                        <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all mt-6">
-                            {isSubmitting ? "Submitting Return..." : "Submit Return"}
+
+                        {/* Per-Unit Detail Cards */}
+                        {selectedItems.length > 0 && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    <Smartphone className="w-4 h-4" />
+                                    <span>Units to Return ({selectedItems.length})</span>
+                                </div>
+                                <div className="space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                                    {selectedItems.map((item) => (
+                                        <div
+                                            key={item.imei}
+                                            className="group p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800/50"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-1 min-w-0 space-y-2">
+                                                    {/* Row 1: Unit Name + IMEI */}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">{item.unitName || "Unknown Unit"}</span>
+                                                        <span className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.imei}</span>
+                                                        {item.focStatus && (
+                                                            <Badge variant="outline" className={cn(
+                                                                "text-[10px] px-1.5 py-0",
+                                                                item.focStatus.toUpperCase().includes("UNRETURN")
+                                                                    ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                                                    : item.focStatus.toUpperCase().includes("RETURN")
+                                                                    ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                                                    : "bg-neutral-500/10 text-neutral-500 border-neutral-500/20"
+                                                            )}>
+                                                                {item.focStatus}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {/* Row 2: Email + Requestor + From KOL + Phone */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+                                                            <Mail className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">{resolveEmail(item)}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                                                            <MapPin className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">From: {item.onHolder || "-"}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+                                                            <User className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">{resolveRequestor(item)}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+                                                            <Phone className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">{resolvePhone(item)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedItems(prev => prev.filter(i => i.imei !== item.imei))}
+                                                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                                                    aria-label={`Remove ${item.unitName}`}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <Button type="submit" disabled={isSubmitting || selectedItems.length === 0} className="w-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all mt-6">
+                            {isSubmitting
+                                ? "Submitting Return..."
+                                : selectedItems.length === 0
+                                    ? "Select units to return"
+                                    : selectedItems.length === 1
+                                        ? "Submit Return"
+                                        : `Submit Return (${selectedItems.length} units)`}
                         </Button>
                     </form>
                 </Form>

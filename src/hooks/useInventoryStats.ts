@@ -10,11 +10,9 @@ export interface DashboardDateRange {
 function parseDateStr(dateStr: string | undefined): Date | null {
     if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return null;
     
-    // Attempt standard JS parse first
     let d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d;
     
-    // Common GS formats fallback
     const formats = ["M/d/yyyy H:mm:ss", "M/d/yyyy", "yyyy-MM-dd"];
     for (const fmt of formats) {
         d = parse(dateStr, fmt, new Date());
@@ -24,25 +22,34 @@ function parseDateStr(dateStr: string | undefined): Date | null {
 }
 
 export function useInventoryStats(inventory: InventoryItem[], dateRange?: DashboardDateRange) {
-    const validInventory = useMemo(() =>
-        inventory.filter(item => (item.imei && item.imei.trim() !== "") || (item.unitName && item.unitName.trim() !== ""))
-    , [inventory]);
+    return useMemo(() => {
+        const validInventory = inventory.filter(item =>
+            (item.imei && item.imei.trim() !== "") || (item.unitName && item.unitName.trim() !== "")
+        );
 
-    const totalStock = validInventory.length;
+        let availableCount = 0;
+        let onKolCount = 0;
+        let giftedUnitsCount = 0;
+        const availableUnits: InventoryItem[] = [];
+        const loanedItems: InventoryItem[] = [];
 
-    const availableCount = useMemo(() =>
-        validInventory.filter(i => i.statusLocation?.toUpperCase().includes("AVAILABLE")).length
-    , [validInventory]);
+        for (const item of validInventory) {
+            const statusUpper = item.statusLocation?.toUpperCase() || "";
+            if (statusUpper.includes("AVAILABLE")) {
+                availableCount++;
+                availableUnits.push(item);
+            }
+            if (statusUpper.includes("LOANED") || statusUpper.includes("ON KOL")) {
+                onKolCount++;
+                loanedItems.push(item);
+            }
+            if (item.focStatus?.toUpperCase().trim() === "UNRETURN") {
+                giftedUnitsCount++;
+            }
+        }
 
-    const onKolCount = useMemo(() =>
-        validInventory.filter(i => i.statusLocation?.toUpperCase().includes("LOANED")).length
-    , [validInventory]);
+        const totalStock = validInventory.length;
 
-    const giftedUnitsCount = useMemo(() =>
-        inventory.filter(i => i.focStatus?.toUpperCase().trim() === 'UNRETURN').length
-    , [inventory]);
-
-    const topUrgentReturns = useMemo((): ReturnTrackingItem[] => {
         const itemsToReturnRaw = inventory.filter(item => {
             const locationStr = item.statusLocation?.toUpperCase() || "";
             if (locationStr.includes('RETURN TO TCC')) return false;
@@ -50,11 +57,9 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             
             if (!hasReturnDate) return false;
             
-            // Check against date filter
             if (dateRange?.from || dateRange?.to) {
                 const returnDate = parseDateStr(item.plannedReturnDate);
                 if (returnDate) {
-                    // Set hours to 0 to compare purely by day
                     returnDate.setHours(0,0,0,0);
                     if (dateRange.from) {
                         const fromD = new Date(dateRange.from);
@@ -72,7 +77,6 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             return true;
         });
 
-        // Aggregate Returns by Unit Name, SEIN PIC, and GOAT PIC
         const aggregatedReturnsMap = new Map<string, ReturnTrackingItem>();
 
         itemsToReturnRaw.forEach(item => {
@@ -92,34 +96,25 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             }
         });
 
-        return Array.from(aggregatedReturnsMap.values()).sort((a, b) => {
+        const topUrgentReturns = Array.from(aggregatedReturnsMap.values()).sort((a, b) => {
             const aIsAsap = a.plannedReturnDate?.toUpperCase() === 'ASAP';
             const bIsAsap = b.plannedReturnDate?.toUpperCase() === 'ASAP';
             if (aIsAsap && !bIsAsap) return -1;
             if (!aIsAsap && bIsAsap) return 1;
             if (aIsAsap && bIsAsap) return 0;
-            const dateA = new Date(a.plannedReturnDate).getTime();
-            const dateB = new Date(b.plannedReturnDate).getTime();
-            return dateA - dateB;
+            const dateA = parseDateStr(a.plannedReturnDate);
+            const dateB = parseDateStr(b.plannedReturnDate);
+            const timeA = dateA ? dateA.getTime() : 0;
+            const timeB = dateB ? dateB.getTime() : 0;
+            return timeA - timeB;
         });
-    }, [inventory, dateRange]);
 
-    const pendingReturnCount = topUrgentReturns.length;
+        const pendingReturnCount = topUrgentReturns.length;
 
-    const availableUnits = useMemo(() =>
-        inventory.filter(i => i.statusLocation?.includes("AVAILABLE"))
-    , [inventory]);
-
-    const loanedItems = useMemo(() =>
-        inventory.filter(i => i.statusLocation?.includes("LOANED") || i.statusLocation?.includes("ON KOL"))
-    , [inventory]);
-
-    const recentActivity = useMemo(() =>
-        [...validInventory].filter(item => {
+        const recentActivity = [...validInventory].filter(item => {
             const dateStr = item.fullData?.["Timestamp"] || item.fullData?.["Date Received"] || item.fullData?.["Request Date"];
             if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return false;
             
-            // Check against date filter
             if (dateRange?.from || dateRange?.to) {
                 const parsedDate = parseDateStr(dateStr);
                 if (parsedDate) {
@@ -138,21 +133,23 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             
             return true;
         }).sort((a, b) => {
-            const dateA = new Date(a.fullData?.["Timestamp"] || a.fullData?.["Date Received"] || a.fullData?.["Request Date"] || 0);
-            const dateB = new Date(b.fullData?.["Timestamp"] || b.fullData?.["Date Received"] || b.fullData?.["Request Date"] || 0);
-            return dateB.getTime() - dateA.getTime();
-        }).slice(0, 15)
-    , [validInventory, dateRange]);
+            const dateA = parseDateStr(a.fullData?.["Timestamp"] || a.fullData?.["Date Received"] || a.fullData?.["Request Date"]);
+            const dateB = parseDateStr(b.fullData?.["Timestamp"] || b.fullData?.["Date Received"] || b.fullData?.["Request Date"]);
+            const timeA = dateA ? dateA.getTime() : 0;
+            const timeB = dateB ? dateB.getTime() : 0;
+            return timeB - timeA;
+        }).slice(0, 15);
 
-    return {
-        totalStock,
-        availableCount,
-        onKolCount,
-        giftedUnitsCount,
-        pendingReturnCount,
-        topUrgentReturns,
-        availableUnits,
-        loanedItems,
-        recentActivity
-    };
+        return {
+            totalStock,
+            availableCount,
+            onKolCount,
+            giftedUnitsCount,
+            pendingReturnCount,
+            topUrgentReturns,
+            availableUnits,
+            loanedItems,
+            recentActivity
+        };
+    }, [inventory, dateRange]);
 }

@@ -27,7 +27,7 @@ export function DashboardDonutChart({
     const circumference = 2 * Math.PI * radius;
     const gap = 8; // gap in degrees between segments
 
-    let arcs: { offset: number; length: number; color: string }[] = [];
+    const arcs: { offset: number; length: number; color: string }[] = [];
     let accumulated = 0;
 
     if (total > 0) {
@@ -53,7 +53,7 @@ export function DashboardDonutChart({
             <h3 className="w-full text-left font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Inventory Distribution</h3>
 
             <div className="flex-1 flex items-center justify-center w-full">
-                <svg viewBox="0 0 200 200" className="w-[180px] h-[180px]">
+                <svg viewBox="0 0 200 200" className="w-[180px] h-[180px]" role="img" aria-label={`Inventory distribution: ${availableCount} Available, ${onKolCount} On KOL, ${unreturnCount} Unreturn out of ${total} total units`}>
                     {/* Background ring */}
                     <circle
                         cx={center} cy={center} r={radius}

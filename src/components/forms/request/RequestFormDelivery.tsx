@@ -60,7 +60,7 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                                     disabled={(date) =>
                                         date < new Date("1900-01-01")
                                     }
-                                    initialFocus
+                                    autoFocus
                                     className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white rounded-md border-neutral-200 dark:border-neutral-800"
                                 />
                             </PopoverContent>

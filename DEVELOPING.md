@@ -32,9 +32,16 @@ src/
       PinModal.tsx             # Authentication PIN lock screen
       ErrorBoundary.tsx        # React error boundary with retry UI
       Skeletons.tsx            # Loading skeleton components
-    forms/                     # Data-entry modals
-      RequestFormModal.tsx     # Outbound (loan) request form
-      ReturnFormModal.tsx      # Inbound (return) form
+     forms/                     # Data-entry modals
+       RequestFormModal.tsx     # Outbound (loan) request form
+       ReturnFormModal.tsx      # Inbound (return) form
+       TransferFormModal.tsx    # Direct transfer between KOLs
+       ImeiReturnSelector.tsx   # Reusable IMEI combobox for return form
+       request/                 # Request form sub-components
+         RequestFormCampaign.tsx
+         RequestFormDevice.tsx
+         RequestFormKol.tsx
+         RequestFormDelivery.tsx
     dashboard/                 # Dashboard-specific widgets
       DashboardClient.tsx      # Dashboard state orchestrator
       DashboardDonutChart.tsx  # Lightweight SVG donut chart (replaces recharts)
@@ -61,11 +68,12 @@ src/
     auth.ts                    # Shared server-side JWT verification
     constants.ts               # Centralized constants: REQUESTORS, FOC_TYPES,
                                #   DELIVERY_TYPES, CAMPAIGNS, DEVICE_CATEGORIES,
-                               #   sheet names, column headers, auth config, etc.
+                               #   FOC_TYPE_KEYS, sheet names, column headers, auth config, etc.
+    device-utils.ts            # Shared device helpers: getDeviceCategory(), getCategoryIcon(), extractFocType()
     date-utils.ts              # Shared date/urgency helpers
-    validations.ts             # Centralized Zod schemas (request + return)
+    validations.ts             # Centralized Zod schemas (request + return + transfer)
     utils.ts                   # Tailwind class merge & helpers
-    rate-limit.ts              # In-memory PIN brute-force prevention
+    rate-limit.ts              # In-memory per-IP PIN brute-force prevention
 
   hooks/
     useInventoryStats.ts       # Derives stats (available, loaned, etc.) from inventory
@@ -74,11 +82,11 @@ src/
   server/
     actions.ts                 # Barrel re-export of all server actions
     inventory.ts               # getInventory() + revalidateInventory()
-    mutations.ts               # requestUnit() + returnUnit()
-    auth.ts                    # verifyPin() server action
+    mutations.ts               # requestUnit() + returnUnit() + transferUnit()
+    auth.ts                    # verifyPin() server action (timing-safe PIN comparison)
     google.ts                  # Google Sheets API client setup
 
-  proxy.ts                     # Edge middleware (JWT verification)
+  proxy.ts                     # Edge proxy (JWT verification, Next.js 16 convention)
 ```
 
 ### Module Responsibilities
@@ -86,14 +94,15 @@ src/
 | Module | Responsibility |
 |---|---|
 | `server/inventory.ts` | Fetches and transforms data from Google Sheets; cached with 30s TTL |
-| `server/mutations.ts` | Appends rows to "Step 3" (request) and "Step 4" (return) sheets |
-| `server/auth.ts` | PIN verification, JWT signing, cookie management |
+| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization |
+| `server/auth.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
 | `types/inventory.ts` | `InventoryItem`, `ReturnTrackingItem`, `KOLProfile`, `ActionResult` type definitions |
-| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, sheet names, column headers |
+| `lib/constants.ts` | Centralized constants: `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, `FOC_TYPE_KEYS`, sheet names, column headers |
+| `lib/device-utils.ts` | Shared device helpers: `getDeviceCategory()`, `getCategoryIcon()`, `extractFocType()` |
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
-| `lib/validations.ts` | Zod schemas shared between client forms and server actions |
-| `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions |
-| `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `availableUnits`, `loanedItems` from raw inventory |
+| `lib/validations.ts` | Zod schemas shared between client forms and server actions (request, return, transfer) |
+| `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions (requires `JWT_SECRET`) |
+| `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity` from raw inventory (single-pass) |
 | `hooks/useSyncInventory.ts` | Centralized `handleSync()` + `isPending` state for all pages |
 
 ---
@@ -137,18 +146,18 @@ Every row also generates a `fullData` dictionary keyed by header names. This pow
 ### Flow
 
 1. User enters a 6-digit PIN via `PinModal`.
-2. `verifyPin()` (in `server/auth.ts`) checks against `AUTHORIZED_PINS`.
-3. On success, a JWT is signed and set as HTTP-only cookie (`foc_auth_token`).
+2. `verifyPin()` (in `server/auth.ts`) checks against `AUTHORIZED_PINS` using timing-safe comparison.
+3. On success, a JWT is signed (using `JWT_SECRET` from env) and set as HTTP-only cookie (`foc_auth_token`).
 4. The edge proxy (`src/proxy.ts`) intercepts all routes and verifies the JWT.
 5. Server actions independently verify authentication before processing mutations.
 
 ### Rate Limiting
 
-Failed PIN attempts are tracked by `lib/rate-limit.ts`. After exceeding the maximum, the user is locked out for 15 minutes.
+Failed PIN attempts are tracked per-IP by `lib/rate-limit.ts`. After exceeding the maximum (5 attempts), the user is locked out for 15 minutes. The rate limit key is derived from the `x-forwarded-for` header.
 
 ### Security Properties
 
-- **No fallback secret** — If both `JWT_SECRET` and `GOOGLE_PRIVATE_KEY` are unset, all auth is rejected.
+- **`JWT_SECRET` is required** — The application will reject all auth if `JWT_SECRET` is not set in the environment. There is no fallback.
 - **HTTP-only cookies** — JWT cannot be accessed by client-side JavaScript.
 - **`secure` flag** — Cookie is HTTPS-only in production.
 - **`sameSite: "lax"`** — Prevents cross-site request attachment.
@@ -573,13 +582,15 @@ The application currently uses Google Sheets as its only data source. To add a d
 
 **Missing KOL entries** — The KOL directory groups by the `ON HOLDER` field. Inconsistent spelling in the sheet creates duplicate profiles.
 
-**Build fails with missing env vars** — All three Google credentials must be present. `AUTHORIZED_PINS` must also be set for auth.
+**Build fails with missing env vars** — All three Google credentials must be present. `JWT_SECRET` is required for authentication. `AUTHORIZED_PINS` must also be set.
 
 **Adding a new hidden column to QuickView** — Add the lowercase key to `QUICKVIEW_HIDDEN_KEYS` in `lib/constants.ts`.
 
 **Form submission goes to wrong row** — The server uses `INSERT_ROWS` with explicit range targeting. Check `server/mutations.ts` to verify the range logic.
 
-**Auto-fill FOC Type not working** — Ensure the Column D header in "Step 1 Data Bank" matches one of the keys in `FOC_TYPE_KEYS` array in `RequestFormModal.tsx` (e.g., `"FOC TYPE"`, `"TYPE OF FOC"`, `"Type of FOC"`).
+**Auto-fill FOC Type not working** — Ensure the Column D header in "Step 1 Data Bank" matches one of the keys in `FOC_TYPE_KEYS` array in `lib/constants.ts` (e.g., `"FOC TYPE"`, `"TYPE OF FOC"`, `"Type of Foc"`).
+
+**"Server misconfigured — JWT_SECRET is not set" error** — The `JWT_SECRET` environment variable is required. Add it to `.env.local` and restart the dev server.
 
 ---
 

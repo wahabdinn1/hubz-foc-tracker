@@ -2,15 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-/** Cookie name for the auth JWT — must match server/auth.ts */
 const AUTH_COOKIE = 'foc_auth_token'
 
-/**
- * Resolve the JWT signing secret from environment variables.
- * Shared logic between proxy and server/auth.ts.
- */
 function getSigningSecret(): Uint8Array {
-    const key = process.env.JWT_SECRET || process.env.GOOGLE_PRIVATE_KEY
+    const key = process.env.JWT_SECRET
     if (!key) return new Uint8Array(0)
     return new TextEncoder().encode(key)
 }
@@ -35,7 +30,6 @@ export async function proxy(request: NextRequest) {
         return response
 
     } catch {
-        // Token is invalid/expired
         const response = NextResponse.next()
         response.headers.set('x-middleware-auth', 'failed')
         response.cookies.delete(AUTH_COOKIE)

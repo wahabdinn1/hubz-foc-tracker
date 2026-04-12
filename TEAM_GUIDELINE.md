@@ -83,6 +83,14 @@ Here are some common issues that may occur:
 - **System data differs from physical (locker) data:**
   *Solution:* Cross-check the Audit Log to see who processed that device last. Always ensure status updates are input in real-time.
 
+- **"Server misconfigured — JWT_SECRET is not set" error on login:**
+  *Cause:* The `JWT_SECRET` environment variable is missing from the server configuration.
+  *Solution:* Contact your system administrator to add `JWT_SECRET` to the `.env.local` file and restart the server.
+
+- **Transfer partially completed (return recorded but new loan not created):**
+  *Cause:* A network or server error occurred after recording the return from the current KOL but before creating the new loan entry.
+  *Solution:* The error message will include the timestamp. Manually create a new request for the new KOL via the Outbound (Request) form.
+
 ---
 
 _These guidelines are created to ensure inventory data integrity is always maintained. Please adhere to the steps above during operations._

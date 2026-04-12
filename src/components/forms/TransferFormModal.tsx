@@ -71,36 +71,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { transferUnit } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { transferFormSchema, type TransferPayload } from "@/lib/validations"
-import { DEVICE_CATEGORIES, REQUESTORS, FOC_TYPES, CAMPAIGNS } from "@/lib/constants"
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Key(s) used in fullData for the FOC Type column (Column D in Step 1) */
-const FOC_TYPE_KEYS = ["FOC TYPE", "TYPE OF FOC", "Type of FOC", "Foc Type"] as const;
-
-function getDeviceCategory(unitName: string): string {
-    const upper = unitName.toUpperCase().trim();
-    for (const cat of DEVICE_CATEGORIES) {
-        if (upper.startsWith(cat.prefix)) return cat.label;
-    }
-    return "Others";
-}
-
-function getCategoryIcon(name: string): string {
-    const cat = DEVICE_CATEGORIES.find((c) => c.label === name);
-    return cat?.icon || "📦";
-}
-
-function extractFocType(item: InventoryItem): string {
-    if (!item.fullData) return "";
-    for (const key of FOC_TYPE_KEYS) {
-        const val = item.fullData[key];
-        if (val && val.trim() !== "" && val.trim() !== "-") return val.trim().toUpperCase();
-    }
-    return "";
-}
+import { REQUESTORS, FOC_TYPES, CAMPAIGNS } from "@/lib/constants"
+import { getDeviceCategory, getCategoryIcon, extractFocType } from "@/lib/device-utils"
 
 // ---------------------------------------------------------------------------
 // Component
@@ -723,7 +695,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                                                         disabled={(date) =>
                                                             date < new Date("1900-01-01")
                                                         }
-                                                        initialFocus
+                                                        autoFocus
                                                         className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white rounded-md border-neutral-200 dark:border-neutral-800"
                                                     />
                                                 </PopoverContent>

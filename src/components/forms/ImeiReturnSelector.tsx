@@ -86,7 +86,7 @@ export function ImeiReturnSelector({ loanedItems }: ImeiReturnSelectorProps) {
                                                         const mappedType = typeOfFoc.toUpperCase();
                                                         const matchedFoc = predefinedFoc.find(f => f === mappedType);
                                                         if (matchedFoc) {
-                                                            form.setValue("typeOfFoc", matchedFoc as any);
+                                                            form.setValue("typeOfFoc", matchedFoc as typeof FOC_TYPES[number]);
                                                         }
                                                     }
 

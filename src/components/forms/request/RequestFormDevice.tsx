@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { DEVICE_CATEGORIES } from "@/lib/constants";
+import { getCategoryIcon } from "@/lib/device-utils";
 import type { InventoryItem } from "@/types/inventory";
 import { Button } from "@/components/ui/button";
 
@@ -21,11 +21,6 @@ interface RequestFormDeviceProps {
     setImeiPopoverOpen: (val: boolean) => void;
     setAutoFilledFoc: (val: string | null) => void;
     extractFocType: (item: InventoryItem) => string;
-}
-
-function getCategoryIcon(name: string): string {
-    const cat = DEVICE_CATEGORIES.find(c => c.label === name);
-    return cat?.icon || "📦";
 }
 
 export function RequestFormDevice({

@@ -5,24 +5,24 @@ import { SignJWT } from "jose";
 import { AUTH_COOKIE_NAME, JWT_EXPIRATION, COOKIE_MAX_AGE } from "@/lib/constants";
 import type { ActionResult } from "@/types/inventory";
 
-// ---------------------------------------------------------------------------
-// PIN Verification
-// ---------------------------------------------------------------------------
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const aBuf = new TextEncoder().encode(a);
+  const bBuf = new TextEncoder().encode(b);
+  let result = 0;
+  for (let i = 0; i < aBuf.length; i++) {
+    result |= aBuf[i] ^ bBuf[i];
+  }
+  return result === 0;
+}
 
-/**
- * Verify a 6-digit PIN against the authorized list.
- *
- * On success, signs a JWT and sets it as an HTTP-only cookie.
- * On failure, records the attempt for rate-limiting purposes.
- *
- * @param inputPin - The PIN string entered by the user.
- * @returns ActionResult with success status and optional error message.
- */
 export async function verifyPin(inputPin: string): Promise<ActionResult> {
-  const { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts } =
+  const { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } =
     await import("@/lib/rate-limit");
 
-  const rateLimitKey = "pin-global";
+  const rateLimitKey = await getRateLimitKey();
 
   if (await isRateLimited(rateLimitKey)) {
     return {
@@ -33,12 +33,14 @@ export async function verifyPin(inputPin: string): Promise<ActionResult> {
 
   const authorizedPins = process.env.AUTHORIZED_PINS?.split(",") || [];
 
-  if (authorizedPins.includes(inputPin)) {
-    const key = process.env.JWT_SECRET || process.env.GOOGLE_PRIVATE_KEY;
+  const matchedPin = authorizedPins.find(pin => timingSafeEqual(pin.trim(), inputPin));
+
+  if (matchedPin !== undefined) {
+    const key = process.env.JWT_SECRET;
     if (!key) {
       return {
         success: false,
-        error: "Server misconfigured — signing key missing.",
+        error: "Server misconfigured — JWT_SECRET is not set.",
       };
     }
 

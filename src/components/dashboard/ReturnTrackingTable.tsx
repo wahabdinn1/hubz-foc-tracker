@@ -63,7 +63,10 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
 
                         return (
                             <div key={`${item.imei}-${item.unitName}-${idx}`}
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => setSelectedItem(item)}
+                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedItem(item); } }}
                                 className={cn(
                                     "group relative overflow-hidden flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all cursor-pointer",
                                     isOverdue || isAsap

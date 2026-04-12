@@ -5,14 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Layers, Smartphone, AlertTriangle } from "lucide-react"
+import { Plus, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Calendar } from "@/components/ui/calendar"
 import {
     Dialog,
     DialogContent,
@@ -32,49 +29,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
     Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { requestUnit } from "@/server/actions"
 import type { InventoryItem } from "@/types/inventory"
 import { requestFormSchema, RequestPayload } from "@/lib/validations"
-import { DEVICE_CATEGORIES, REQUESTORS, DELIVERY_TYPES, FOC_TYPES } from "@/lib/constants"
+import { getDeviceCategory, extractFocType } from "@/lib/device-utils"
 import { RequestFormCampaign } from "./request/RequestFormCampaign"
 import { RequestFormDevice } from "./request/RequestFormDevice"
 import { RequestFormKol } from "./request/RequestFormKol"
 import { RequestFormDelivery } from "./request/RequestFormDelivery"
-
-/** Key(s) used in fullData for the FOC Type column (Column D in Step 1) */
-const FOC_TYPE_KEYS = ["FOC TYPE", "TYPE OF FOC", "Type of FOC", "Foc Type"] as const;
-
-function getDeviceCategory(unitName: string): string {
-    const upper = unitName.toUpperCase().trim();
-    for (const cat of DEVICE_CATEGORIES) {
-        if (upper.startsWith(cat.prefix)) return cat.label;
-    }
-    return "Others";
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
@@ -139,9 +102,6 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         },
     })
 
-    const watchRequestor = form.watch("requestor")
-    const watchImei = form.watch("imeiIfAny")
-    const watchTypeOfFoc = form.watch("typeOfFoc")
     const [autoFilledFoc, setAutoFilledFoc] = useState<string | null>(null);
 
     // Handle category change — reset IMEI selection
@@ -153,17 +113,6 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         setAutoFilledFoc(null);
     }
 
-    /** Read FOC TYPE from an item's fullData (Column D in sheet) */
-    function extractFocType(item: InventoryItem): string {
-        if (!item.fullData) return "";
-        for (const key of FOC_TYPE_KEYS) {
-            const val = item.fullData[key];
-            if (val && val.trim() !== "" && val.trim() !== "-") return val.trim().toUpperCase();
-        }
-        return "";
-    }
-
-    // Reset all category/IMEI state when form resets
     function resetFormState() {
         setSelectedCategory("");
         form.reset();
@@ -221,19 +170,13 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
     }
 
     // Scroll to the first error field on invalid form submission
-    function onInvalid(errors: any) {
+    function onInvalid(errors: Record<string, { message?: string }>) {
         const firstErrorName = Object.keys(errors)[0]
         const element = document.getElementsByName(firstErrorName)[0]
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' })
             element.focus()
         }
-    }
-
-    // Get icon for a category label
-    function getCategoryIcon(name: string): string {
-        const cat = DEVICE_CATEGORIES.find(c => c.label === name);
-        return cat?.icon || "📦";
     }
 
     return (

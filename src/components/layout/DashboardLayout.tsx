@@ -64,7 +64,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-neutral-900 dark:text-white font-bold tracking-wide">Hubz FOC</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setOpen(!open)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none">
+                    <button onClick={() => setOpen(!open)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none" aria-label={open ? "Close navigation menu" : "Open navigation menu"} aria-expanded={open} aria-controls="mobile-menu">
                         {open ? <IconX /> : <IconMenu2 />}
                     </button>
                 </div>
@@ -77,6 +77,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+                        id="mobile-menu"
                         className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-3xl p-4 border-t border-black/5 dark:border-white/5 transition-colors"
                     >
                         <nav className="space-y-2">
@@ -102,7 +103,7 @@ function NavItem({ icon, label, active, open, href, onClick }: { icon: React.Rea
     if (!href) return null;
 
     return (
-        <Link href={href} onClick={onClick} className={cn(
+        <Link href={href} onClick={onClick} aria-current={active ? "page" : undefined} className={cn(
             "flex items-center h-12 md:h-11 px-3.5 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden group border",
             active
                 ? "bg-blue-500/10 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 dark:border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.1)] border-l-[3px] border-l-blue-500"

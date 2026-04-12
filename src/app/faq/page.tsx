@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, BookOpen, Layers, ShieldCheck, MapPin, Search, Globe } from "lucide-react";
+import { ChevronDown, BookOpen, Layers, ShieldCheck, MapPin, Search } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -273,7 +273,7 @@ const faqsData = {
   ]
 };
 
-function AccordionItem({ item, isOpen, onClick }: { item: any, isOpen: boolean, onClick: () => void }) {
+function AccordionItem({ item, isOpen, onClick }: { item: { id: string; icon: React.ReactNode; title: string; content: React.ReactNode }, isOpen: boolean, onClick: () => void }) {
   return (
     <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-white dark:bg-neutral-900/50 transition-colors">
       <button

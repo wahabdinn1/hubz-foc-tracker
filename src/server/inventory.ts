@@ -2,9 +2,8 @@
 
 import { sheets } from "./google";
 import { unstable_cache, revalidatePath } from "next/cache";
-import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
+import type { InventoryItem, OverdueItem, ReturnHistoryItem, RequestHistoryItem } from "@/types/inventory";
 import {
-  SHEETS,
   SHEET_RANGES,
   COLUMN_HEADERS,
   REQUEST_HEADERS,
@@ -85,11 +84,6 @@ export const getInventory = unstable_cache(
           if (header) fullData[header] = row[index] || "-";
         });
 
-        const col = (name: string) => {
-          const idx = colIndex(name);
-          return idx >= 0 ? row[idx] || "" : "";
-        };
-
         const imei = resolveColumn(row, colIndex, COLUMN_HEADERS.IMEI, 5);
         const unitName = resolveColumn(row, colIndex, COLUMN_HEADERS.UNIT_NAME, 6);
         const kol = resolveColumn(row, colIndex, COLUMN_HEADERS.ON_HOLDER, 14);
@@ -116,6 +110,7 @@ export const getInventory = unstable_cache(
         
         // Expose Step 3 data directly in fullData so it can be autofilled in forms
         if (reqData) {
+          if (reqData[REQUEST_HEADERS.EMAIL]) fullData["Step 3 Email"] = reqData[REQUEST_HEADERS.EMAIL];
           if (reqData[REQUEST_HEADERS.REQUESTOR]) fullData["Step 3 Requestor"] = reqData[REQUEST_HEADERS.REQUESTOR];
           if (reqData[REQUEST_HEADERS.PHONE]) fullData["Step 3 Phone"] = reqData[REQUEST_HEADERS.PHONE];
           if (reqData[REQUEST_HEADERS.ADDRESS]) fullData["Step 3 Address"] = reqData[REQUEST_HEADERS.ADDRESS];
@@ -168,6 +163,7 @@ function buildRequestDataMap(
   const reqColIndex = buildColIndex(reqHeaders);
 
   const timeIdx = reqColIndex(REQUEST_HEADERS.TIMESTAMP);
+  const emailIdx = reqColIndex(REQUEST_HEADERS.EMAIL);
   const unitIdx = reqColIndex(REQUEST_HEADERS.UNIT_NAME);
   const imeiIdx = reqColIndex(REQUEST_HEADERS.IMEI);
   const kolIdx = reqColIndex(REQUEST_HEADERS.KOL_NAME);
@@ -187,6 +183,7 @@ function buildRequestDataMap(
     if (timestamp) {
       const dataObj: Record<string, string> = {
         [REQUEST_HEADERS.TIMESTAMP]: timestamp,
+        [REQUEST_HEADERS.EMAIL]: emailIdx >= 0 ? r[emailIdx] || "" : "",
         [REQUEST_HEADERS.REQUESTOR]: reqIdx >= 0 ? r[reqIdx] || "" : "",
         [REQUEST_HEADERS.PHONE]: phoneIdx >= 0 ? r[phoneIdx] || "" : (r[7] || ""),
         [REQUEST_HEADERS.ADDRESS]: addrIdx >= 0 ? r[addrIdx] || "" : (r[8] || ""),
@@ -309,11 +306,7 @@ export const getReturnHistory = unstable_cache(
   ["return-history"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
 );
-import { RequestHistoryItem } from "@/types/inventory";
 
-/**
- * Fetch request submission history from the "Step 3 FOC Request" sheet.
- */
 export const getRequestHistory = unstable_cache(
   async (): Promise<RequestHistoryItem[]> => {
     try {

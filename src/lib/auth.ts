@@ -9,9 +9,9 @@ import { AUTH_COOKIE_NAME } from "./constants";
  * Throws at call time if the environment variable is not configured.
  */
 function getSigningSecret(): Uint8Array {
-  const key = process.env.JWT_SECRET || process.env.GOOGLE_PRIVATE_KEY;
+  const key = process.env.JWT_SECRET;
   if (!key) {
-    throw new Error("[AUTH] JWT_SECRET or GOOGLE_PRIVATE_KEY must be set.");
+    throw new Error("[AUTH] JWT_SECRET must be set.");
   }
   return new TextEncoder().encode(key);
 }

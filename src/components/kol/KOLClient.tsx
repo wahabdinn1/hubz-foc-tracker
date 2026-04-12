@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { InventoryItem } from "@/types/inventory";
-import { Search, User, Phone, MapPin, Package, Smartphone } from "lucide-react";
+import { Search, Phone, MapPin, Package, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +120,10 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ duration: 0.15, delay: Math.min(idx * 0.05, 0.3) }}
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={() => setSelectedItem(item)}
+                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedItem(item); } }}
                                         className="cursor-pointer flex flex-col gap-3 bg-white/80 dark:bg-neutral-950/40 transition-all shadow-sm dark:shadow-none border border-black/5 dark:border-white/5 rounded-xl md:rounded-2xl p-3 md:p-4 hover:bg-black/5 dark:hover:bg-neutral-800/50 hover:border-blue-500/30"
                                     >
                                         <div className="min-w-0">
@@ -210,7 +213,10 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.2, delay: Math.min(idx * 0.05, 0.2) }}
                                         key={kol.name}
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={() => setSelectedKOL(kol.name)}
+                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedKOL(kol.name); } }}
                                         className="group cursor-pointer bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.05] hover:border-blue-500/30 rounded-xl md:rounded-2xl p-4 md:p-5 backdrop-blur-xl transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800/60 hover:-translate-y-1 shadow-lg"
                                     >
                                         <div className="flex items-center justify-between mb-4">

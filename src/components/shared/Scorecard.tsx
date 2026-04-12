@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, ReactNode } from "react";
+import React, { useRef, useState, useCallback, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -22,29 +22,36 @@ export function Scorecard({
     onClick?: () => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
+    const rafRef = useRef<number | null>(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        setMousePosition({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
+    const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (rafRef.current) return;
+        rafRef.current = requestAnimationFrame(() => {
+            if (!ref.current) return;
+            const rect = ref.current.getBoundingClientRect();
+            setMousePosition({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            });
+            rafRef.current = null;
         });
-    };
+    }, []);
 
     return (
         <div
             ref={ref}
             onMouseMove={handleMouseMove}
             onClick={onClick}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
             className={cn(
                 "group relative overflow-hidden rounded-2xl bg-white/50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] backdrop-blur-xl shadow-lg flex flex-col p-4 min-h-[100px] transition-colors hover:border-black/10 dark:hover:border-white/[0.15]",
                 onClick && "cursor-pointer hover:shadow-xl active:scale-[0.98]",
                 className
             )}
         >
-            {/* Spotlight Hover Effect */}
             <motion.div
                 className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition duration-300 group-hover:opacity-100"
                 style={{

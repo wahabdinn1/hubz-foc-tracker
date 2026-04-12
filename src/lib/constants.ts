@@ -47,6 +47,7 @@ export const COLUMN_HEADERS = {
  */
 export const REQUEST_HEADERS = {
   TIMESTAMP: "Timestamp",
+  EMAIL: "Email Address",
   UNIT_NAME: "Unit Name",
   IMEI: "IMEI if any",
   KOL_NAME: "KOL Name",
@@ -185,3 +186,5 @@ export const DEVICE_CATEGORIES = [
   { prefix: "G-B", label: "Buds", icon: "🎧" },
   { prefix: "G-W", label: "Wearable", icon: "⌚" },
 ] as const;
+
+export const FOC_TYPE_KEYS = ["FOC TYPE", "TYPE OF FOC", "Type of FOC", "Foc Type"] as const;

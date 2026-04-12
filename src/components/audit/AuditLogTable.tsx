@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { format, parseISO, isValid } from "date-fns";
-import { Search, ArrowUpDown, Download, Filter } from "lucide-react";
+import { useState, useMemo } from "react";
+import { format, isValid } from "date-fns";
+import { Search, ArrowUpDown, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
     Table,
@@ -98,8 +97,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
         }
     };
 
-    // Unify and transform events
-    const allEvents: AuditEvent[] = [
+    const allEvents: AuditEvent[] = useMemo(() => [
         ...requests.map((r, i) => {
             return {
                 id: `req-${i}`,
@@ -135,7 +133,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
                 dateObj: parseDateSafely(r.timestamp)
             };
         })
-    ];
+    ], [requests, returns]);
 
     const filteredEvents = allEvents.filter(event => {
         const matchesType = typeFilter === "ALL" || event.type === typeFilter;
@@ -196,7 +194,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
                                 className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500 pl-10"
                             />
                         </div>
-                        <Select value={typeFilter} onValueChange={(val: any) => { setTypeFilter(val); setCurrentPage(1); }}>
+                        <Select value={typeFilter} onValueChange={(val: string) => { setTypeFilter(val as "ALL" | "REQUEST" | "RETURN"); setCurrentPage(1); }}>
                             <SelectTrigger className="w-full sm:w-[150px] bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200">
                                 <div className="flex items-center gap-2">
                                     <Filter className="w-3 h-3 text-neutral-500" />

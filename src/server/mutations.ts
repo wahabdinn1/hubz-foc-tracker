@@ -17,17 +17,6 @@ import type { ActionResult } from "@/types/inventory";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
-// ---------------------------------------------------------------------------
-// Timestamp — GMT+7 (Asia/Jakarta)
-// ---------------------------------------------------------------------------
-
-/**
- * Format the current moment as `M/D/YYYY HH:mm:ss` in GMT+7 (Asia/Jakarta).
- * Uses `Intl.DateTimeFormat` to guarantee the correct timezone regardless
- * of the server's system clock locale.
- *
- * Example output: `2/20/2026 16:29:07`
- */
 function formatTimestampGMT7(): string {
   const now = new Date();
 
@@ -48,7 +37,6 @@ function formatTimestampGMT7(): string {
   const month = get("month");
   const day = get("day");
   const year = get("year");
-  // Intl may return "24" for midnight in hour12:false mode — normalise to "00"
   const rawHour = get("hour");
   const hour = rawHour === "24" ? "00" : rawHour.padStart(2, "0");
   const minute = get("minute").padStart(2, "0");
@@ -57,96 +45,53 @@ function formatTimestampGMT7(): string {
   return `${month}/${day}/${year} ${hour}:${minute}:${second}`;
 }
 
-// ---------------------------------------------------------------------------
-// Precise Row Targeting — Append-to-Bottom Fix
-// ---------------------------------------------------------------------------
+function sanitizeCell(value: string): string {
+  if (!value) return value;
+  const first = value[0];
+  if (first === "=" || first === "+" || first === "-" || first === "@") {
+    return `'${value}`;
+  }
+  return value;
+}
 
-/**
- * Find the exact next empty row in a sheet by reading Column A,
- * then write the given values to that row using `values.update`.
- *
- * This avoids `values.append` which can skip over blank rows that
- * contain stray formatting or trailing commas.
- */
+function sanitizeRow(row: string[]): string[] {
+  return row.map(sanitizeCell);
+}
+
 async function writeToNextRow(
   sheetName: string,
   values: string[][]
 ): Promise<void> {
-  // 1. Fetch Column A to count filled rows
-  const colAResponse = await sheets.spreadsheets.values.get({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A:A`,
-  });
-
-  const colAData = colAResponse.data.values || [];
-  // Filter out rows where Column A is blank/empty
-  const filledRows = colAData.filter(
-    (row) => row[0] && row[0].toString().trim() !== ""
-  );
-
-  // 2. Calculate the target row (1-indexed: data starts after filled rows)
-  const targetRow = filledRows.length + 1;
-
-  // 3. Determine the column range based on the number of values
-  const lastColLetter = String.fromCharCode(64 + values[0].length); // A=65, so 64+1=A, 64+13=M
-
-  // 4. Write using values.update targeting the exact row
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A${targetRow}:${lastColLetter}${targetRow}`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
-      values,
+      values: values.map(sanitizeRow),
     },
   });
+
+  if (!response.data.updates) {
+    throw new Error("Failed to write row to sheet — no updates returned.");
+  }
 }
 
-/**
- * Write multiple rows starting at the next empty row.
- * Used by `returnUnits()` for batch operations.
- */
 async function writeMultipleRows(
   sheetName: string,
   allValues: string[][]
 ): Promise<void> {
-  const colAResponse = await sheets.spreadsheets.values.get({
+  await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A:A`,
-  });
-
-  const colAData = colAResponse.data.values || [];
-  const filledRows = colAData.filter(
-    (row) => row[0] && row[0].toString().trim() !== ""
-  );
-
-  const startRow = filledRows.length + 1;
-  const endRow = startRow + allValues.length - 1;
-  const lastColLetter = String.fromCharCode(64 + allValues[0].length);
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A${startRow}:${lastColLetter}${endRow}`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
-      values: allValues,
+      values: allValues.map(sanitizeRow),
     },
   });
 }
 
-// ---------------------------------------------------------------------------
-// Outbound (Loan) — Step 3 FOC Request
-// ---------------------------------------------------------------------------
-
-/**
- * Submit a new outbound FOC request (device loan to a KOL).
- *
- * Race-condition defense (Layer 1.5):
- *   1. Re-read Step 1 at submission time → verify the unit is still AVAILABLE.
- *   2. Cross-check the last 100 rows of Step 3 → detect near-simultaneous writes.
- *   3. Only then write a row to Step 3 using precise row targeting.
- *
- * Step 1 is NEVER written to — it is GET/Read only.
- */
 export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
@@ -157,11 +102,7 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
 
     const submittedImei = (validated.imeiIfAny || "").trim();
 
-    // -----------------------------------------------------------------------
-    // Layer 1.5  — Only run if an IMEI was actually selected (not "none")
-    // -----------------------------------------------------------------------
     if (submittedImei && submittedImei !== "none") {
-      // -- Step A: Re-read Step 1 and verify AVAILABLE ----------------------
       const step1Response = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
         range: SHEET_RANGES.DATA_BANK,
@@ -173,11 +114,9 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
           h?.trim().toUpperCase() || ""
         );
 
-        // Find the IMEI column (Column E/F area — serial number)
         const imeiColIdx = step1Headers.findIndex(
           (h) => h.includes("SERIAL NUMBER") || h.includes("IMEI")
         );
-        // Find the Status Location column (Column M area)
         const statusColIdx = step1Headers.findIndex(
           (h) => h.includes("STATUS LOCATION")
         );
@@ -206,7 +145,6 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
         }
       }
 
-      // -- Step B: Cross-check Step 3 last 100 rows for collision ------------
       const step3Response = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
         range: SHEET_RANGES.FOC_REQUEST,
@@ -218,13 +156,11 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
           h?.trim().toUpperCase() || ""
         );
 
-        // Find IMEI column in Step 3
         const step3ImeiColIdx = step3Headers.findIndex(
           (h) => h.includes("IMEI") || h.includes("SERIAL")
         );
 
         if (step3ImeiColIdx >= 0) {
-          // Check the last 100 rows (most recent submissions)
           const recentRows = step3Rows.slice(
             Math.max(1, step3Rows.length - 100)
           );
@@ -245,9 +181,6 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
       }
     }
 
-    // -----------------------------------------------------------------------
-    // All checks passed — write the row to Step 3 using precise targeting
-    // -----------------------------------------------------------------------
     const timestamp = formatTimestampGMT7();
     const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
     const finalRequestor =
@@ -261,19 +194,19 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
 
     await writeToNextRow(SHEETS.FOC_REQUEST, [
       [
-        timestamp,              // A: Timestamp
-        emailAddress,           // B: Email Address
-        finalRequestor,         // C: Requestor
-        finalCampaign,          // D: Campaign Name
-        validated.unitName,     // E: Unit Name
-        validated.imeiIfAny || "", // F: IMEI if any
-        validated.kolName,      // G: KOL Name
-        validated.kolPhoneNumber, // H: KOL Phone Number
-        validated.kolAddress,   // I: KOL address
-        validated.deliveryDate, // J: Delivery Date
-        validated.typeOfDelivery, // K: Type Of Delivery
-        validated.typeOfFoc,    // L: Type of FOC
-        "TRUE",                 // M: Deliver
+        timestamp,
+        emailAddress,
+        finalRequestor,
+        finalCampaign,
+        validated.unitName,
+        validated.imeiIfAny || "",
+        validated.kolName,
+        validated.kolPhoneNumber,
+        validated.kolAddress,
+        validated.deliveryDate,
+        validated.typeOfDelivery,
+        validated.typeOfFoc,
+        "TRUE",
       ],
     ]);
 
@@ -294,17 +227,6 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Inbound (Return) — Step 4 FOC Return
-// ---------------------------------------------------------------------------
-
-/**
- * Submit an inbound FOC return (device coming back from a KOL).
- * Writes a row to the "Step 4 FOC Return" sheet using precise row targeting.
- *
- * @param data - Validated return payload from the form.
- * @returns ActionResult indicating success or failure with an error message.
- */
 export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
@@ -322,16 +244,16 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
 
     await writeToNextRow(SHEETS.FOC_RETURN, [
       [
-        timestamp,                // A: Timestamp
-        emailAddress,             // B: Email Address
-        finalRequestor,           // C: Requestor
-        validated.unitName,       // D: Unit Name
-        validated.imei,           // E: IMEI/SN
-        validated.fromKol,        // F: From KOL
-        validated.kolAddress,     // G: KOL address
-        validated.kolPhoneNumber, // H: KOL Phone Number
-        validated.typeOfFoc,      // I: Type of FOC
-        "",                       // J: Remarks (empty for normal returns)
+        timestamp,
+        emailAddress,
+        finalRequestor,
+        validated.unitName,
+        validated.imei,
+        validated.fromKol,
+        validated.kolAddress,
+        validated.kolPhoneNumber,
+        validated.typeOfFoc,
+        "",
       ],
     ]);
 
@@ -352,13 +274,6 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
   }
 }
 
-/**
- * Submit multiple inbound FOC returns (devices coming back from KOLs).
- * Writes multiple rows to the "Step 4 FOC Return" sheet using precise row targeting.
- *
- * @param data - Array of validated return payloads.
- * @returns ActionResult indicating success or failure with an error message.
- */
 export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
@@ -381,16 +296,16 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
           : validated.requestor;
 
       valuesToWrite.push([
-        timestamp,                // A: Timestamp
-        emailAddress,             // B: Email Address
-        finalRequestor,           // C: Requestor
-        validated.unitName,       // D: Unit Name
-        validated.imei,           // E: IMEI/SN
-        validated.fromKol,        // F: From KOL
-        validated.kolAddress,     // G: KOL address
-        validated.kolPhoneNumber, // H: KOL Phone Number
-        validated.typeOfFoc,      // I: Type of FOC
-        "",                       // J: Remarks (empty for normal returns)
+        timestamp,
+        emailAddress,
+        finalRequestor,
+        validated.unitName,
+        validated.imei,
+        validated.fromKol,
+        validated.kolAddress,
+        validated.kolPhoneNumber,
+        validated.typeOfFoc,
+        "",
       ]);
     }
 
@@ -413,21 +328,6 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
   }
 }
 
-// ---------------------------------------------------------------------------
-// Transfer Between KOL — Double Append (Step 4 + Step 3)
-// ---------------------------------------------------------------------------
-
-/**
- * Transfer a device from one KOL to another.
- *
- * Strategy:
- *   1. Verify the IMEI is currently "LOANED / ON KOL" in Step 1 (read-only).
- *   2. Transaction A: Write to Step 4 (return from KOL 1).
- *   3. Transaction B: Write to Step 3 (issue to KOL 2).
- *   4. If Transaction A fails, Transaction B does NOT execute.
- *
- * Step 1 is NEVER written to.
- */
 export async function transferUnit(data: TransferPayload): Promise<ActionResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
@@ -437,9 +337,6 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
     const validated = transferPayloadSchema.parse(data);
     const submittedImei = validated.imei.trim();
 
-    // -----------------------------------------------------------------------
-    // Race-condition check: Verify the IMEI is still LOANED in Step 1
-    // -----------------------------------------------------------------------
     const step1Response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: SHEET_RANGES.DATA_BANK,
@@ -485,9 +382,6 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
       };
     }
 
-    // -----------------------------------------------------------------------
-    // Build payloads
-    // -----------------------------------------------------------------------
     const timestamp = formatTimestampGMT7();
     const emailAddress = `${validated.username}${EMAIL_DOMAIN}`;
     const finalRequestor =
@@ -501,24 +395,37 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
 
     const remarksText = `Direct Transfer to ${validated.kol2Name} - ${finalCampaign}`;
 
-    // -----------------------------------------------------------------------
-    // Transaction A: Write to Step 4 FOC Return (return from KOL 1)
-    // -----------------------------------------------------------------------
+    const returnRow = [
+      timestamp,
+      emailAddress,
+      finalRequestor,
+      validated.unitName,
+      validated.imei,
+      validated.currentHolder,
+      "-",
+      "-",
+      validated.typeOfFoc,
+      remarksText,
+    ];
+
+    const requestRow = [
+      timestamp,
+      emailAddress,
+      finalRequestor,
+      finalCampaign,
+      validated.unitName,
+      validated.imei,
+      validated.kol2Name,
+      validated.kol2Phone,
+      validated.kol2Address,
+      validated.transferDate,
+      "Direct Transfer",
+      validated.typeOfFoc,
+      "TRUE",
+    ];
+
     try {
-      await writeToNextRow(SHEETS.FOC_RETURN, [
-        [
-          timestamp,                // A: Timestamp
-          emailAddress,             // B: Email Address
-          finalRequestor,           // C: Requestor
-          validated.unitName,       // D: Unit Name
-          validated.imei,           // E: IMEI/SN
-          validated.currentHolder,  // F: From KOL (KOL 1)
-          "-",                      // G: KOL address
-          "-",                      // H: KOL Phone Number
-          validated.typeOfFoc,      // I: Type of FOC
-          remarksText,              // J: Remarks
-        ],
-      ]);
+      await writeToNextRow(SHEETS.FOC_RETURN, [returnRow]);
     } catch (stepAError) {
       console.error("Transfer Step A (Return from KOL 1) failed", stepAError);
       return {
@@ -527,33 +434,13 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
       };
     }
 
-    // -----------------------------------------------------------------------
-    // Transaction B: Write to Step 3 FOC Request (issue to KOL 2)
-    // Only executes if Transaction A succeeded
-    // -----------------------------------------------------------------------
     try {
-      await writeToNextRow(SHEETS.FOC_REQUEST, [
-        [
-          timestamp,                  // A: Timestamp
-          emailAddress,               // B: Email Address
-          finalRequestor,             // C: Requestor
-          finalCampaign,              // D: Campaign Name (Transfer Reason)
-          validated.unitName,         // E: Unit Name
-          validated.imei,             // F: IMEI if any
-          validated.kol2Name,         // G: KOL Name (KOL 2)
-          validated.kol2Phone,        // H: KOL Phone Number
-          validated.kol2Address,      // I: KOL address
-          validated.transferDate,     // J: Delivery Date (Transfer Date)
-          "Direct Transfer",          // K: Type Of Delivery
-          validated.typeOfFoc,        // L: Type of FOC
-          "TRUE",                     // M: Deliver
-        ],
-      ]);
+      await writeToNextRow(SHEETS.FOC_REQUEST, [requestRow]);
     } catch (stepBError) {
       console.error("Transfer Step B (Issue to KOL 2) failed", stepBError);
       return {
         success: false,
-        error: "Return from KOL 1 was recorded, but issuing to KOL 2 failed. Please manually create a request for the new KOL.",
+        error: `PARTIAL: Return from KOL 1 was recorded, but issuing to KOL 2 failed. Manual reconciliation needed. Return timestamp: ${timestamp}. Please create a manual request for ${validated.kol2Name}.`,
       };
     }
 

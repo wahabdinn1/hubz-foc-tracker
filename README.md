@@ -49,7 +49,7 @@ AUTHORIZED_PINS="123456,654321"
 JWT_SECRET="your_jwt_signing_secret_here"
 ```
 
-All Google variables are required. The application will fail at runtime if `GOOGLE_PRIVATE_KEY` is not set. `JWT_SECRET` is recommended for JWT signing; if omitted, `GOOGLE_PRIVATE_KEY` is used as a fallback.
+All Google variables are required. The application will fail at runtime if `GOOGLE_PRIVATE_KEY` is not set. `JWT_SECRET` is **required** for JWT signing — the application will reject all authentication attempts without it.
 
 ### 2. Install Dependencies
 
