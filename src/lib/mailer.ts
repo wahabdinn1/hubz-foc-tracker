@@ -184,6 +184,7 @@ async function sendMail(html: string): Promise<void> {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   const adminEmail = process.env.ADMIN_EMAIL;
+  const ccEmails = process.env.CC_EMAILS?.trim() || "";
 
   if (!emailUser || !emailPass || !adminEmail) {
     console.warn("[MAILER] Email notification skipped — EMAIL_USER, EMAIL_PASS, or ADMIN_EMAIL not configured.");
@@ -196,6 +197,7 @@ async function sendMail(html: string): Promise<void> {
     await transporter.sendMail({
       from: `"WPP Media FOC System" <${emailUser}>`,
       to: adminEmail,
+      ...(ccEmails && { cc: ccEmails }),
       subject: EMAIL_SUBJECT,
       html,
       messageId,

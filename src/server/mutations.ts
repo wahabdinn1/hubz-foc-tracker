@@ -83,14 +83,15 @@ function resolveCampaign(campaignName: string, customCampaign?: string): string 
 async function findNextEmptyRow(sheetName: string): Promise<number> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A:A`,
+    range: `${sheetName}!A:Z`,
   });
   const rows = response.data.values;
   if (!rows || rows.length === 0) return 1;
 
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i];
-    if (row && row.length > 0 && row[0]?.trim() !== "") {
+    const hasData = row && row.some(cell => cell?.trim() !== "");
+    if (hasData) {
       return i + 2;
     }
   }
@@ -103,17 +104,18 @@ async function writeToNextRow(
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
 
-  const response = await sheets.spreadsheets.values.update({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A${startRow}`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: values.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updatedCells) {
-    throw new Error("Failed to write row to sheet — no cells updated.");
+  if (!response.data.updates) {
+    throw new Error("Failed to write row to sheet — no updates returned.");
   }
 }
 
@@ -123,17 +125,18 @@ async function writeMultipleRows(
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
 
-  const response = await sheets.spreadsheets.values.update({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A${startRow}`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: allValues.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updatedCells) {
-    throw new Error("Failed to write rows to sheet — no cells updated.");
+  if (!response.data.updates) {
+    throw new Error("Failed to write rows to sheet — no updates returned.");
   }
 }
 
