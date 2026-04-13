@@ -134,7 +134,7 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                                             )}>
                                                 {item.statusLocation || "UNKNOWN"}
                                             </Badge>
-                                            {focUp && focUp !== "-" && (
+                                            {focUp && focUp !== "-" ? (
                                                 <Badge variant="outline" className={cn(
                                                     "text-[10px] px-2 py-0 whitespace-nowrap font-semibold",
                                                     focUp === "RETURN"
@@ -145,7 +145,7 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                                                 )}>
                                                     {item.focStatus}
                                                 </Badge>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </div>
 

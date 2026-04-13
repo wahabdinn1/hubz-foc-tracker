@@ -60,11 +60,11 @@ export function OverduePanel({ overdueItems }: OverduePanelProps) {
                                 <span className="text-xs font-mono text-neutral-500 truncate">
                                     SN: {item.serialNumber}
                                 </span>
-                                {item.seinPic && (
+                                {item.seinPic ? (
                                     <span className="text-xs text-neutral-400">
                                         • PIC: {item.seinPic}
                                     </span>
-                                )}
+                                ) : null}
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -85,11 +85,11 @@ export function OverduePanel({ overdueItems }: OverduePanelProps) {
                         </div>
                     </div>
                 ))}
-                {remaining > 0 && (
+                {remaining > 0 ? (
                     <p className="text-xs text-neutral-400 text-center pt-2">
                         + {remaining} more overdue device{remaining !== 1 ? "s" : ""}
                     </p>
-                )}
+                ) : null}
             </div>
         </motion.div>
     );

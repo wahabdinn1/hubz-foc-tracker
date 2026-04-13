@@ -139,11 +139,11 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                             )}>
                                                 {item.statusLocation || "UNKNOWN"}
                                             </Badge>
-                                            {item.focStatus && (
+                                            {item.focStatus ? (
                                                 <span className="text-[10px] sm:text-xs text-neutral-500 font-medium">
                                                     {item.focStatus}
                                                 </span>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </motion.div>
                                 ))}
@@ -243,12 +243,12 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                             <Package className="w-3.5 h-3.5 opacity-70" />
                                             {kol.totalItems} Total Devices Handled
                                         </p>
-                                        {latestDevice && (
+                                        {latestDevice ? (
                                             <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2 truncate flex items-center gap-1">
                                                 <Smartphone className="w-3 h-3 shrink-0" />
                                                 Latest: {latestDevice}
                                             </p>
-                                        )}
+                                        ) : null}
                                     </motion.div>
                                     );
                                 })}

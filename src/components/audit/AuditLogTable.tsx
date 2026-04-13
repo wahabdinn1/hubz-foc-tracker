@@ -89,12 +89,14 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
     const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
     const handleSort = (col: SortColumn) => {
-        if (sortCol === col) {
-            setSortDir(sortDir === "asc" ? "desc" : "asc");
-        } else {
-            setSortCol(col);
-            setSortDir(col === "date" ? "desc" : "asc");
-        }
+        setSortCol(prevCol => {
+            if (prevCol === col) {
+                setSortDir(prev => prev === "asc" ? "desc" : "asc");
+            } else {
+                setSortDir(col === "date" ? "desc" : "asc");
+            }
+            return col;
+        });
     };
 
     const allEvents: AuditEvent[] = useMemo(() => [
@@ -273,11 +275,11 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-neutral-900 dark:text-neutral-100">{event.kolName || "-"}</div>
-                                            {(event.campaignName || event.typeOfFoc) && (
+                                            {(event.campaignName || event.typeOfFoc) ? (
                                                 <div className="text-xs text-neutral-500 truncate max-w-[200px]">
                                                     {event.typeOfFoc} {event.campaignName ? `• ${event.campaignName}` : ""}
                                                 </div>
-                                            )}
+                                            ) : null}
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-neutral-900 dark:text-neutral-100">{event.requestor}</div>

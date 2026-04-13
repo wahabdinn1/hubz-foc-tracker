@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { returnUnits } from "@/server/actions";
+import { returnUnits } from "@/server/mutations";
 import { REQUESTORS, FOC_TYPES } from "@/lib/constants";
 import type { InventoryItem } from "@/types/inventory";
 import type { ReturnPayload } from "@/lib/validations";

@@ -50,13 +50,14 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
 
         const totalStock = validInventory.length;
 
-        const itemsToReturnRaw = inventory.filter(item => {
+        const aggregatedReturnsMap = new Map<string, ReturnTrackingItem>();
+
+        for (const item of inventory) {
             const locationStr = item.statusLocation?.toUpperCase() || "";
-            if (locationStr.includes('RETURN TO TCC')) return false;
+            if (locationStr.includes('RETURN TO TCC')) continue;
             const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
-            
-            if (!hasReturnDate) return false;
-            
+            if (!hasReturnDate) continue;
+
             if (dateRange?.from || dateRange?.to) {
                 const returnDate = parseDateStr(item.plannedReturnDate);
                 if (returnDate) {
@@ -64,22 +65,16 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
                     if (dateRange.from) {
                         const fromD = new Date(dateRange.from);
                         fromD.setHours(0,0,0,0);
-                        if (returnDate < fromD) return false;
+                        if (returnDate < fromD) continue;
                     }
                     if (dateRange.to) {
                         const toD = new Date(dateRange.to);
                         toD.setHours(23,59,59,999);
-                        if (returnDate > toD) return false;
+                        if (returnDate > toD) continue;
                     }
                 }
             }
 
-            return true;
-        });
-
-        const aggregatedReturnsMap = new Map<string, ReturnTrackingItem>();
-
-        itemsToReturnRaw.forEach(item => {
             const unitName = item.unitName?.trim() || "Unknown Unit";
             const seinPic = item.seinPic?.trim() || "-";
             const goatPic = item.goatPic?.trim() || "-";
@@ -94,7 +89,7 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             } else {
                 aggregatedReturnsMap.set(key, { ...item, groupCount: 1 });
             }
-        });
+        }
 
         const topUrgentReturns = Array.from(aggregatedReturnsMap.values()).sort((a, b) => {
             const aIsAsap = a.plannedReturnDate?.toUpperCase() === 'ASAP';

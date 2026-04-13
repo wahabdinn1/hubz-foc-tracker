@@ -66,11 +66,10 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
     , [filteredInventory, sortConfig]);
 
     const handleSort = (key: keyof InventoryItem) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
+        setSortConfig(prev => ({
+            key,
+            direction: prev && prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+        }));
     };
 
     const totalPages = Math.ceil(sortedInventory.length / rowsPerPage) || 1;

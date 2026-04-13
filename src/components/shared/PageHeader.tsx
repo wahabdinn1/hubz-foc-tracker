@@ -5,11 +5,18 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { RequestFormModal } from "@/components/forms/RequestFormModal";
 import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
 import { TransferFormModal } from "@/components/forms/TransferFormModal";
-import { CommandPalette } from "@/components/shared/CommandPalette";
+import dynamic from "next/dynamic"
+
+const CommandPalette = dynamic(
+    () => import("@/components/shared/CommandPalette").then((mod) => mod.CommandPalette),
+    { ssr: false }
+)
 import { useSyncInventory } from "@/hooks/useSyncInventory";
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import type { InventoryItem } from "@/types/inventory";
+
+const EMPTY_INVENTORY: InventoryItem[] = [];
 
 interface PageHeaderProps {
     title: string;
@@ -24,7 +31,7 @@ interface PageHeaderProps {
  * Shared page header toolbar with theme toggle, sync button, and action buttons.
  * De-duplicates the identical header from Dashboard, Inventory, and KOL clients.
  */
-export function PageHeader({ title, subtitle, availableUnits = [], loanedItems = [], allInventory, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, loanedItems = EMPTY_INVENTORY, allInventory, children }: PageHeaderProps) {
     const { isPending, handleSync } = useSyncInventory();
 
     return (

@@ -23,6 +23,9 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
+const EMPTY_OVERDUE: OverdueItem[] = [];
+const EMPTY_RETURN_HISTORY: ReturnHistoryItem[] = [];
+
 interface DashboardClientProps {
     inventory: InventoryItem[];
     isAuthenticated: boolean;
@@ -30,7 +33,7 @@ interface DashboardClientProps {
     returnHistory?: ReturnHistoryItem[];
 }
 
-export function DashboardClient({ inventory, isAuthenticated, overdueItems = [], returnHistory = [] }: DashboardClientProps) {
+export function DashboardClient({ inventory, isAuthenticated, overdueItems = EMPTY_OVERDUE, returnHistory = EMPTY_RETURN_HISTORY }: DashboardClientProps) {
     const router = useRouter();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);

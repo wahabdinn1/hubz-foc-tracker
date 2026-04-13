@@ -76,11 +76,11 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                 <div className="flex items-center gap-3 md:gap-4 min-w-0 z-10">
                                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center shrink-0 border border-black/5 dark:border-white/[0.05] relative transition-colors">
                                         <Smartphone className="w-4 h-4 text-neutral-500 dark:text-neutral-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-                                        {item.groupCount > 1 && (
+                                        {item.groupCount > 1 ? (
                                             <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-neutral-100 dark:border-neutral-900">
                                                 {item.groupCount}
                                             </span>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div className="min-w-0 flex flex-col items-start gap-1">
                                         <p className="font-semibold text-neutral-900 dark:text-neutral-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.unitName}</p>
@@ -103,8 +103,8 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                     )}>
                                         {isAsap ? "ASAP" : item.plannedReturnDate}
                                     </Badge>
-                                    {isAsap && <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">As Soon As Possible</span>}
-                                    {isOverdue && !isAsap && <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Overdue</span>}
+                                    {isAsap ? <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">As Soon As Possible</span> : null}
+                                    {isOverdue && !isAsap ? <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Overdue</span> : null}
                                 </div>
                                 {/* Health/Timeline Bar */}
                                 <div className="absolute bottom-0 left-0 w-full h-1 bg-black/5 dark:bg-white/5">

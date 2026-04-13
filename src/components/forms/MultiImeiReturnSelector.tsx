@@ -89,7 +89,7 @@ export function MultiImeiReturnSelector({ loanedItems, selectedItems, onSelectio
                                                     Held by: {item.onHolder || "Unknown KOL"}
                                                 </span>
                                             </div>
-                                            {item.focStatus && (
+                                            {item.focStatus ? (
                                                 <span className={cn(
                                                     "ml-auto text-[10px] px-1.5 py-0.5 rounded uppercase font-medium flex-shrink-0",
                                                     item.focStatus.toUpperCase().includes("UNRETURN")
@@ -100,7 +100,7 @@ export function MultiImeiReturnSelector({ loanedItems, selectedItems, onSelectio
                                                 )}>
                                                     {item.focStatus}
                                                 </span>
-                                            )}
+                                            ) : null}
                                         </CommandItem>
                                     );
                                 })}

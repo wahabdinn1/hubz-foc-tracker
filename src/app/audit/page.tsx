@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getRequestHistory, getReturnHistory, getInventory } from "@/server/actions";
+import { getRequestHistory, getReturnHistory, getInventory } from "@/server/inventory";
 import { AuditLogTable } from "@/components/audit/AuditLogTable";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";

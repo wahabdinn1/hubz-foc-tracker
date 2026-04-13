@@ -29,9 +29,15 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
         }
 
         return Object.entries(groups).map(([name, items]) => {
-            const available = items.filter(i => !!i.statusLocation?.toUpperCase().includes("AVAILABLE")).length;
-            const loaned = items.filter(i => !!i.statusLocation?.toUpperCase().includes("LOANED")).length;
-            const uniqueModels = new Set(items.map(i => i.unitName?.trim()).filter(Boolean)).size;
+            let available = 0, loaned = 0;
+            const modelSet = new Set<string>();
+            for (const i of items) {
+                const loc = i.statusLocation?.toUpperCase() || "";
+                if (loc.includes("AVAILABLE")) available++;
+                if (loc.includes("LOANED")) loaned++;
+                const trimmed = i.unitName?.trim();
+                if (trimmed) modelSet.add(trimmed);
+            }
 
             return {
                 name,
@@ -39,7 +45,7 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
                 total: items.length,
                 available,
                 loaned,
-                uniqueModels
+                uniqueModels: modelSet.size
             };
         }).sort((a, b) => b.total - a.total);
     }, [inventory]);
@@ -105,7 +111,7 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
                                         <span className="text-neutral-500">Holder:</span>
                                         <span className="text-neutral-700 dark:text-neutral-300 font-medium truncate ml-2">{item.onHolder || "-"}</span>
                                     </div>
-                                    {item.plannedReturnDate && item.plannedReturnDate !== "-" && item.plannedReturnDate !== "N/A" && (
+                                    {item.plannedReturnDate && item.plannedReturnDate !== "-" && item.plannedReturnDate !== "N/A" ? (
                                         <div className="flex items-center justify-between">
                                             <span className="text-neutral-500">Return:</span>
                                             <span className={cn(
@@ -113,7 +119,7 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
                                                 item.plannedReturnDate === 'ASAP' ? "text-red-400" : "text-neutral-700 dark:text-neutral-300"
                                             )}>{item.plannedReturnDate}</span>
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
                         ))}

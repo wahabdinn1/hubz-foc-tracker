@@ -45,13 +45,14 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
             let totalAll = 0, availAll = 0, loanAll = 0, retAll = 0, unretAll = 0;
 
             for (const [variantName, items] of variantMap) {
-                const available = items.filter(i => i.statusLocation?.toUpperCase().includes("AVAILABLE")).length;
-                const loaned = items.filter(i => {
+                let available = 0, loaned = 0, returned = 0, unreturned = 0;
+                for (const i of items) {
                     const loc = i.statusLocation?.toUpperCase() || "";
-                    return loc.includes("LOANED") || loc.includes("ON KOL");
-                }).length;
-                const returned = items.filter(i => i.focStatus?.toUpperCase().trim() === "RETURN").length;
-                const unreturned = items.filter(i => i.focStatus?.toUpperCase().trim() === "UNRETURN").length;
+                    if (loc.includes("AVAILABLE")) available++;
+                    if (loc.includes("LOANED") || loc.includes("ON KOL")) loaned++;
+                    if (i.focStatus?.toUpperCase().trim() === "RETURN") returned++;
+                    if (i.focStatus?.toUpperCase().trim() === "UNRETURN") unreturned++;
+                }
 
                 variants.push({ name: variantName, items, total: items.length, available, loaned, returned, unreturned });
 

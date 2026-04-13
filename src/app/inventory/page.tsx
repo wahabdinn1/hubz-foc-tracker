@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getInventory } from "@/server/actions";
+import { getInventory } from "@/server/inventory";
 import { InventoryClient } from "@/components/inventory/InventoryClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/shared/PinModal";

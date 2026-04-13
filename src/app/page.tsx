@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getDashboardData } from "@/server/actions";
+import { getDashboardData } from "@/server/inventory";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
