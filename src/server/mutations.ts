@@ -104,17 +104,16 @@ async function writeToNextRow(
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
 
-  const response = await sheets.spreadsheets.values.append({
+  const response = await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A${startRow}`,
     valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: values.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updates) {
+  if (!response.data.updatedCells) {
     throw new Error("Failed to write row to sheet — no updates returned.");
   }
 }
@@ -125,17 +124,16 @@ async function writeMultipleRows(
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
 
-  const response = await sheets.spreadsheets.values.append({
+  const response = await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
     range: `${sheetName}!A${startRow}`,
     valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: allValues.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updates) {
+  if (!response.data.updatedCells) {
     throw new Error("Failed to write rows to sheet — no updates returned.");
   }
 }
