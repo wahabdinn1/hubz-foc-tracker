@@ -180,16 +180,36 @@ function buildSingleHtml(data: FocNotificationData): string {
 </html>`;
 }
 
+async function resolveCCField(): Promise<string> {
+  try {
+    const { db } = await import("@/db");
+    const { ccRecipients } = await import("@/db/schema");
+    const rows = await db.select({ email: ccRecipients.email }).from(ccRecipients);
+    if (rows.length > 0) {
+      return rows.map((r) => r.email).join(",");
+    }
+  } catch (error) {
+    console.warn("[MAILER] Failed to fetch CC recipients from database, falling back to CC_EMAILS env:", error);
+  }
+
+  const fallback = process.env.CC_EMAILS?.trim() || "";
+  if (fallback) {
+    console.warn("[MAILER] Using CC_EMAILS fallback from environment.");
+  }
+  return fallback;
+}
+
 async function sendMail(html: string): Promise<void> {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   const adminEmail = process.env.ADMIN_EMAIL;
-  const ccEmails = process.env.CC_EMAILS?.trim() || "";
 
   if (!emailUser || !emailPass || !adminEmail) {
     console.warn("[MAILER] Email notification skipped — EMAIL_USER, EMAIL_PASS, or ADMIN_EMAIL not configured.");
     return;
   }
+
+  const ccEmails = await resolveCCField();
 
   const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@wppmedia.com>`;
 

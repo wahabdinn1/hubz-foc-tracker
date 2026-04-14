@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Search, Package, User, Megaphone } from "lucide-react";
+import { Search, Package, User, Megaphone, Settings } from "lucide-react";
 import type { InventoryItem } from "@/types/inventory";
 
 interface CommandPaletteProps {
@@ -89,6 +89,10 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                                 <CommandItem onSelect={() => handleSelect("nav:/kol")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
                                     <User className="mr-2 h-4 w-4 text-blue-500" />
                                     KOL Directory
+                                </CommandItem>
+                                <CommandItem onSelect={() => handleSelect("nav:/settings")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
+                                    <Settings className="mr-2 h-4 w-4 text-blue-500" />
+                                    Settings
                                 </CommandItem>
                             </CommandGroup>
 

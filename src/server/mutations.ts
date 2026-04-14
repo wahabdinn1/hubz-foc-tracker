@@ -98,11 +98,58 @@ async function findNextEmptyRow(sheetName: string): Promise<number> {
   return 1;
 }
 
+/**
+ * Auto-expand a Google Sheet tab if the target row exceeds the current grid.
+ * Prevents the "Range exceeds grid limits" error when a sheet fills up.
+ */
+async function ensureSheetCapacity(
+  sheetName: string,
+  requiredRow: number
+): Promise<void> {
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId: SHEET_ID,
+  });
+
+  const targetSheet = spreadsheet.data.sheets?.find(
+    (s) => s.properties?.title === sheetName
+  );
+
+  if (!targetSheet?.properties?.sheetId) {
+    throw new Error(`Sheet "${sheetName}" not found in spreadsheet.`);
+  }
+
+  const currentMaxRows = targetSheet.properties.gridProperties?.rowCount ?? 0;
+
+  if (requiredRow > currentMaxRows) {
+    const rowsToAdd = requiredRow - currentMaxRows + 100; // add 100 buffer rows
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            appendDimension: {
+              sheetId: targetSheet.properties.sheetId,
+              dimension: "ROWS",
+              length: rowsToAdd,
+            },
+          },
+        ],
+      },
+    });
+    console.log(
+      `[SHEETS] Auto-expanded "${sheetName}" by ${rowsToAdd} rows (was ${currentMaxRows}, now ${currentMaxRows + rowsToAdd}).`
+    );
+  }
+}
+
 async function writeToNextRow(
   sheetName: string,
   values: string[][]
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
+  const lastRow = startRow + values.length - 1;
+
+  await ensureSheetCapacity(sheetName, lastRow);
 
   const response = await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
@@ -123,6 +170,9 @@ async function writeMultipleRows(
   allValues: string[][]
 ): Promise<void> {
   const startRow = await findNextEmptyRow(sheetName);
+  const lastRow = startRow + allValues.length - 1;
+
+  await ensureSheetCapacity(sheetName, lastRow);
 
   const response = await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,

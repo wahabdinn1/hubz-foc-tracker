@@ -18,6 +18,10 @@ src/
     kol/page.tsx               # Dedicated KOL Directory
     audit/page.tsx             # Audit Log
     faq/page.tsx               # Help Center / FAQ
+    settings/page.tsx          # Settings — CC email management (PIN-protected)
+    actions/
+      settings.ts              # Server actions: verifySettingsPin, getCCRecipients,
+                               #   addCCRecipient, deleteCCRecipient, isSettingsUnlocked
     layout.tsx                 # Root layout + ThemeProvider
     globals.css                # Design tokens, custom scrollbars
     error.tsx                  # Global error boundary with retry
@@ -73,6 +77,10 @@ src/
     ui/                        # Shadcn primitives + custom components
       EmptyState.tsx           # Reusable empty state with icon + message
 
+  db/                          # Drizzle ORM + Supabase database layer
+    schema.ts                  # Drizzle schema: cc_recipients table (id, email, createdAt)
+    index.ts                   # Drizzle client (postgres.js + DATABASE_URL)
+
   types/
     inventory.ts               # Centralized TypeScript interfaces
                                #   InventoryItem, Step1Data, Step3RefData,
@@ -93,6 +101,8 @@ src/
     utils.ts                   # Tailwind class merge & helpers
     rate-limit.ts              # In-memory per-IP PIN brute-force prevention
     mailer.ts                  # Nodemailer email notification utility (Gmail-threaded)
+                               #   CC recipients fetched from Supabase via Drizzle,
+                               #   with fallback to CC_EMAILS env var
 
   hooks/
     useInventoryStats.ts       # Derives stats (available, loaned, etc.) from inventory
@@ -121,8 +131,11 @@ src/
 | Module | Responsibility |
 |---|---|
 | `server/inventory.ts` | Fetches and transforms data from Google Sheets using **positional column parsing** (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`); cached with 60s ISR |
-| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; batch size limits |
-| `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; threads all emails into a single Gmail conversation |
+| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; batch size limits; auto-expands Google Sheets grids beyond default numeric row limits (`ensureSheetCapacity`) |
+| `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; threads all emails into a single Gmail conversation; CC recipients are dynamically queried from the `cc_recipients` table via Drizzle ORM, with fallback to `CC_EMAILS` env var |
+| `app/actions/settings.ts` | Settings page server actions: `verifySettingsPin()` (timing-safe PIN check + HTTP-only session cookie), `isSettingsUnlocked()`, `getCCRecipients()`, `addCCRecipient()` (with email validation + duplicate check), `deleteCCRecipient()` |
+| `db/schema.ts` | Drizzle ORM schema — `cc_recipients` table (id serial PK, email text unique, createdAt timestamp) |
+| `db/index.ts` | Drizzle client initialized with `postgres.js` + `DATABASE_URL` |
 | `server/auth.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
 | `types/inventory.ts` | `InventoryItem`, `Step1Data`, `Step3RefData`, `KOLProfile`, `ActionResult` type definitions |
 | `lib/constants.ts` | Centralized constants: `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`, `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, `FOC_TYPE_KEYS`, sheet names, column headers |
@@ -220,15 +233,20 @@ Add these environment variables to `.env.local`:
 EMAIL_USER="your-gmail@gmail.com"
 EMAIL_PASS="your-app-password"
 ADMIN_EMAIL="admin@wppmedia.com"
+CC_EMAILS="person1@wppmedia.com,person2@wppmedia.com"   # Fallback CC list
+DATABASE_URL="postgresql://user:password@host:port/database"  # For dynamic CC list
 ```
 
 - Use a [Gmail App Password](https://myaccount.google.com/apppasswords), not your regular Gmail password.
-- If any of these variables are missing, the system logs a warning and skips the notification — **the mutation still succeeds**.
+- If any of `EMAIL_USER`, `EMAIL_PASS`, or `ADMIN_EMAIL` are missing, the system logs a warning and skips the notification — **the mutation still succeeds**.
+- `CC_EMAILS` is the **fallback** CC list — used only if the Supabase `cc_recipients` table is empty or unreachable.
+- `DATABASE_URL` is the Supabase PostgreSQL connection string used by Drizzle ORM for the dynamic CC list.
 
 ### How It Works
 
 1. After a successful Google Sheets write, the mutation calls `await sendFocNotification(data)` inside a try-catch.
-2. The email uses a **static subject** (`📱 FOC Tracker Log - System Notifications`) so all notifications thread into a **single Gmail conversation**.
+2. The mailer calls `resolveCCField()` which queries the `cc_recipients` table via Drizzle ORM. If the query returns results, they are joined into a comma-separated string for the `cc` field. If the query fails or returns empty, it falls back to `process.env.CC_EMAILS`.
+3. The email uses a **static subject** (`📱 FOC Tracker Log - System Notifications`) so all notifications thread into a **single Gmail conversation**.
 3. Gmail threading headers are injected into every email:
    - `messageId` — Unique per email (`<timestamp-random@wppmedia.com>`)
    - `inReplyTo` — Points to the static thread ID (`<foc-tracker-main-thread@wppmedia.com>`)
@@ -426,6 +444,37 @@ The shared `UsernameEmailInput` component and `mutations.ts` both read from this
 
 ---
 
+### How to Manage CC Email Recipients
+
+CC email recipients receive copies of all FOC notification emails (Request, Return, Transfer). They are managed through the Settings page (`/settings`), which is PIN-protected with a separate 1-hour session cookie.
+
+**Accessing Settings:**
+
+1. Navigate to `/settings` via the sidebar or `⌘K` command palette.
+2. Enter your authorized PIN (same PINs as `AUTHORIZED_PINS` in `.env.local`).
+3. The session lasts 1 hour — after that, you'll need to re-verify.
+
+**Adding a CC recipient:**
+
+1. Type the email address in the input field. Alternatively, paste multiple emails separated by commas or newlines.
+2. Click **Add** or press **Enter**.
+3. For bulk inputs, duplicates are filtered out client-side and only new emails are submitted. Safe-guards prevent database duplicate key errors (uniqueness constraint).
+
+**Removing a CC recipient:**
+
+1. Click the trash icon next to the email you want to remove.
+2. The entry is immediately deleted from the database.
+
+**How it works under the hood:**
+
+- CC recipients are stored in the `cc_recipients` table in Supabase (Drizzle ORM schema in `src/db/schema.ts`).
+- Server actions in `src/app/actions/settings.ts` handle all CRUD operations.
+- The mailer (`src/lib/mailer.ts`) dynamically queries this table on every email send.
+- If the database query fails or returns no results, the mailer **falls back** to the `CC_EMAILS` environment variable — ensuring notifications never break during the transition period.
+- The Settings page uses `DashboardLayout` and matches the same styling conventions as other pages (FAQ, Audit, etc.).
+
+---
+
 ### How to Change Form Field Layout
 
 The Request form layout is defined in `src/components/forms/RequestFormModal.tsx` and its sub-components in `src/components/forms/request/`.
@@ -520,6 +569,10 @@ Search for the navigation items and add/modify entries:
 
 Then create the corresponding page at `src/app/new-page/page.tsx`.
 
+**Current nav items:** Dashboard (`/`), Inventory Bank (`/inventory`), KOL Management (`/kol`), Audit Log (`/audit`), Help Center (`/faq`), Settings (`/settings`).
+
+> **Note:** The Settings page uses the same `DashboardLayout` wrapper and page styling conventions as other pages. The sidebar is also accessible via the `⌘K` Command Palette (`src/components/shared/CommandPalette.tsx`).
+
 ---
 
 ### How to Change Dashboard Scorecard Content
@@ -560,9 +613,18 @@ Also update the corresponding `Step1Data` / `Step3RefData` interfaces in `types/
 
 ### How to Add Firebase, Supabase, or Other Backends
 
-The application currently uses Google Sheets as its only data source. To add a different backend:
+The application uses a **hybrid database approach**: Google Sheets remains the primary data source for FOC inventory, while Supabase (via Drizzle ORM) handles the Settings feature (CC email management).
 
-1. Create a new service file in `src/server/` (e.g., `supabase.ts`).
+**To add a new Supabase-backed feature:**
+
+1. Add or extend the Drizzle schema in `src/db/schema.ts` (e.g., new table definition).
+2. Run `npx drizzle-kit push` to sync the schema to your Supabase database.
+3. Create server actions in `src/app/actions/` to handle reads/writes via the `db` client.
+4. Import and use the actions in your page/component.
+
+**To add a completely different backend (e.g., Firebase):**
+
+1. Create a new service file in `src/server/` (e.g., `firebase.ts`).
 2. Implement the same `getInventory()` return shape (`InventoryItem[]`).
 3. Replace the import in `src/server/inventory.ts`.
 4. Update mutation functions in `src/server/mutations.ts` to write to the new backend.
@@ -578,11 +640,19 @@ The application currently uses Google Sheets as its only data source. To add a d
 
 **Missing KOL entries** — The KOL directory groups by the `ON HOLDER` field. Inconsistent spelling in the sheet creates duplicate profiles.
 
-**Build fails with missing env vars** — All three Google credentials must be present. `JWT_SECRET` is required for authentication. `AUTHORIZED_PINS` must also be set.
+**Build fails with missing env vars** — All three Google credentials must be present. `JWT_SECRET` is required for authentication. `AUTHORIZED_PINS` must also be set. `DATABASE_URL` is required for the Settings page and dynamic CC list in the mailer.
+
+**Database connection errors** — Verify `DATABASE_URL` is set correctly in `.env.local` with a valid Supabase PostgreSQL connection string. Run `npx drizzle-kit push` to ensure the `cc_recipients` table exists.
+
+**Settings page not loading** — The Settings page requires `DATABASE_URL`. If the database is unreachable, the page will still render but the CC list will be empty. The mailer will fall back to `CC_EMAILS` env var.
+
+**CC emails not being sent** — The mailer queries the `cc_recipients` table first. If empty or unreachable, it falls back to `CC_EMAILS` in `.env.local`. Check server logs for `[MAILER]` prefixed messages.
 
 **Adding a new hidden column to QuickView** — Add the lowercase key to `QUICKVIEW_HIDDEN_KEYS` in `lib/constants.ts`.
 
 **Form submission goes to wrong row** — The server uses `INSERT_ROWS` with explicit range targeting. Check `server/mutations.ts` to verify the range logic.
+
+**Range exceeds grid limits** — The server auto-expands the Google Sheet (appending 100 dimensions using `batchUpdate`) whenever `writeToNextRow` encounters an index that exceeds the tab's current max rows grid configuration.
 
 **Auto-fill FOC Type not working** — Ensure the Column D index matches `STEP1_COLS.FOC_TYPE` (3) in `lib/constants.ts`. The `resolveFocTypeWithMatch()` function in `lib/form-utils.ts` handles case-insensitive matching.
 
@@ -698,7 +768,11 @@ The following improvements are planned but not yet implemented:
 - [x] **Email Notifications** — Nodemailer + Gmail SMTP sends styled HTML emails on every Request, Return, and Transfer
 - [x] **Gmail Thread Grouping** — Static subject + `In-Reply-To`/`References` headers thread all notifications into a single conversation
 - [x] **Batch Email** — `sendFocBatchNotification()` sends one email with stacked cards for multi-unit returns
+- [x] **Dynamic CC List** — CC recipients managed via Settings page (Supabase + Drizzle ORM), with `CC_EMAILS` env var fallback
+- [x] **Settings Page** — PIN-protected admin page for CC email CRUD (including Bulk additions and client-side duplicate handling), integrated with sidebar and command palette
+- [x] **Hybrid Database** — Google Sheets for FOC data, Supabase (PostgreSQL via Drizzle ORM) for settings
 - [x] **Error/Loading/Not-Found Pages** — Global `error.tsx`, `not-found.tsx`, and `loading.tsx` on all routes
+- [x] **Auto-expanding Sheets** - Automatically provisions additional rows via `batchUpdate` when grid boundaries are met bypassing default grid limits.
 - [x] **Icon Standardization** — Migrated from `@tabler/icons-react` to Lucide React exclusively
 - [x] **ISR Caching** — Switched from `force-dynamic` to `revalidate = 60` for Vercel free-tier compatibility
 - [ ] **Role-Based Access Control** — Different permission levels (admin vs. viewer)

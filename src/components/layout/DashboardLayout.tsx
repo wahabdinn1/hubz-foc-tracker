@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LayoutDashboard, Package, Users, History, HelpCircle } from "lucide-react";
+import { Menu, X, LayoutDashboard, Package, Users, History, HelpCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +52,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
                     <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
                     <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={open} />
+                    <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={open} />
                 </nav>
             </motion.div>
 
@@ -86,6 +87,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
                             <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={true} onClick={() => setOpen(false)} />
                         </nav>
                     </motion.div>
                 )}
