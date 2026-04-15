@@ -80,88 +80,22 @@ function resolveCampaign(campaignName: string, customCampaign?: string): string 
   return campaignName === "Other" ? customCampaign || "Other" : campaignName;
 }
 
-async function findNextEmptyRow(sheetName: string): Promise<number> {
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A:Z`,
-  });
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) return 1;
-
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const row = rows[i];
-    const hasData = row && row.some(cell => cell?.trim() !== "");
-    if (hasData) {
-      return i + 2;
-    }
-  }
-  return 1;
-}
-
-/**
- * Auto-expand a Google Sheet tab if the target row exceeds the current grid.
- * Prevents the "Range exceeds grid limits" error when a sheet fills up.
- */
-async function ensureSheetCapacity(
-  sheetName: string,
-  requiredRow: number
-): Promise<void> {
-  const spreadsheet = await sheets.spreadsheets.get({
-    spreadsheetId: SHEET_ID,
-  });
-
-  const targetSheet = spreadsheet.data.sheets?.find(
-    (s) => s.properties?.title === sheetName
-  );
-
-  if (!targetSheet?.properties?.sheetId) {
-    throw new Error(`Sheet "${sheetName}" not found in spreadsheet.`);
-  }
-
-  const currentMaxRows = targetSheet.properties.gridProperties?.rowCount ?? 0;
-
-  if (requiredRow > currentMaxRows) {
-    const rowsToAdd = requiredRow - currentMaxRows + 100; // add 100 buffer rows
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: {
-        requests: [
-          {
-            appendDimension: {
-              sheetId: targetSheet.properties.sheetId,
-              dimension: "ROWS",
-              length: rowsToAdd,
-            },
-          },
-        ],
-      },
-    });
-    console.log(
-      `[SHEETS] Auto-expanded "${sheetName}" by ${rowsToAdd} rows (was ${currentMaxRows}, now ${currentMaxRows + rowsToAdd}).`
-    );
-  }
-}
-
 async function writeToNextRow(
   sheetName: string,
   values: string[][]
 ): Promise<void> {
-  const startRow = await findNextEmptyRow(sheetName);
-  const lastRow = startRow + values.length - 1;
-
-  await ensureSheetCapacity(sheetName, lastRow);
-
-  const response = await sheets.spreadsheets.values.update({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A${startRow}`,
+    range: `${sheetName}!A1`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: values.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updatedCells) {
-    throw new Error("Failed to write row to sheet — no updates returned.");
+  if (!response.data.updates) {
+    throw new Error("Failed to append row to sheet — no updates returned.");
   }
 }
 
@@ -169,22 +103,18 @@ async function writeMultipleRows(
   sheetName: string,
   allValues: string[][]
 ): Promise<void> {
-  const startRow = await findNextEmptyRow(sheetName);
-  const lastRow = startRow + allValues.length - 1;
-
-  await ensureSheetCapacity(sheetName, lastRow);
-
-  const response = await sheets.spreadsheets.values.update({
+  const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A${startRow}`,
+    range: `${sheetName}!A1`,
     valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: allValues.map(sanitizeRow),
     },
   });
 
-  if (!response.data.updatedCells) {
-    throw new Error("Failed to write rows to sheet — no updates returned.");
+  if (!response.data.updates) {
+    throw new Error("Failed to append multiple rows to sheet — no updates returned.");
   }
 }
 

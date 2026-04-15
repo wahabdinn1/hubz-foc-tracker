@@ -59,6 +59,9 @@ DATABASE_URL="postgresql://user:password@host:port/database"
 EMAIL_USER="your-gmail@gmail.com"
 EMAIL_PASS="your-app-password"
 ADMIN_EMAIL="admin@wppmedia.com"
+DATABASE_URL=""
+NEXT_PUBLIC_SUPABASE_URL=""
+NEXT_PUBLIC_SUPABASE_ANON_KEY=""
 ```
 
 All Google variables are required. The application performs **validation at startup** and will fail to initialize if these are missing. `JWT_SECRET` is **required** for JWT signing — authentication will reject all attempts without it.
