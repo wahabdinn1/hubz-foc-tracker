@@ -191,14 +191,13 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                                 imeiPopoverOpen={imeiPopoverOpen}
                                 setImeiPopoverOpen={setImeiPopoverOpen}
                                 setAutoFilledFoc={setAutoFilledFoc}
+                                autoFilledFoc={autoFilledFoc}
                                 extractFocType={extractFocType}
                             />
 
                             <RequestFormKol />
                             
-                            <RequestFormDelivery 
-                                autoFilledFoc={autoFilledFoc}
-                            />
+                            <RequestFormDelivery />
 
                         </div>
                         <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all mt-6">

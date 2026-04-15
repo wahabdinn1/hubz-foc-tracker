@@ -46,10 +46,9 @@ src/
       RequestFormModal.tsx     # Outbound (loan) request form
       ReturnFormModal.tsx      # Inbound (return) form — multi-unit selection
       TransferFormModal.tsx    # Direct transfer between KOLs (orchestrator only)
-      MultiImeiReturnSelector.tsx  # Multi-select IMEI combobox for return form
-      ImeiReturnSelector.tsx   # Single-select IMEI combobox (legacy)
-      BatchReturnDialog.tsx    # Batch return dialog (legacy, unused)
-      shared/                  # Shared form sub-components
+       MultiImeiReturnSelector.tsx  # Multi-select IMEI combobox for return form
+       ImeiReturnSelector.tsx   # Single-select IMEI combobox (legacy)
+       shared/                  # Shared form sub-components
         UsernameEmailInput.tsx # Username + EMAIL_DOMAIN suffix input
       request/                 # Request form sub-components
         RequestFormCampaign.tsx
@@ -72,9 +71,11 @@ src/
       MasterListTab.tsx        # Searchable/sortable device table with page-jump
       ModelsTab.tsx            # 3-level grouped-by-model view
       CampaignsTab.tsx         # Grouped-by-campaign view
-    kol/                       # KOL directory components
-      KOLClient.tsx            # KOL list + individual profile views
-    ui/                        # Shadcn primitives + custom components
+     kol/                       # KOL directory components
+       KOLClient.tsx            # KOL list + individual profile views
+     faq/                       # FAQ page components
+       FaqClient.tsx            # Client-side FAQ with accordion and search
+     ui/                        # Shadcn primitives + custom components
       EmptyState.tsx           # Reusable empty state with icon + message
 
   db/                          # Drizzle ORM + Supabase database layer
@@ -87,9 +88,12 @@ src/
                                #   KOLProfile, ActionResult, OverdueItem,
                                #   ReturnHistoryItem, RequestHistoryItem
 
-  lib/
-    auth.ts                    # Shared server-side JWT verification
-    constants.ts               # Centralized constants: STEP1_COLS, STEP3_COLS,
+   lib/
+     auth.ts                    # Shared server-side JWT verification
+     crypto.ts                  # Timing-safe comparison utilities for PIN verification
+     env.ts                     # Environment variable validation helper
+     faq-data.ts                # FAQ accordion data (questions, answers, categories)
+     constants.ts               # Centralized constants: STEP1_COLS, STEP3_COLS,
                                #   STEP4_COLS, REQUESTORS, FOC_TYPES,
                                #   DELIVERY_TYPES, CAMPAIGNS, DEVICE_CATEGORIES,
                                #   FOC_TYPE_KEYS, sheet names, auth config, etc.
@@ -144,6 +148,9 @@ src/
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
 | `lib/validations.ts` | Zod schemas shared between client forms and server actions (request, return, transfer) |
 | `lib/auth.ts` | `isAuthenticated()` — shared JWT verification for pages and actions (requires `JWT_SECRET`) |
+| `lib/crypto.ts` | `timingSafeEqual()` — constant-time string comparison for PIN verification |
+| `lib/env.ts` | `getRequiredEnvVar()` — environment variable validation with descriptive errors |
+| `lib/faq-data.ts` | FAQ accordion data — questions, answers, and categories for the Help Center |
 | `hooks/useDeviceCategories.ts` | `useDeviceCategories(items, filterFn)` — builds category map, sorted categories, and filtered items |
 | `hooks/useScrollToFirstError.ts` | `useScrollToFirstError()` — shared `onInvalid` handler that scrolls to and focuses the first error field |
 | `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity` from raw inventory (single-pass) |
@@ -485,8 +492,10 @@ The main grid uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). To ch
 <RequestFormCampaign />
 <RequestFormDevice ... />
 <RequestFormKol />
-<RequestFormDelivery ... />
+<RequestFormDelivery />
 ```
+
+**Type of FOC** is rendered inside `RequestFormDevice` and appears inline next to **Unit Name** — but only after an IMEI is selected. When no IMEI is chosen, Unit Name spans the full width (`md:col-span-2`). When an IMEI is selected, Unit Name shrinks to a single column and Type of FOC appears in the adjacent column with its auto-filled value.
 
 The Transfer form follows the same pattern with sub-components in `src/components/forms/transfer/`:
 
@@ -721,6 +730,11 @@ pnpm test:watch    # watch mode
 | `src/__tests__/constants.test.ts` | Column indices (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`), form constants, status values |
 | `src/__tests__/form-utils.test.ts` | `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` |
 | `src/__tests__/device-utils.test.ts` | `getDeviceCategory()` classification |
+| `src/__tests__/crypto.test.ts` | Timing-safe comparison utilities |
+| `src/__tests__/date-utils.test.ts` | Date parsing, urgency calculation, overdue detection |
+| `src/__tests__/rate-limit.test.ts` | Per-IP rate limiting, lockout logic |
+| `src/__tests__/status-utils.test.ts` | FOC status classification utilities |
+| `src/__tests__/validations.test.ts` | Zod schema validation (request, return, transfer) |
 
 ### Adding Tests
 
@@ -752,7 +766,7 @@ The following improvements are planned but not yet implemented:
 - [x] **Shared Form Components** — `DiscardGuardDialog`, `UsernameEmailInput` eliminate 3x duplication across form modals
 - [x] **Shared Hooks** — `useDeviceCategories`, `useScrollToFirstError` eliminate duplicated logic
 - [x] **Consolidated Stats Hook** — Single-pass `useInventoryStats` with `parseDateStr` for reliable sorting
-- [x] **Unit Tests** — Vitest setup with 23 tests covering constants, form-utils, and device-utils
+- [x] **Unit Tests** — Vitest setup with tests covering constants, form-utils, device-utils, crypto, date-utils, rate-limit, status-utils, and validations
 - [x] **Positional Column Parsing** — Replaced header-name matching with `STEP1_COLS`/`STEP3_COLS`/`STEP4_COLS` index constants + `cell(row, idx)` parser
 - [ ] **React.memo optimization** — Memoize expensive child components (Scorecard, table rows)
 

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getCategoryIcon } from "@/lib/device-utils";
+import { FOC_TYPES } from "@/lib/constants";
 import type { InventoryItem } from "@/types/inventory";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,7 @@ interface RequestFormDeviceProps {
     imeiPopoverOpen: boolean;
     setImeiPopoverOpen: (val: boolean) => void;
     setAutoFilledFoc: (val: string | null) => void;
+    autoFilledFoc: string | null;
     extractFocType: (item: InventoryItem) => string;
 }
 
@@ -31,6 +33,7 @@ export function RequestFormDevice({
     imeiPopoverOpen,
     setImeiPopoverOpen,
     setAutoFilledFoc,
+    autoFilledFoc,
     extractFocType
 }: RequestFormDeviceProps) {
     const form = useFormContext();
@@ -189,12 +192,12 @@ export function RequestFormDevice({
                 )}
             />
 
-            {/* Unit Name (Auto-filled from IMEI selection, or manual entry) */}
+            {/* Unit Name + Type of FOC (same row when IMEI selected) */}
             <FormField
                 control={form.control}
                 name="unitName"
                 render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem className={watchImei && watchImei !== "none" && watchImei !== "" ? "" : "md:col-span-2"}>
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Unit Name</FormLabel>
                         <FormControl>
                             <Input
@@ -211,6 +214,36 @@ export function RequestFormDevice({
                     </FormItem>
                 )}
             />
+
+            {watchImei && watchImei !== "none" && watchImei !== "" && (
+                <FormField
+                    control={form.control}
+                    name="typeOfFoc"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of FOC</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                <FormControl>
+                                    <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
+                                        <SelectValue placeholder="Select FOC Type" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
+                                    {FOC_TYPES.map((type) => (
+                                        <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
+                                            {type}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {autoFilledFoc && field.value === autoFilledFoc && (
+                                <p className="text-xs text-blue-500 mt-1">Auto-filled from spreadsheet data</p>
+                            )}
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
         </>
     );
 }

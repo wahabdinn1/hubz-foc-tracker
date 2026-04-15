@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,15 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { DELIVERY_TYPES, FOC_TYPES } from "@/lib/constants";
+import { DELIVERY_TYPES } from "@/lib/constants";
 
-interface RequestFormDeliveryProps {
-    autoFilledFoc: string | null;
-}
-
-export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps) {
+export function RequestFormDelivery() {
     const form = useFormContext();
-    const watchTypeOfFoc = useWatch({ name: "typeOfFoc" });
     const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
     return (
@@ -91,35 +86,6 @@ export function RequestFormDelivery({ autoFilledFoc }: RequestFormDeliveryProps)
                                 ))}
                             </SelectContent>
                         </Select>
-                        <FormMessage className="text-red-400" />
-                    </FormItem>
-                )}
-            />
-
-            {/* Type of FOC (auto-filled from category, still editable) */}
-            <FormField
-                control={form.control}
-                name="typeOfFoc"
-                render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of FOC</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder="Select FOC Type" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {FOC_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
-                                        {type}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {autoFilledFoc && watchTypeOfFoc === autoFilledFoc && (
-                            <p className="text-xs text-blue-500 mt-1">Auto-filled from spreadsheet data</p>
-                        )}
                         <FormMessage className="text-red-400" />
                     </FormItem>
                 )}
