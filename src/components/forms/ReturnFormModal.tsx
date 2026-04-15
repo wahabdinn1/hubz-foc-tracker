@@ -45,11 +45,11 @@ function resolveRequestor(item: InventoryItem): string {
     const raw = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || ""
     if (!raw) return "-"
     const { requestor } = resolveRequestorWithFallback(raw)
-    return requestor === "Other" ? item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || "-" : requestor
+    return requestor === "Other" ? item.step3Data?.requestor || "-" : requestor
 }
 
 function resolveFocType(item: InventoryItem): string {
-    const raw = item.step3Data?.typeOfFoc || item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
+    const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
     if (!raw) return "-"
     return resolveFocTypeWithMatch(raw)
 }
@@ -110,14 +110,13 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         if (selectedItems.length === 1) {
             const payload = buildReturnPayload(selectedItems[0], values.username)
 
-            form.reset()
-            setSelectedItems([])
-            setOpen(false)
-            toast.success("Return logged — syncing with Google Sheets...")
-
             try {
                 const result = await returnUnit(payload)
                 if (result.success) {
+                    toast.success("Return logged — syncing with Google Sheets...")
+                    form.reset()
+                    setSelectedItems([])
+                    setOpen(false)
                     router.refresh()
                 } else {
                     toast.error("Return failed to save", { description: result.error })
@@ -134,15 +133,13 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
 
         const payloadArray = selectedItems.map((item) => buildReturnPayload(item, values.username))
 
-        form.reset()
-        setSelectedItems([])
-        setOpen(false)
-        toast.success(`Logging returns for ${selectedItems.length} units — syncing...`)
-
         try {
             const result = await returnUnits(payloadArray)
             if (result.success) {
                 toast.success(`Successfully returned ${selectedItems.length} units.`)
+                form.reset()
+                setSelectedItems([])
+                setOpen(false)
                 router.refresh()
             } else {
                 toast.error("Batch return failed", { description: result.error })

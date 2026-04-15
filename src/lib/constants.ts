@@ -102,52 +102,23 @@ export const STEP4_COLS = {
 } as const;
 
 /**
- * Header-name lookup chains for the "Step 1 Data Bank" sheet.
- * Each key maps to an ordered list of possible header names,
- * allowing the app to survive minor header renames.
- * @deprecated Use STEP1_COLS positional indices instead.
+ * Exact column indices for the "OVERDUE TRACKER" sheet.
+ * Validated against FOC.xlsx:
+ *
+ *   0: Serial Number  1: Material Description  2: Plan Return Date
+ *   3: Overdue Days    4: Status Update          5: Location
+ *   6: SEIN PIC 1      7: Contact Person         8: Next Step
  */
-export const COLUMN_HEADERS = {
-  IMEI: ["SERIAL NUMBER (IMEI/SN)", "IMEI"],
-  UNIT_NAME: ["UNIT NAME", "Unit Name"],
-  FOC_STATUS: ["FOC STATUS", "RETURN / UNRETURN"],
-  GOAT_PIC: ["GOAT PIC (PLANNER)", "PIC GOAT"],
-  SEIN_PIC: ["SEIN PIC NAME", "PIC SEIN"],
-  STATUS_LOCATION: ["STATUS LOCATION"],
-  ON_HOLDER: ["ON HOLDER"],
-  PLANNED_RETURN: ["PLANNED RETURN DATE", "Planned Return Date"],
-  CAMPAIGN: ["CAMPAIGN NAME", "Campaign Name"],
-} as const;
-
-/**
- * Header-name lookup chains for the "Step 3 FOC Request" sheet.
- */
-export const REQUEST_HEADERS = {
-  TIMESTAMP: "Timestamp",
-  EMAIL: "Email Address",
-  UNIT_NAME: "Unit Name",
-  IMEI: "IMEI if any",
-  KOL_NAME: "KOL Name",
-  REQUESTOR: "Requestor",
-  PHONE: "KOL Phone Number",
-  ADDRESS: "KOL address",
-  TYPE_FOC: "Type of FOC",
-} as const;
-
-/**
- * Header-name lookup chains for the "Step 4 FOC Return" sheet.
- */
-export const RETURN_HEADERS = {
-  TIMESTAMP: "Timestamp",
-  EMAIL: "Email Address",
-  REQUESTOR: "Requestor",
-  UNIT_NAME: "Unit Name",
-  IMEI: "IMEI/SN",
-  FROM_KOL: "From KOL",
-  KOL_ADDRESS: "KOL address",
-  KOL_PHONE: "KOL Phone Number",
-  TYPE_FOC: "Type of FOC",
-  RETURN_DATE: "Delivery Date",
+export const OVERDUE_COLS = {
+  SERIAL_NUMBER: 0,
+  MATERIAL_DESCRIPTION: 1,
+  PLAN_RETURN_DATE: 2,
+  OVERDUE_DAYS: 3,
+  STATUS_UPDATE: 4,
+  LOCATION: 5,
+  SEIN_PIC: 6,
+  CONTACT_PERSON: 7,
+  NEXT_STEP: 8,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -175,13 +146,30 @@ export const STATUS = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Status Location Matching
+// ---------------------------------------------------------------------------
+
+export function isStatusAvailable(statusLocation?: string): boolean {
+  return !!statusLocation?.toUpperCase().includes("AVAILABLE");
+}
+
+export function isStatusLoaned(statusLocation?: string): boolean {
+  const upper = statusLocation?.toUpperCase() || "";
+  return upper.includes("LOANED") || upper.includes("ON KOL");
+}
+
+export function isStatusReturnToTcc(statusLocation?: string): boolean {
+  return !!statusLocation?.toUpperCase().includes("RETURN TO TCC");
+}
+
+// ---------------------------------------------------------------------------
 // Cache
 // ---------------------------------------------------------------------------
 
 /** Cache tag for inventory data. */
 export const CACHE_TAG_INVENTORY = "inventory-data";
 
-/** Cache revalidation interval in seconds. Set to 1 hour since mutations force revalidation */
+/** Cache revalidation interval in seconds. */
 export const CACHE_REVALIDATE_SECONDS = 60;
 
 // ---------------------------------------------------------------------------
@@ -197,10 +185,17 @@ export const QUICKVIEW_HIDDEN_KEYS = new Set([
   "c",
   "",
   "unknown column",
+  "received date time stamp",
   "received date time stamp (link)",
+  "return to tcc receipt",
   "return to tcc receipt (link)",
   "comments",
   "step 3 request date",
+  "step 3 phone",
+  "step 3 address",
+  "step 3 email",
+  "step 3 requestor",
+  "step 3 type of foc",
 ]);
 
 // ---------------------------------------------------------------------------

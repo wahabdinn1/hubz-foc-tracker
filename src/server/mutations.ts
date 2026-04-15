@@ -80,13 +80,37 @@ function resolveCampaign(campaignName: string, customCampaign?: string): string 
   return campaignName === "Other" ? customCampaign || "Other" : campaignName;
 }
 
-async function writeToNextRow(
+async function findLastDataRow(sheetName: string): Promise<number> {
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${sheetName}!A:A`,
+  });
+
+  const rows = response.data.values;
+  if (!rows || rows.length === 0) return 1;
+
+  let lastRow = 0;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    if (row && row.length > 0 && row[0] !== undefined && String(row[0]).trim() !== "") {
+      lastRow = i + 1;
+      break;
+    }
+  }
+
+  return lastRow;
+}
+
+async function appendRows(
   sheetName: string,
   values: string[][]
 ): Promise<void> {
+  const lastRow = await findLastDataRow(sheetName);
+  const nextRow = lastRow + 1;
+
   const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A1`,
+    range: `${sheetName}!A${nextRow}`,
     valueInputOption: "USER_ENTERED",
     insertDataOption: "INSERT_ROWS",
     requestBody: {
@@ -95,26 +119,7 @@ async function writeToNextRow(
   });
 
   if (!response.data.updates) {
-    throw new Error("Failed to append row to sheet — no updates returned.");
-  }
-}
-
-async function writeMultipleRows(
-  sheetName: string,
-  allValues: string[][]
-): Promise<void> {
-  const response = await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A1`,
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: allValues.map(sanitizeRow),
-    },
-  });
-
-  if (!response.data.updates) {
-    throw new Error("Failed to append multiple rows to sheet — no updates returned.");
+    throw new Error(`Failed to append ${values.length} row(s) to sheet "${sheetName}" — no updates returned.`);
   }
 }
 
@@ -212,7 +217,7 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
     const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
     const finalCampaign = resolveCampaign(validated.campaignName, validated.customCampaign);
 
-    await writeToNextRow(SHEETS.FOC_REQUEST, [
+    await appendRows(SHEETS.FOC_REQUEST, [
       [
         timestamp,
         emailAddress,
@@ -278,7 +283,7 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
     const emailAddress = resolveEmailAddress(validated.username);
     const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
 
-    await writeToNextRow(SHEETS.FOC_RETURN, [
+    await appendRows(SHEETS.FOC_RETURN, [
       [
         timestamp,
         emailAddress,
@@ -340,16 +345,16 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
   }
 
   try {
+    const batchTimestamp = formatTimestampGMT7();
     const valuesToWrite: string[][] = [];
     
     for (const data of dataArray) {
       const validated = returnSchema.parse(data);
-      const timestamp = formatTimestampGMT7();
       const emailAddress = resolveEmailAddress(validated.username);
       const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
 
       valuesToWrite.push([
-        timestamp,
+        batchTimestamp,
         emailAddress,
         finalRequestor,
         validated.unitName,
@@ -362,10 +367,8 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
       ]);
     }
 
-    let writtenCount = 0;
     try {
-      await writeMultipleRows(SHEETS.FOC_RETURN, valuesToWrite);
-      writtenCount = valuesToWrite.length;
+      await appendRows(SHEETS.FOC_RETURN, valuesToWrite);
     } catch (writeError) {
       console.error("Failed to write batch return rows", writeError);
       return {
@@ -384,7 +387,7 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
           imei: v.imei,
           kolName: v.fromKol,
           requestor: req,
-          timestamp: formatTimestampGMT7(),
+          timestamp: batchTimestamp,
           additionalData: {
             "Type of FOC": v.typeOfFoc,
           },
@@ -503,7 +506,7 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
     ];
 
     try {
-      await writeToNextRow(SHEETS.FOC_RETURN, [returnRow]);
+      await appendRows(SHEETS.FOC_RETURN, [returnRow]);
     } catch (stepAError) {
       console.error("Transfer Step A (Return from KOL 1) failed", stepAError);
       return {
@@ -513,7 +516,7 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
     }
 
     try {
-      await writeToNextRow(SHEETS.FOC_REQUEST, [requestRow]);
+      await appendRows(SHEETS.FOC_REQUEST, [requestRow]);
     } catch (stepBError) {
       console.error("Transfer Step B (Issue to KOL 2) failed", stepBError);
       return {

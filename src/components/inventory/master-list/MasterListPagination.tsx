@@ -12,21 +12,37 @@ import type { Dispatch, SetStateAction } from "react";
 
 interface MasterListPaginationProps {
     currentPage: number;
-    setCurrentPage: Dispatch<SetStateAction<number>>;
+    setCurrentPage: Dispatch<SetStateAction<number>> | ((page: number) => void);
     totalPages: number;
     rowsPerPage: number;
-    setRowsPerPage: Dispatch<SetStateAction<number>>;
+    setRowsPerPage: Dispatch<SetStateAction<number>> | ((size: number) => void);
 }
 
 export function MasterListPagination({ currentPage, setCurrentPage, totalPages, rowsPerPage, setRowsPerPage }: MasterListPaginationProps) {
+    const setPage = (val: number | ((prev: number) => number)) => {
+        if (typeof val === "function") {
+            setCurrentPage(val(currentPage));
+        } else {
+            setCurrentPage(val);
+        }
+    };
+
+    const setPageSize = (val: number | ((prev: number) => number)) => {
+        if (typeof val === "function") {
+            setRowsPerPage(val(rowsPerPage));
+        } else {
+            setRowsPerPage(val);
+        }
+    };
+
     return (
         <div className="p-3 sm:p-4 border-t border-neutral-100 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4">
                 <Select
                     value={String(rowsPerPage)}
                     onValueChange={(val) => {
-                        setRowsPerPage(Number(val));
-                        setCurrentPage(1);
+                        setPageSize(Number(val));
+                        setPage(1);
                     }}
                 >
                     <SelectTrigger className="w-[110px] bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200">
@@ -57,7 +73,7 @@ export function MasterListPagination({ currentPage, setCurrentPage, totalPages, 
                             if (e.key === "Enter") {
                                 const val = parseInt((e.target as HTMLInputElement).value);
                                 if (val >= 1 && val <= totalPages) {
-                                    setCurrentPage(val);
+                                    setPage(val);
                                     (e.target as HTMLInputElement).value = "";
                                 }
                             }
@@ -68,7 +84,7 @@ export function MasterListPagination({ currentPage, setCurrentPage, totalPages, 
                     variant="outline"
                     size="icon"
                     className="w-8 h-8 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white focus-visible:ring-blue-500 text-neutral-500 dark:text-neutral-300"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                 >
                     <ChevronLeft className="w-4 h-4" />
@@ -77,7 +93,7 @@ export function MasterListPagination({ currentPage, setCurrentPage, totalPages, 
                     variant="outline"
                     size="icon"
                     className="w-8 h-8 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white focus-visible:ring-blue-500 text-neutral-500 dark:text-neutral-300"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
                 >
                     <ChevronRight className="w-4 h-4" />

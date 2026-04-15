@@ -40,7 +40,7 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
             }
         }
         return { uniqueKOLs: Array.from(kols).sort(), uniqueCampaigns: Array.from(campaigns).sort() };
-    }, [inventory]);
+    }, [inventory.length, inventory.map(i => i.onHolder).join(","), inventory.map(i => i.campaignName).join(",")]);
 
     const handleSelect = (action: string) => {
         setOpen(false);

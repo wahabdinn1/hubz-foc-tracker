@@ -2,6 +2,7 @@ import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Clock, Smartphone, CheckCircle } from "lucide-react";
+import { isItemOverdue } from "@/lib/date-utils";
 
 interface ReturnTrackingProps {
     topUrgentReturns: ReturnTrackingItem[];
@@ -25,39 +26,37 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                 {topUrgentReturns.length > 0 ? (
                     topUrgentReturns.map((item, idx) => {
                         const isAsap = item.plannedReturnDate?.toUpperCase() === 'ASAP';
-                        let isOverdue = false;
-                        if (!isAsap && item.plannedReturnDate) {
-                            const returnDate = new Date(item.plannedReturnDate);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            isOverdue = !isNaN(returnDate.getTime()) && returnDate < today;
-                        }
+                        const overdue = isItemOverdue(item);
 
                         let progressPercent = 0;
                         let progressColor = "bg-neutral-500";
 
-                        if (isAsap || isOverdue) {
+                        if (isAsap || overdue) {
                             progressPercent = 100;
                             progressColor = "bg-red-500";
                         } else if (item.plannedReturnDate) {
-                            const returnDate = new Date(item.plannedReturnDate);
-                            const today = new Date();
-                            today.setHours(0,0,0,0);
-                            const diffTime = returnDate.getTime() - today.getTime();
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
-                            if (diffDays > 14) {
-                                progressPercent = 20;
-                                progressColor = "bg-green-500";
-                            } else if (diffDays > 7) {
-                                progressPercent = 50;
-                                progressColor = "bg-blue-500";
-                            } else if (diffDays > 3) {
-                                progressPercent = 80;
-                                progressColor = "bg-orange-500";
-                            } else {
-                                progressPercent = 95;
-                                progressColor = "bg-red-400";
+                            const urgency = (() => {
+                                const d = new Date(item.plannedReturnDate);
+                                if (isNaN(d.getTime())) return null;
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            })();
+
+                            if (urgency !== null) {
+                                if (urgency > 14) {
+                                    progressPercent = 20;
+                                    progressColor = "bg-green-500";
+                                } else if (urgency > 7) {
+                                    progressPercent = 50;
+                                    progressColor = "bg-blue-500";
+                                } else if (urgency > 3) {
+                                    progressPercent = 80;
+                                    progressColor = "bg-orange-500";
+                                } else {
+                                    progressPercent = 95;
+                                    progressColor = "bg-red-400";
+                                }
                             }
                         }
 
@@ -69,7 +68,7 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedItem(item); } }}
                                 className={cn(
                                     "group relative overflow-hidden flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all cursor-pointer",
-                                    isOverdue || isAsap
+                                    overdue || isAsap
                                         ? "bg-red-50 dark:bg-red-950/20 border-red-500/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-500/40"
                                         : "bg-white dark:bg-neutral-950/40 border-black/5 dark:border-white/[0.05] hover:bg-neutral-50 dark:hover:bg-white/5 hover:border-black/10 dark:hover:border-white/10 shadow-sm dark:shadow-none"
                                 )}>
@@ -95,16 +94,16 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 ml-4 shrink-0 z-10">
-                                    <Badge variant={(isAsap || isOverdue) ? "destructive" : "secondary"} className={cn(
+                                    <Badge variant={(isAsap || overdue) ? "destructive" : "secondary"} className={cn(
                                         "font-mono text-xs px-2.5 py-1 whitespace-nowrap",
-                                        (isAsap || isOverdue)
+                                        (isAsap || overdue)
                                             ? "bg-red-500/15 text-red-500 border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
                                             : "bg-neutral-800 text-neutral-300 border border-neutral-700"
                                     )}>
                                         {isAsap ? "ASAP" : item.plannedReturnDate}
                                     </Badge>
                                     {isAsap ? <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">As Soon As Possible</span> : null}
-                                    {isOverdue && !isAsap ? <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Overdue</span> : null}
+                                    {overdue && !isAsap ? <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Overdue</span> : null}
                                 </div>
                                 {/* Health/Timeline Bar */}
                                 <div className="absolute bottom-0 left-0 w-full h-1 bg-black/5 dark:bg-white/5">

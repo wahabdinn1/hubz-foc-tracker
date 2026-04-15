@@ -23,6 +23,15 @@ interface FocNotificationData {
 const EMAIL_SUBJECT = "\u{1F4F1} FOC Tracker Log - System Notifications";
 const THREAD_ID = "<foc-tracker-main-thread@wppmedia.com>";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatDisplayDate(): string {
   const now = new Date();
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -59,8 +68,8 @@ function buildItemCard(data: FocNotificationData): string {
         .map(
           ([label, value]) => `
         <tr>
-          <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">${label}</td>
-          <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${value}</td>
+          <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">${escapeHtml(label)}</td>
+          <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(value)}</td>
         </tr>`
         )
         .join("")
@@ -78,7 +87,7 @@ function buildItemCard(data: FocNotificationData): string {
                 <tr>
                   <td>
                     <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em;">FOC Tracker Log</h2>
-                    <p style="margin: 0; font-size: 13px; color: #94a3b8;">${dateStr} &middot; WPP Media FOC System</p>
+                    <p style="margin: 0; font-size: 13px; color: #94a3b8;">${escapeHtml(dateStr)} &middot; WPP Media FOC System</p>
                   </td>
                 </tr>
               </table>
@@ -98,23 +107,23 @@ function buildItemCard(data: FocNotificationData): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Unit Name</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${data.unitName}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(data.unitName)}</td>
           </tr>
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">IMEI / Serial</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;">${data.imei}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;">${escapeHtml(data.imei)}</td>
           </tr>
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">KOL</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${data.kolName}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(data.kolName)}</td>
           </tr>
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Requestor</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${data.requestor}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(data.requestor)}</td>
           </tr>
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Timestamp</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;">${data.timestamp}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;">${escapeHtml(data.timestamp)}</td>
           </tr>
           ${extraRows}
         </table>
@@ -180,13 +189,23 @@ function buildSingleHtml(data: FocNotificationData): string {
 </html>`;
 }
 
+let ccCache: { emails: string; expiresAt: number } | null = null;
+const CC_CACHE_TTL = 30_000;
+
 async function resolveCCField(): Promise<string> {
+  const now = Date.now();
+  if (ccCache && ccCache.expiresAt > now) {
+    return ccCache.emails;
+  }
+
   try {
     const { db } = await import("@/db");
     const { ccRecipients } = await import("@/db/schema");
     const rows = await db.select({ email: ccRecipients.email }).from(ccRecipients);
     if (rows.length > 0) {
-      return rows.map((r) => r.email).join(",");
+      const emails = rows.map((r) => r.email).join(",");
+      ccCache = { emails, expiresAt: now + CC_CACHE_TTL };
+      return emails;
     }
   } catch (error) {
     console.warn("[MAILER] Failed to fetch CC recipients from database, falling back to CC_EMAILS env:", error);
@@ -196,6 +215,7 @@ async function resolveCCField(): Promise<string> {
   if (fallback) {
     console.warn("[MAILER] Using CC_EMAILS fallback from environment.");
   }
+  ccCache = { emails: fallback, expiresAt: now + CC_CACHE_TTL };
   return fallback;
 }
 

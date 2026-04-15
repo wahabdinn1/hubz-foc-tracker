@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
+import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -36,13 +37,12 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
         }
 
         return Object.entries(groups).map(([name, items]) => {
-            const activeItems = items.filter(i => !!i.statusLocation?.toUpperCase().includes("LOANED") || i.focStatus?.toUpperCase() === "RETURN");
+            const activeItems = items.filter(i => isStatusLoaned(i.statusLocation) || i.focStatus?.toUpperCase() === "RETURN");
             const totalItems = items.length;
 
-            // Try to extract basic info from the latest item
-            const latestInfo = items[items.length - 1]?.fullData || {};
-            const phone = latestInfo["KOL Phone Number"] || latestInfo["Phone Number"] || "-";
-            const address = latestInfo["KOL Address"] || latestInfo["Address"] || "-";
+            const latestItem = items[items.length - 1];
+            const phone = latestItem?.step3Data?.kolPhone || "-";
+            const address = latestItem?.step3Data?.kolAddress || "-";
 
             return {
                 name,
@@ -133,8 +133,8 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <Badge variant="outline" className={cn(
                                                 "px-2 py-0.5 text-[10px] sm:text-xs whitespace-nowrap",
-                                                item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                                    item.statusLocation?.includes("LOANED / ON KOL") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                                isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                                    isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                                         "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
                                             )}>
                                                 {item.statusLocation || "UNKNOWN"}

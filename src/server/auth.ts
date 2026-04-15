@@ -3,25 +3,11 @@
 import { cookies } from "next/headers";
 import { SignJWT } from "jose";
 import { AUTH_COOKIE_NAME, JWT_EXPIRATION, COOKIE_MAX_AGE } from "@/lib/constants";
+import { timingSafeEqual } from "@/lib/crypto";
+import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } from "@/lib/rate-limit";
 import type { ActionResult } from "@/types/inventory";
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  const aBuf = new TextEncoder().encode(a);
-  const bBuf = new TextEncoder().encode(b);
-  let result = 0;
-  for (let i = 0; i < aBuf.length; i++) {
-    result |= aBuf[i] ^ bBuf[i];
-  }
-  return result === 0;
-}
-
 export async function verifyPin(inputPin: string): Promise<ActionResult> {
-  const { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } =
-    await import("@/lib/rate-limit");
-
   const rateLimitKey = await getRateLimitKey();
 
   if (await isRateLimited(rateLimitKey)) {

@@ -1,24 +1,18 @@
 import { google } from "googleapis";
 
-// ── Startup Validation ─────────────────────────────────────────────
-// Fail fast with a clear message instead of cryptic runtime errors.
-const REQUIRED_ENV = [
-    "GOOGLE_CLIENT_EMAIL",
-    "GOOGLE_PRIVATE_KEY",
-    "GOOGLE_SHEET_ID",
-    "JWT_SECRET",
-    "AUTHORIZED_PINS",
-] as const;
+const missing = [
+  "GOOGLE_CLIENT_EMAIL",
+  "GOOGLE_PRIVATE_KEY",
+  "GOOGLE_SHEET_ID",
+].filter((key) => !process.env[key]);
 
-const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
-    throw new Error(
-        `[FOC Tracker] Missing required environment variables:\n  ${missing.join("\n  ")}\n` +
-        `Add them to .env.local and restart the server.`
-    );
+  throw new Error(
+    `[FOC Tracker] Missing required environment variables:\n  ${missing.join("\n  ")}\n` +
+    `Add them to .env.local and restart the server.`
+  );
 }
 
-// ── Google Sheets Client ────────────────────────────────────────────
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 const auth = new google.auth.GoogleAuth({

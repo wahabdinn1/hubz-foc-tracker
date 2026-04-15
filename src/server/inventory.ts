@@ -8,24 +8,18 @@ import {
   STEP1_COLS,
   STEP3_COLS,
   STEP4_COLS,
+  OVERDUE_COLS,
   CACHE_TAG_INVENTORY,
   CACHE_REVALIDATE_SECONDS,
   QUICKVIEW_HIDDEN_KEYS,
+  isStatusLoaned,
 } from "@/lib/constants";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
-// ---------------------------------------------------------------------------
-// Positional Cell Reader
-// ---------------------------------------------------------------------------
-
 function cell(row: string[], idx: number): string {
   return row[idx]?.trim() || "";
 }
-
-// ---------------------------------------------------------------------------
-// Step 1 Row Parser
-// ---------------------------------------------------------------------------
 
 function parseStep1Row(row: string[]): Step1Data {
   return {
@@ -47,10 +41,6 @@ function parseStep1Row(row: string[]): Step1Data {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Step 3 Row Parser
-// ---------------------------------------------------------------------------
-
 function parseStep3Row(row: string[]): Step3RefData {
   return {
     timestamp:       cell(row, STEP3_COLS.TIMESTAMP),
@@ -67,10 +57,6 @@ function parseStep3Row(row: string[]): Step3RefData {
     typeOfFoc:       cell(row, STEP3_COLS.TYPE_OF_FOC),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Data Fetching
-// ---------------------------------------------------------------------------
 
 export const getInventory = unstable_cache(
   async (): Promise<InventoryItem[]> => {
@@ -131,10 +117,6 @@ export const getInventory = unstable_cache(
   { revalidate: CACHE_REVALIDATE_SECONDS }
 );
 
-// ---------------------------------------------------------------------------
-// Internal Helpers
-// ---------------------------------------------------------------------------
-
 function buildStep3LookupMap(
   reqRows: string[][] | null | undefined
 ): Map<string, Step3RefData> {
@@ -160,26 +142,25 @@ function buildStep3LookupMap(
 function buildFullDataCompat(s1: Step1Data, step3: Step3RefData | null): Record<string, string> {
   const fd: Record<string, string> = {};
 
-  const step1Headers = [
-    "Row", "DATE OF RECEIPT", "SEIN PIC NAME", "FOC TYPE",
-    "SERIAL NUMBER (IMEI/SN)", "UNIT NAME", "FOC STATUS",
-    "PLANNED RETURN DATE", "RECEIVED DATE TIME STAMP (LINK)",
-    "GOAT PIC (PLANNER)", "CAMPAIGN NAME", "STATUS",
-    "STATUS LOCATION", "ON HOLDER", "RETURN TO TCC RECEIPT (LINK)", "COMMENTS",
-  ];
-  const step1Values = [
-    "", s1.dateOfReceipt, s1.seinPicName, s1.focType,
-    s1.imei, s1.unitName, s1.focStatus,
-    s1.plannedReturnDate, s1.receivedDateTimeStamp,
-    s1.goatPic, s1.campaignName, s1.status,
-    s1.statusLocation, s1.onHolder, s1.returnToTccReceipt, s1.comments,
+  const step1Entries: [string, string][] = [
+    ["DATE OF RECEIPT", s1.dateOfReceipt],
+    ["SEIN PIC NAME", s1.seinPicName],
+    ["FOC TYPE", s1.focType],
+    ["SERIAL NUMBER (IMEI/SN)", s1.imei],
+    ["UNIT NAME", s1.unitName],
+    ["FOC STATUS", s1.focStatus],
+    ["PLANNED RETURN DATE", s1.plannedReturnDate],
+    ["CAMPAIGN NAME", s1.campaignName],
+    ["STATUS", s1.status],
+    ["STATUS LOCATION", s1.statusLocation],
+    ["ON HOLDER", s1.onHolder],
   ];
 
-  step1Headers.forEach((h, idx) => {
-    if (h && !QUICKVIEW_HIDDEN_KEYS.has(h.toLowerCase())) {
-      fd[h] = step1Values[idx] || "-";
+  for (const [header, value] of step1Entries) {
+    if (!QUICKVIEW_HIDDEN_KEYS.has(header.toLowerCase())) {
+      fd[header] = value || "-";
     }
-  });
+  }
 
   if (step3) {
     fd["Step 3 Request Date"] = step3.timestamp;
@@ -195,18 +176,10 @@ function buildFullDataCompat(s1: Step1Data, step3: Step3RefData | null): Record<
   return fd;
 }
 
-/**
- * Force-revalidate the inventory cache.
- * Called after mutations or manually from the UI sync button.
- */
 export async function revalidateInventory() {
   revalidatePath("/", "layout");
   return { success: true };
 }
-
-// ---------------------------------------------------------------------------
-// Combined Dashboard Fetch (#7)
-// ---------------------------------------------------------------------------
 
 export async function getDashboardData() {
   const [inventory, overdueItems, returnHistory] = await Promise.all([
@@ -216,10 +189,6 @@ export async function getDashboardData() {
   ]);
   return { inventory, overdueItems, returnHistory };
 }
-
-// ---------------------------------------------------------------------------
-// Overdue Tracker
-// ---------------------------------------------------------------------------
 
 export const getOverdueData = unstable_cache(
   async (): Promise<OverdueItem[]> => {
@@ -232,29 +201,22 @@ export const getOverdueData = unstable_cache(
       const rows = response.data.values;
       if (!rows || rows.length <= 1) return [];
 
-      const headers = (rows[0] as string[]).map(h => h?.trim().toLowerCase() || "");
-
       return rows.slice(1)
         .map((rawRow) => {
           const row = rawRow as string[];
-          const col = (name: string) => {
-            const idx = headers.findIndex(h => h.includes(name.toLowerCase()));
-            return idx >= 0 ? row[idx] || "" : "";
-          };
-
-          const overdueDaysRaw = col("overdue");
+          const overdueDaysRaw = cell(row, OVERDUE_COLS.OVERDUE_DAYS);
           const overdueDays = parseInt(overdueDaysRaw, 10);
 
           return {
-            serialNumber: col("serial number"),
-            materialDescription: col("material description"),
-            planReturnDate: col("plan return date"),
+            serialNumber: cell(row, OVERDUE_COLS.SERIAL_NUMBER),
+            materialDescription: cell(row, OVERDUE_COLS.MATERIAL_DESCRIPTION),
+            planReturnDate: cell(row, OVERDUE_COLS.PLAN_RETURN_DATE),
             overdueDays: isNaN(overdueDays) ? 0 : overdueDays,
-            statusUpdate: col("status update"),
-            location: col("location"),
-            seinPic: col("sein pic 1"),
-            contactPerson: col("contact person"),
-            nextStep: col("next step"),
+            statusUpdate: cell(row, OVERDUE_COLS.STATUS_UPDATE),
+            location: cell(row, OVERDUE_COLS.LOCATION),
+            seinPic: cell(row, OVERDUE_COLS.SEIN_PIC),
+            contactPerson: cell(row, OVERDUE_COLS.CONTACT_PERSON),
+            nextStep: cell(row, OVERDUE_COLS.NEXT_STEP),
           };
         })
         .filter(item => item.serialNumber && item.serialNumber.trim() !== "" && item.overdueDays > 0)
@@ -267,10 +229,6 @@ export const getOverdueData = unstable_cache(
   ["overdue-data"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
 );
-
-// ---------------------------------------------------------------------------
-// Return History (Step 4) — Positional Parsing
-// ---------------------------------------------------------------------------
 
 export const getReturnHistory = unstable_cache(
   async (): Promise<ReturnHistoryItem[]> => {
@@ -309,10 +267,6 @@ export const getReturnHistory = unstable_cache(
   ["return-history"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
 );
-
-// ---------------------------------------------------------------------------
-// Request History (Step 3) — Positional Parsing
-// ---------------------------------------------------------------------------
 
 export const getRequestHistory = unstable_cache(
   async (): Promise<RequestHistoryItem[]> => {

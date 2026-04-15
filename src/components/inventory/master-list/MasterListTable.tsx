@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { isItemOverdue } from "@/lib/date-utils";
+import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import type { InventoryItem } from "@/types/inventory";
 
 interface MasterListTableProps {
@@ -63,10 +64,10 @@ export function MasterListTable({
                                     <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-200 group-hover:text-blue-400 whitespace-nowrap">{item.unitName || "-"}</td>
                                     <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 font-mono text-xs whitespace-nowrap">{item.imei || "-"}</td>
                                     <td className="px-5 py-4 text-neutral-700 dark:text-neutral-300 min-w-[150px]">{item.onHolder || "-"}</td>
-                                    <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 whitespace-nowrap">{item.goatPic || item.fullData?.["PIC Request"] || "-"}</td>
+                                    <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 whitespace-nowrap">{item.goatPic || item.step1Data?.seinPicName || "-"}</td>
                                     <td className="px-5 py-4 text-xs font-mono whitespace-nowrap">
                                         {(() => {
-                                            const rd = item.fullData?.["Step 3 Request Date"];
+                                            const rd = item.step3Data?.timestamp;
                                             return rd && rd.trim() !== "" && rd !== "-"
                                                 ? <span className="text-neutral-600 dark:text-neutral-400">{rd}</span>
                                                 : <span className="text-neutral-300 dark:text-neutral-600 italic">—</span>;
@@ -90,8 +91,8 @@ export function MasterListTable({
                                     </td>
                                     <td className="px-5 py-4 text-right">
                                         <Badge variant="outline" className={cn(
-                                            item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                                item.statusLocation?.includes("LOANED / ON KOL") || item.statusLocation?.includes("LOANED") || item.statusLocation?.includes("ON KOL") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                            isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                                isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                                     "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20",
                                             overdue && "border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
                                         )}>

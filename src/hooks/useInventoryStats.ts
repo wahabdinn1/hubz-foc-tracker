@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
 import { parse, isValid } from "date-fns";
+import { isStatusAvailable, isStatusLoaned, isStatusReturnToTcc } from "@/lib/constants";
 
 export interface DashboardDateRange {
     from?: Date;
@@ -10,13 +11,17 @@ export interface DashboardDateRange {
 function parseDateStr(dateStr: string | undefined): Date | null {
     if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return null;
     
-    let d = new Date(dateStr);
-    if (!isNaN(d.getTime())) return d;
-    
     const formats = ["M/d/yyyy H:mm:ss", "M/d/yyyy", "yyyy-MM-dd"];
     for (const fmt of formats) {
-        d = parse(dateStr, fmt, new Date());
-        if (isValid(d)) return d;
+        const d = parse(dateStr, fmt, new Date(0));
+        if (isValid(d)) {
+            return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        }
+    }
+    
+    const fallback = new Date(dateStr);
+    if (!isNaN(fallback.getTime())) {
+        return new Date(Date.UTC(fallback.getFullYear(), fallback.getMonth(), fallback.getDate()));
     }
     return null;
 }
@@ -34,12 +39,11 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
         const loanedItems: InventoryItem[] = [];
 
         for (const item of validInventory) {
-            const statusUpper = item.statusLocation?.toUpperCase() || "";
-            if (statusUpper.includes("AVAILABLE")) {
+            if (isStatusAvailable(item.statusLocation)) {
                 availableCount++;
                 availableUnits.push(item);
             }
-            if (statusUpper.includes("LOANED") || statusUpper.includes("ON KOL")) {
+            if (isStatusLoaned(item.statusLocation)) {
                 onKolCount++;
                 loanedItems.push(item);
             }
@@ -53,8 +57,7 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
         const aggregatedReturnsMap = new Map<string, ReturnTrackingItem>();
 
         for (const item of inventory) {
-            const locationStr = item.statusLocation?.toUpperCase() || "";
-            if (locationStr.includes('RETURN TO TCC')) continue;
+            if (isStatusReturnToTcc(item.statusLocation)) continue;
             const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
             if (!hasReturnDate) continue;
 
@@ -107,7 +110,7 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
         const pendingReturnCount = topUrgentReturns.length;
 
         const recentActivity = [...validInventory].filter(item => {
-            const dateStr = item.fullData?.["Timestamp"] || item.fullData?.["Date Received"] || item.fullData?.["Request Date"];
+            const dateStr = item.step3Data?.timestamp || item.step1Data?.dateOfReceipt;
             if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return false;
             
             if (dateRange?.from || dateRange?.to) {
@@ -128,8 +131,8 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             
             return true;
         }).sort((a, b) => {
-            const dateA = parseDateStr(a.fullData?.["Timestamp"] || a.fullData?.["Date Received"] || a.fullData?.["Request Date"]);
-            const dateB = parseDateStr(b.fullData?.["Timestamp"] || b.fullData?.["Date Received"] || b.fullData?.["Request Date"]);
+            const dateA = parseDateStr(a.step3Data?.timestamp || a.step1Data?.dateOfReceipt);
+            const dateB = parseDateStr(b.step3Data?.timestamp || b.step1Data?.dateOfReceipt);
             const timeA = dateA ? dateA.getTime() : 0;
             const timeB = dateB ? dateB.getTime() : 0;
             return timeB - timeA;

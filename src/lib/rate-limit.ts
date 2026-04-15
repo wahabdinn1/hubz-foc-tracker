@@ -1,20 +1,13 @@
-"use server";
-
 import { headers } from "next/headers";
 
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const WINDOW_MS = 15 * 60 * 1000;
 
 interface AttemptRecord {
     count: number;
     firstAttempt: number;
 }
 
-// ── Persist across module reloads / serverless hot-starts ───────────
-// In serverless environments each cold-start creates a new module scope.
-// Using globalThis ensures the Map survives hot-reloads (dev) and lives
-// as long as the process instance does (prod).  For true cross-instance
-// persistence (Vercel serverless), upgrade to Vercel KV / Upstash Redis.
 const GLOBAL_KEY = Symbol.for("foc_rate_limit_attempts");
 
 function getAttempts(): Map<string, AttemptRecord> {
@@ -25,7 +18,6 @@ function getAttempts(): Map<string, AttemptRecord> {
     return g[GLOBAL_KEY]!;
 }
 
-/** Remove entries older than WINDOW_MS to prevent unbounded growth */
 function purgeStale(): void {
     const now = Date.now();
     const store = getAttempts();
@@ -36,11 +28,11 @@ function purgeStale(): void {
     }
 }
 
-export async function getRateLimitKey(): Promise<string> {
+export async function getRateLimitKey(prefix = "pin"): Promise<string> {
     const headersList = await headers();
     const forwarded = headersList.get("x-forwarded-for");
     const ip = forwarded?.split(",")[0]?.trim() || "unknown";
-    return `pin-${ip}`;
+    return `${prefix}-${ip}`;
 }
 
 export async function isRateLimited(key: string): Promise<boolean> {

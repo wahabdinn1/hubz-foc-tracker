@@ -2,6 +2,7 @@ import type { InventoryItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { History, ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon } from "lucide-react";
+import { isStatusAvailable } from "@/lib/constants";
 
 interface ActivityFeedProps {
     recentActivity: InventoryItem[];
@@ -27,8 +28,8 @@ export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
                 <div className="space-y-6 relative">
                     {recentActivity.length > 0 ? (
                         recentActivity.map((item, idx) => {
-                            const timestamp = item.fullData?.["Timestamp"] || item.fullData?.["Date Received"] || item.fullData?.["Request Date"] || "Unknown Date";
-                            const isAvailable = item.statusLocation?.toUpperCase().includes("AVAILABLE");
+                            const timestamp = item.step3Data?.timestamp || item.step1Data?.dateOfReceipt || "Unknown Date";
+                            const isAvailable = isStatusAvailable(item.statusLocation);
 
                             return (
                                 <div key={`${item.imei}-${item.unitName}-${idx}`} className="flex gap-4 relative">

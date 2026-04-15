@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { isItemOverdue } from "@/lib/date-utils";
+import { isStatusAvailable } from "@/lib/constants";
 import type { InventoryItem } from "@/types/inventory";
 
 interface MasterListMobileCardsProps {
@@ -39,7 +40,7 @@ export function MasterListMobileCards({ paginatedInventory, setSelectedItem }: M
                                     </div>
                                     <Badge variant="outline" className={cn(
                                         "shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5",
-                                        item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                        isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-400 border-orange-500/20"
                                     )}>
                                         {item.statusLocation}
                                     </Badge>

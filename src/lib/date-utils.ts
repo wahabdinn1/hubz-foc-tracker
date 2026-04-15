@@ -1,9 +1,5 @@
-/**
- * Shared date/urgency utilities used across Dashboard, Inventory,
- * and QuickView components.
- */
+import { parse, isValid } from "date-fns";
 
-/** Classification result for return dates */
 export interface ReturnUrgency {
   label: string;
   daysLeft: number;
@@ -11,18 +7,25 @@ export interface ReturnUrgency {
   className: string;
 }
 
-/**
- * Check whether a value should be treated as "empty" in the context
- * of spreadsheet cells (blank, dash, N/A, etc.).
- */
 export function isEmptyValue(v: string | undefined | null): boolean {
   return !v || v.trim() === "" || v.trim() === "-" || v.trim() === "N/A";
 }
 
-/**
- * Compute urgency classification from a target-return date string.
- * Returns null when the date is empty or unparseable.
- */
+function parseDateAsUTC(dateStr: string): Date | null {
+  const formats = ["M/d/yyyy H:mm:ss", "M/d/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    const d = parse(dateStr, fmt, new Date(0));
+    if (isValid(d)) {
+      return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    }
+  }
+  const fallback = new Date(dateStr);
+  if (!isNaN(fallback.getTime())) {
+    return new Date(Date.UTC(fallback.getFullYear(), fallback.getMonth(), fallback.getDate()));
+  }
+  return null;
+}
+
 export function getReturnUrgency(
   dateStr: string | undefined
 ): ReturnUrgency | null {
@@ -38,12 +41,12 @@ export function getReturnUrgency(
     };
   }
 
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
+  const d = parseDateAsUTC(dateStr);
+  if (!d) return null;
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffMs = d.getTime() - today.getTime();
+  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const diffMs = d.getTime() - todayUTC.getTime();
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
   if (daysLeft < 0) {
@@ -78,13 +81,6 @@ export function getReturnUrgency(
   };
 }
 
-/**
- * Check whether an inventory item is overdue based on its status fields.
- * An item is overdue when:
- *  - focStatus is "RETURN"
- *  - statusLocation includes "LOANED"
- *  - plannedReturnDate is a valid past date
- */
 export function isItemOverdue(item: {
   focStatus?: string;
   statusLocation?: string;
@@ -99,8 +95,10 @@ export function isItemOverdue(item: {
   )
     return false;
 
-  const returnDate = new Date(item.plannedReturnDate);
+  const returnDate = parseDateAsUTC(item.plannedReturnDate);
+  if (!returnDate) return false;
+
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return !isNaN(returnDate.getTime()) && returnDate < today;
+  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  return returnDate < todayUTC;
 }

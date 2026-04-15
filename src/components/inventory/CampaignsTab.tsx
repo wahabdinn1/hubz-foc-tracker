@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { InventoryItem } from "@/types/inventory";
 import { Input } from "@/components/ui/input";
+import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Megaphone, Search } from "lucide-react";
@@ -98,8 +99,8 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
                                     </div>
                                     <Badge variant="outline" className={cn(
                                         "px-2 py-0.5 text-[10px] whitespace-nowrap shrink-0 ml-2",
-                                        item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                            item.statusLocation?.includes("LOANED / ON KOL") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                        isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                            isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                                 "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
                                     )}>
                                         {item.statusLocation || "UNKNOWN"}

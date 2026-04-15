@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,8 +7,13 @@ import { Menu, X, LayoutDashboard, Package, Users, History, HelpCircle, Settings
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const [open, setOpen] = useState(false);
+    const [desktopExpanded, setDesktopExpanded] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const pathname = usePathname();
+
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [pathname]);
 
     return (
         <div className="flex bg-neutral-50 dark:bg-neutral-950 min-h-screen w-full relative overflow-hidden font-sans selection:bg-blue-500/30 text-neutral-900 dark:text-neutral-50 transition-colors">
@@ -18,9 +23,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             {/* Desktop Sidebar */}
             <motion.div
-                animate={{ width: open ? "240px" : "80px" }}
-                onMouseEnter={() => setOpen(true)}
-                onMouseLeave={() => setOpen(false)}
+                animate={{ width: desktopExpanded ? "240px" : "80px" }}
+                onMouseEnter={() => setDesktopExpanded(true)}
+                onMouseLeave={() => setDesktopExpanded(false)}
                 className="hidden md:flex flex-col border-r border-black/5 dark:border-white/5 bg-white/50 dark:bg-neutral-950/50 backdrop-blur-2xl relative z-40 h-screen shrink-0 overflow-hidden shadow-2xl transition-colors"
             >
                 <div className="flex h-[72px] items-center flex-shrink-0 px-[22px] gap-4 border-b border-black/5 dark:border-white/[0.05] overflow-hidden transition-colors">
@@ -28,7 +33,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <Package className="text-white h-5 w-5" />
                     </div>
                     <AnimatePresence>
-                        {open && (
+                        {desktopExpanded && (
                             <motion.div
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -47,12 +52,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <nav className="flex-1 px-3 py-8 space-y-2">
-                    <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={open} />
-                    <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={open} />
-                    <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={open} />
-                    <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={open} />
-                    <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={open} />
-                    <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={open} />
+                    <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={desktopExpanded} />
+                    <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={desktopExpanded} />
+                    <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={desktopExpanded} />
+                    <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={desktopExpanded} />
+                    <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={desktopExpanded} />
+                    <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={desktopExpanded} />
                 </nav>
             </motion.div>
 
@@ -65,15 +70,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-neutral-900 dark:text-white font-bold tracking-wide">Hubz FOC</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setOpen(!open)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none" aria-label={open ? "Close navigation menu" : "Open navigation menu"} aria-expanded={open} aria-controls="mobile-menu">
-                        {open ? <X /> : <Menu />}
+                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu">
+                        {mobileMenuOpen ? <X /> : <Menu />}
                     </button>
                 </div>
             </div>
 
             {/* Mobile Menu Overlay */}
             <AnimatePresence>
-                {open && (
+                {mobileMenuOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -82,12 +87,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-3xl p-4 border-t border-black/5 dark:border-white/5 transition-colors"
                     >
                         <nav className="space-y-2">
-                            <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setOpen(false)} />
-                            <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={true} onClick={() => setOpen(false)} />
+                            <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setMobileMenuOpen(false)} />
+                            <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setMobileMenuOpen(false)} />
+                            <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setMobileMenuOpen(false)} />
+                            <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setMobileMenuOpen(false)} />
+                            <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setMobileMenuOpen(false)} />
+                            <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={true} onClick={() => setMobileMenuOpen(false)} />
                         </nav>
                     </motion.div>
                 )}

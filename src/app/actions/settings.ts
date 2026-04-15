@@ -5,30 +5,39 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { ccRecipients, type CCRecipient } from "@/db/schema";
 import type { ActionResult } from "@/types/inventory";
+import { timingSafeEqual } from "@/lib/crypto";
+import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } from "@/lib/rate-limit";
 
 const SETTINGS_COOKIE_NAME = "settings_unlocked";
 const SETTINGS_COOKIE_MAX_AGE = 60 * 60;
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  const aBuf = new TextEncoder().encode(a);
-  const bBuf = new TextEncoder().encode(b);
-  let result = 0;
-  for (let i = 0; i < aBuf.length; i++) {
-    result |= aBuf[i] ^ bBuf[i];
-  }
-  return result === 0;
-}
-
 export async function verifySettingsPin(pin: string): Promise<ActionResult> {
+  const rateLimitKey = await getRateLimitKey("settings");
+
+  if (await isRateLimited(rateLimitKey)) {
+    return {
+      success: false,
+      error: "Too many failed attempts. Please try again in 15 minutes.",
+    };
+  }
+
   const authorizedPins = process.env.AUTHORIZED_PINS?.split(",") || [];
   const matched = authorizedPins.find((p) =>
     timingSafeEqual(p.trim(), pin)
   );
 
   if (matched === undefined) {
-    return { success: false, error: "Invalid PIN. Access denied." };
+    await recordFailedAttempt(rateLimitKey);
+    const remaining = await getRemainingAttempts(rateLimitKey);
+    return {
+      success: false,
+      error: remaining > 0
+        ? `Invalid PIN. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+        : "Too many failed attempts. Please try again in 15 minutes.",
+    };
   }
+
+  await clearAttempts(rateLimitKey);
 
   const cookieStore = await cookies();
   cookieStore.set(SETTINGS_COOKIE_NAME, "1", {
@@ -112,26 +121,33 @@ export async function addMultipleCCRecipients(raw: string): Promise<BulkAddResul
     return { success: false, added: [], skipped: [], error: "No valid emails provided." };
   }
 
+  const validEmails = emails.filter(e => EMAIL_REGEX.test(e));
+  const skipped = emails.filter(e => !EMAIL_REGEX.test(e)).map(e => `${e} (invalid format)`);
+
+  if (validEmails.length === 0) {
+    return { success: false, added: [], skipped, error: "No valid emails provided." };
+  }
+
   const added: CCRecipient[] = [];
-  const skipped: string[] = [];
 
-  for (const email of emails) {
-    if (!EMAIL_REGEX.test(email)) {
-      skipped.push(`${email} (invalid format)`);
-      continue;
-    }
+  try {
+    const inserted = await db.insert(ccRecipients)
+      .values(validEmails.map(email => ({ email })))
+      .onConflictDoNothing()
+      .returning();
 
-    try {
-      const [created] = await db.insert(ccRecipients).values({ email }).returning();
-      added.push(created);
-    } catch (error: unknown) {
-      const pgError = error as { code?: string };
-      if (pgError.code === "23505") {
+    added.push(...inserted);
+
+    const insertedEmails = new Set(inserted.map(r => r.email));
+    for (const email of validEmails) {
+      if (!insertedEmails.has(email)) {
         skipped.push(`${email} (duplicate)`);
-      } else {
-        skipped.push(`${email} (error)`);
-        console.error("[SETTINGS] Failed to add CC recipient:", email, error);
       }
+    }
+  } catch (error) {
+    console.error("[SETTINGS] Failed to bulk add CC recipients:", error);
+    for (const email of validEmails) {
+      skipped.push(`${email} (error)`);
     }
   }
 

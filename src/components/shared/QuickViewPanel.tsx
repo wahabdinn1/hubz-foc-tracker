@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import type { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { Clock, ArrowRight, X } from "lucide-react";
-import { QUICKVIEW_HIDDEN_KEYS } from "@/lib/constants";
+import { QUICKVIEW_HIDDEN_KEYS, isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { isEmptyValue, getReturnUrgency } from "@/lib/date-utils";
 
 interface QuickViewPanelProps {
@@ -21,7 +21,7 @@ interface QuickViewPanelProps {
 export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelProps) {
     if (!item) return null;
 
-    const requestDate = item.fullData?.["Step 3 Request Date"] || item.fullData?.["Request Date"];
+    const requestDate = item.step3Data?.timestamp || item.fullData?.["Step 3 Request Date"] || item.fullData?.["Request Date"];
     const urgency = getReturnUrgency(item.plannedReturnDate);
     const showTimeline = !isEmptyValue(requestDate) || !isEmptyValue(item.plannedReturnDate);
 
@@ -39,8 +39,8 @@ export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelPro
                         <div className="flex items-center gap-2 shrink-0">
                             <Badge variant="outline" className={cn(
                                 "px-3 py-1 text-xs select-none",
-                                item.statusLocation?.includes("AVAILABLE") ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                    item.statusLocation?.toUpperCase().includes("LOANED") ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                                    isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                         "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
                             )}>
                                 {item.statusLocation || "UNKNOWN"}
@@ -108,15 +108,8 @@ export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelPro
                         {Object.entries(item.fullData || {})
                             .filter(([key, value]) => {
                                 const k = key.trim().toLowerCase();
-                                // Filter out ghost/empty columns
                                 if (QUICKVIEW_HIDDEN_KEYS.has(k)) return false;
                                 if (k === "" && isEmptyValue(value)) return false;
-                                // Also filter by substring for headers with possible whitespace variations
-                                if (k.includes("unknown column")) return false;
-                                if (k.includes("received date time stamp")) return false;
-                                if (k.includes("return to tcc receipt")) return false;
-                                if (k.includes("step 3 request date")) return false;
-                                if (k === "comments") return false;
                                 return true;
                             })
                             .map(([key, value]) => {
