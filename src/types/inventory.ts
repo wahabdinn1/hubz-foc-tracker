@@ -114,8 +114,6 @@ export interface InventoryItem {
     step1Data: Step1Data;
     /** Cross-referenced Step 3 request data (if matched). */
     step3Data: Step3RefData | null;
-    /** @deprecated Use step1Data and step3Data instead. Kept for QuickView backward compat. */
-    fullData: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,28 +204,14 @@ export interface ReturnHistoryItem {
 // Request History (Step 3)
 // ---------------------------------------------------------------------------
 
-/** A row from the "Step 3 FOC Request" sheet. */
-export interface RequestHistoryItem {
-    timestamp: string;
-    email: string;
-    requestor: string;
-    campaignName: string;
-    unitName: string;
-    imei: string;
-    kolName: string;
-    kolPhone: string;
-    kolAddress: string;
-    deliveryDate: string;
-    typeOfDelivery: string;
-    typeOfFoc: string;
-}
+/** A row from the "Step 3 FOC Request" sheet. Structurally identical to Step3RefData. */
+export type RequestHistoryItem = Step3RefData;
 
 // ---------------------------------------------------------------------------
 // Server Action Responses
 // ---------------------------------------------------------------------------
 
 /** Standard response shape returned by mutation server actions. */
-export interface ActionResult {
-    success: boolean;
-    error?: string;
-}
+export type ActionResult<T = void> =
+    | { success: true; data?: T }
+    | { success: false; error: string };

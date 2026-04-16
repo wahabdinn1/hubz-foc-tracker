@@ -16,6 +16,7 @@ interface FocNotificationData {
   imei: string;
   kolName: string;
   requestor: string;
+  email: string;
   timestamp: string;
   additionalData?: Record<string, string>;
 }
@@ -39,13 +40,18 @@ function formatDisplayDate(): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).formatToParts(now);
 
   const day = parts.find((p) => p.type === "day")?.value || "";
   const month = parts.find((p) => p.type === "month")?.value || "";
   const year = parts.find((p) => p.type === "year")?.value || "";
+  const hour = parts.find((p) => p.type === "hour")?.value || "";
+  const minute = parts.find((p) => p.type === "minute")?.value || "";
 
-  return `${day} ${month} ${year}`;
+  return `${day} ${month} ${year} · ${hour}:${minute}`;
 }
 
 function getActionStyle(action: ActionLabel): { bg: string; color: string; label: string } {
@@ -120,6 +126,10 @@ function buildItemCard(data: FocNotificationData): string {
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Requestor</td>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(data.requestor)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Email</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${escapeHtml(data.email)}</td>
           </tr>
           <tr>
             <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 13px; width: 40%; vertical-align: top;">Timestamp</td>

@@ -162,7 +162,7 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                                         <div className="flex items-center justify-between">
                                             <span className="text-neutral-400">Request</span>
                                             <span className="text-neutral-600 dark:text-neutral-300 font-mono truncate ml-2 text-right">
-                                                {item.fullData?.["Step 3 Request Date"] || "-"}
+                                                {item.step3Data?.timestamp || "-"}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">

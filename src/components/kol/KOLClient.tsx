@@ -23,20 +23,30 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
 
     const { availableUnits, loanedItems } = useInventoryStats(inventory);
 
-    // Group inventory by KOL
     const kolData = useMemo(() => {
-        const groups: Record<string, typeof inventory> = {};
-        for (const item of inventory) {
-            if (!item.onHolder || item.onHolder.trim() === "-" || item.onHolder.trim() === "N/A" || item.onHolder.trim() === "") continue;
+        const groups = new Map<string, { items: typeof inventory; canonicalName: string }>();
 
-            const kol = item.onHolder.trim();
-            if (!groups[kol]) {
-                groups[kol] = [];
+        for (const item of inventory) {
+            const rawName = item.step3Data?.kolName?.trim() || item.onHolder?.trim() || "";
+            if (!rawName || rawName === "-" || rawName.toUpperCase() === "N/A") continue;
+
+            const normalKey = rawName.toLowerCase().replace(/\s+/g, " ").trim();
+
+            const existing = groups.get(normalKey);
+            if (existing) {
+                const betterName = rawName === rawName.toUpperCase()
+                    ? existing.canonicalName
+                    : rawName.length > existing.canonicalName.length
+                        ? rawName
+                        : existing.canonicalName;
+                existing.canonicalName = betterName;
+                existing.items.push(item);
+            } else {
+                groups.set(normalKey, { items: [item], canonicalName: rawName });
             }
-            groups[kol].push(item);
         }
 
-        return Object.entries(groups).map(([name, items]) => {
+        return Array.from(groups.values()).map(({ items, canonicalName }) => {
             const activeItems = items.filter(i => isStatusLoaned(i.statusLocation) || i.focStatus?.toUpperCase() === "RETURN");
             const totalItems = items.length;
 
@@ -45,7 +55,7 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
             const address = latestItem?.step3Data?.kolAddress || "-";
 
             return {
-                name,
+                name: canonicalName,
                 items,
                 activeCount: activeItems.length,
                 totalItems,

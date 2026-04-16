@@ -176,28 +176,6 @@ export const CACHE_REVALIDATE_SECONDS = 60;
 // QuickView Panel
 // ---------------------------------------------------------------------------
 
-/**
- * Keys to suppress from the QuickView "Complete Data Record" section.
- * These are ghost columns, link-only columns, or fields already
- * displayed in dedicated UI sections.
- */
-export const QUICKVIEW_HIDDEN_KEYS = new Set([
-  "c",
-  "",
-  "unknown column",
-  "received date time stamp",
-  "received date time stamp (link)",
-  "return to tcc receipt",
-  "return to tcc receipt (link)",
-  "comments",
-  "step 3 request date",
-  "step 3 phone",
-  "step 3 address",
-  "step 3 email",
-  "step 3 requestor",
-  "step 3 type of foc",
-]);
-
 // ---------------------------------------------------------------------------
 // Email Domain
 // ---------------------------------------------------------------------------
@@ -274,5 +252,3 @@ export const DEVICE_CATEGORIES = [
   { prefix: "G-B", label: "Buds", icon: "🎧" },
   { prefix: "G-W", label: "Wearable", icon: "⌚" },
 ] as const;
-
-export const FOC_TYPE_KEYS = ["FOC TYPE", "TYPE OF FOC", "Type of FOC", "Foc Type"] as const;

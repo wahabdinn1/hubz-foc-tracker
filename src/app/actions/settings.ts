@@ -67,7 +67,7 @@ export async function getCCRecipients(): Promise<CCRecipient[]> {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function addCCRecipient(email: string): Promise<ActionResult & { data?: CCRecipient }> {
+export async function addCCRecipient(email: string): Promise<ActionResult<CCRecipient>> {
   const trimmed = email.trim().toLowerCase();
 
   if (!trimmed) {
@@ -157,7 +157,7 @@ export async function addMultipleCCRecipients(raw: string): Promise<BulkAddResul
 export async function updateCCRecipient(
   id: number,
   newEmail: string
-): Promise<ActionResult & { data?: CCRecipient }> {
+): Promise<ActionResult<CCRecipient>> {
   const trimmed = newEmail.trim().toLowerCase();
 
   if (!trimmed) {

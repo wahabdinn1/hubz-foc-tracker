@@ -8,14 +8,18 @@ describe("requestPayloadSchema", () => {
     customRequestor: "",
     campaignName: "Galaxy S25 FE Sustenance 2026",
     customCampaign: "",
-    unitName: "G-S25U-001",
-    imeiIfAny: "",
-    kolName: "Test KOL",
-    kolAddress: "Jakarta",
-    kolPhoneNumber: "081234567890",
-    typeOfDelivery: "TIKI",
-    typeOfFoc: "HANDPHONE",
-    deliveryDate: "2026-01-15",
+    devices: [
+      {
+        unitName: "G-S25U-001",
+        imeiIfAny: "",
+        kolName: "Test KOL",
+        kolAddress: "Jakarta",
+        kolPhoneNumber: "081234567890",
+        typeOfDelivery: "TIKI",
+        typeOfFoc: "HANDPHONE",
+        deliveryDate: "2026-01-15",
+      },
+    ],
   };
 
   it("validates a correct payload", () => {
@@ -29,18 +33,52 @@ describe("requestPayloadSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects empty required fields", () => {
-    const result = requestPayloadSchema.safeParse({ ...validPayload, kolName: "" });
+  it("rejects empty required fields in device", () => {
+    const result = requestPayloadSchema.safeParse({
+      ...validPayload,
+      devices: [{ ...validPayload.devices[0], kolName: "" }],
+    });
     expect(result.success).toBe(false);
   });
 
   it("rejects invalid deliveryDate format", () => {
-    const result = requestPayloadSchema.safeParse({ ...validPayload, deliveryDate: "15-01-2026" });
+    const result = requestPayloadSchema.safeParse({
+      ...validPayload,
+      devices: [{ ...validPayload.devices[0], deliveryDate: "15-01-2026" }],
+    });
     expect(result.success).toBe(false);
   });
 
   it("accepts optional fields as empty", () => {
-    const result = requestPayloadSchema.safeParse({ ...validPayload, customRequestor: "", imeiIfAny: "" });
+    const result = requestPayloadSchema.safeParse({
+      ...validPayload,
+      devices: [{ ...validPayload.devices[0], customRequestor: "", imeiIfAny: "" }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty devices array", () => {
+    const result = requestPayloadSchema.safeParse({ ...validPayload, devices: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it("validates multiple devices", () => {
+    const result = requestPayloadSchema.safeParse({
+      ...validPayload,
+      devices: [
+        validPayload.devices[0],
+        {
+          unitName: "G-A55-001",
+          imeiIfAny: "123456789012345",
+          kolName: "Another KOL",
+          kolAddress: "Bandung",
+          kolPhoneNumber: "089876543210",
+          typeOfDelivery: "BLUEBIRD",
+          typeOfFoc: "HANDPHONE",
+          deliveryDate: "2026-02-01",
+        },
+      ],
+    });
     expect(result.success).toBe(true);
   });
 });

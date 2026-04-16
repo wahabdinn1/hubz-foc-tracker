@@ -14,6 +14,7 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 - **Forms** — Outbound (loan request), Inbound (return), and Direct Transfer modals with:
   - 2-step device selection (Category → Unit/IMEI)
   - **Type of FOC** displayed inline next to Unit Name, visible only after IMEI selection, auto-filled from spreadsheet data
+  - **Multi-unit requests** — add multiple device rows per submission via `useFieldArray`; batch write to Google Sheets with `sendFocBatchNotification`
   - **Multi-unit returns** — select multiple loaned devices at once; per-item data auto-resolved from Step 3 sheet
   - Standardized **Campaign Dropdowns** with "Other" fallback
   - Precise `writeToNextRow` logic with GMT+7 timestamping

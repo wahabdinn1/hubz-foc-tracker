@@ -12,9 +12,12 @@ import {
   type ReturnPayload,
   type TransferPayload,
 } from "@/lib/validations";
-import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN } from "@/lib/constants";
+import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN, STEP1_COLS, STEP3_COLS } from "@/lib/constants";
 import { sendFocNotification, sendFocBatchNotification } from "@/lib/mailer";
+import { resolveRequestorWithFallback } from "@/lib/form-utils";
 import type { ActionResult } from "@/types/inventory";
+
+type MutationResult = ActionResult;
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
@@ -70,9 +73,10 @@ function resolveEmailAddress(username: string): string {
   return `${username}${EMAIL_DOMAIN}`;
 }
 
-/** Resolve the effective requestor name, handling "Other" → custom fallback. */
+/** Resolve the effective requestor name with case-insensitive matching. */
 function resolveRequestor(requestor: string, customRequestor?: string): string {
-  return requestor === "Other" ? customRequestor || "Other" : requestor;
+  const { requestor: resolved, customRequestor: custom } = resolveRequestorWithFallback(requestor === "Other" ? customRequestor || "Other" : requestor);
+  return custom || resolved;
 }
 
 /** Resolve the effective campaign name, handling "Other" → custom fallback. */
@@ -123,7 +127,7 @@ async function appendRows(
   }
 }
 
-export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
+export async function requestUnits(data: RequestPayload): Promise<MutationResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
@@ -131,81 +135,74 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   try {
     const validated = requestPayloadSchema.parse(data);
 
-    const submittedImei = (validated.imeiIfAny || "").trim();
+    if (!validated.devices || validated.devices.length === 0) {
+      return { success: false, error: "No devices provided for request." };
+    }
 
-    if (submittedImei && submittedImei !== "none") {
-      const step1Response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: SHEET_RANGES.DATA_BANK,
-      });
+    if (validated.devices.length > 50) {
+      return { success: false, error: `Batch size too large (${validated.devices.length} items). Maximum 50 items per batch.` };
+    }
+
+    const imeisToCheck = validated.devices
+      .map(d => (d.imeiIfAny || "").trim())
+      .filter(imei => imei && imei !== "none");
+
+    if (imeisToCheck.length > 0) {
+      const [step1Response, step3Response] = await Promise.all([
+        sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID,
+          range: SHEET_RANGES.DATA_BANK,
+        }),
+        sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID,
+          range: SHEET_RANGES.FOC_REQUEST,
+        }),
+      ]);
 
       const step1Rows = step1Response.data.values;
       if (step1Rows && step1Rows.length > 1) {
-        const step1Headers = (step1Rows[0] as string[]).map((h) =>
-          h?.trim().toUpperCase() || ""
-        );
-
-        const imeiColIdx = step1Headers.findIndex(
-          (h) => h.includes("SERIAL NUMBER") || h.includes("IMEI")
-        );
-        const statusColIdx = step1Headers.findIndex(
-          (h) => h.includes("STATUS LOCATION")
-        );
-
-        if (imeiColIdx >= 0 && statusColIdx >= 0) {
+        for (const submittedImei of imeisToCheck) {
           const matchingRow = step1Rows
             .slice(1)
             .find(
               (row) =>
-                (row[imeiColIdx] || "").trim().toUpperCase() ===
+                (row[STEP1_COLS.IMEI] || "").trim().toUpperCase() ===
                 submittedImei.toUpperCase()
             );
 
           if (matchingRow) {
-            const currentStatus = (matchingRow[statusColIdx] || "")
+            const currentStatus = (matchingRow[STEP1_COLS.STATUS_LOCATION] || "")
               .trim()
               .toUpperCase();
             if (!currentStatus.includes("AVAILABLE")) {
               return {
                 success: false,
-                error:
-                  "This unit has just been taken by another PIC. Please select a different unit.",
+                error: `Unit ${submittedImei} has just been taken by another PIC. Please select a different unit.`,
               };
             }
           }
         }
       }
 
-      const step3Response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: SHEET_RANGES.FOC_REQUEST,
-      });
-
       const step3Rows = step3Response.data.values;
       if (step3Rows && step3Rows.length > 1) {
-        const step3Headers = (step3Rows[0] as string[]).map((h) =>
-          h?.trim().toUpperCase() || ""
+        const recentRows = step3Rows.slice(
+          Math.max(1, step3Rows.length - 100)
         );
-
-        const step3ImeiColIdx = step3Headers.findIndex(
-          (h) => h.includes("IMEI") || h.includes("SERIAL")
-        );
-
-        if (step3ImeiColIdx >= 0) {
-          const recentRows = step3Rows.slice(
-            Math.max(1, step3Rows.length - 100)
-          );
+        for (const submittedImei of imeisToCheck) {
           const collision = recentRows.find(
-            (row) =>
-              (row[step3ImeiColIdx] || "").trim().toUpperCase() ===
-              submittedImei.toUpperCase()
+            (row) => {
+              const rowImei = (row[STEP3_COLS.IMEI] || "").trim().toUpperCase();
+              if (rowImei !== submittedImei.toUpperCase()) return false;
+              const deliverCol = row[STEP3_COLS.DELIVER];
+              return deliverCol?.trim().toUpperCase() === "TRUE";
+            }
           );
 
           if (collision) {
             return {
               success: false,
-              error:
-                "Request collision detected. This unit was just processed milliseconds ago. Please select a different unit.",
+              error: `Request collision detected for ${submittedImei}. This unit was just processed. Please select a different unit.`,
             };
           }
         }
@@ -217,39 +214,49 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
     const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
     const finalCampaign = resolveCampaign(validated.campaignName, validated.customCampaign);
 
-    await appendRows(SHEETS.FOC_REQUEST, [
-      [
-        timestamp,
-        emailAddress,
-        finalRequestor,
-        finalCampaign,
-        validated.unitName,
-        validated.imeiIfAny || "",
-        validated.kolName,
-        validated.kolPhoneNumber,
-        validated.kolAddress,
-        validated.deliveryDate,
-        validated.typeOfDelivery,
-        validated.typeOfFoc,
-        "TRUE",
-      ],
+    const rowsToWrite = validated.devices.map(device => [
+      timestamp,
+      emailAddress,
+      finalRequestor,
+      finalCampaign,
+      device.unitName,
+      device.imeiIfAny || "",
+      device.kolName,
+      device.kolPhoneNumber,
+      device.kolAddress,
+      device.deliveryDate,
+      device.typeOfDelivery,
+      device.typeOfFoc,
+      "TRUE",
     ]);
 
     try {
-      await sendFocNotification({
-        actionType: "REQUEST",
-        unitName: validated.unitName,
-        imei: validated.imeiIfAny || "-",
-        kolName: validated.kolName,
+      await appendRows(SHEETS.FOC_REQUEST, rowsToWrite);
+    } catch (writeError) {
+      console.error("Failed to write batch request rows", writeError);
+      return {
+        success: false,
+        error: `Failed to write ${rowsToWrite.length} request rows to Google Sheets. No rows were saved. Please try again.`,
+      };
+    }
+
+    try {
+      const batchItems = validated.devices.map(device => ({
+        actionType: "REQUEST" as const,
+        unitName: device.unitName,
+        imei: device.imeiIfAny || "-",
+        kolName: device.kolName,
         requestor: finalRequestor,
+        email: emailAddress,
         timestamp,
         additionalData: {
           Campaign: finalCampaign,
-          "Delivery Date": validated.deliveryDate,
-          "Type of Delivery": validated.typeOfDelivery,
-          "Type of FOC": validated.typeOfFoc,
+          "Delivery Date": device.deliveryDate,
+          "Type of Delivery": device.typeOfDelivery,
+          "Type of FOC": device.typeOfFoc,
         },
-      });
+      }));
+      await sendFocBatchNotification(batchItems);
     } catch (mailError) {
       console.error("[MAILER] Failed to send request notification:", mailError);
     }
@@ -271,7 +278,7 @@ export async function requestUnit(data: RequestPayload): Promise<ActionResult> {
   }
 }
 
-export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
+export async function returnUnit(data: ReturnPayload): Promise<MutationResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
@@ -305,6 +312,7 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
         imei: validated.imei,
         kolName: validated.fromKol,
         requestor: finalRequestor,
+        email: emailAddress,
         timestamp,
         additionalData: {
           "Type of FOC": validated.typeOfFoc,
@@ -331,7 +339,7 @@ export async function returnUnit(data: ReturnPayload): Promise<ActionResult> {
   }
 }
 
-export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionResult> {
+export async function returnUnits(dataArray: ReturnPayload[]): Promise<MutationResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
@@ -381,12 +389,14 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
       const batchItems = dataArray.map((data) => {
         const v = returnSchema.parse(data);
         const req = resolveRequestor(v.requestor, v.customRequestor);
+        const eml = resolveEmailAddress(v.username);
         return {
           actionType: "RETURN" as const,
           unitName: v.unitName,
           imei: v.imei,
           kolName: v.fromKol,
           requestor: req,
+          email: eml,
           timestamp: batchTimestamp,
           additionalData: {
             "Type of FOC": v.typeOfFoc,
@@ -415,7 +425,7 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<ActionRes
   }
 }
 
-export async function transferUnit(data: TransferPayload): Promise<ActionResult> {
+export async function transferUnit(data: TransferPayload): Promise<MutationResult> {
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
@@ -532,6 +542,7 @@ export async function transferUnit(data: TransferPayload): Promise<ActionResult>
         imei: validated.imei,
         kolName: `${validated.currentHolder} → ${validated.kol2Name}`,
         requestor: finalRequestor,
+        email: emailAddress,
         timestamp,
         additionalData: {
           Campaign: finalCampaign,

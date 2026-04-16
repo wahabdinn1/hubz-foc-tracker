@@ -1,4 +1,4 @@
-import { DEVICE_CATEGORIES, FOC_TYPE_KEYS } from "@/lib/constants";
+import { DEVICE_CATEGORIES } from "@/lib/constants";
 import type { InventoryItem } from "@/types/inventory";
 
 export function getDeviceCategory(unitName: string): string {
@@ -17,10 +17,5 @@ export function getCategoryIcon(name: string): string {
 export function extractFocType(item: InventoryItem): string {
     const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || "";
     if (raw && raw.trim() !== "" && raw.trim() !== "-") return raw.trim().toUpperCase();
-    if (!item.fullData) return "";
-    for (const key of FOC_TYPE_KEYS) {
-        const val = item.fullData[key];
-        if (val && val.trim() !== "" && val.trim() !== "-") return val.trim().toUpperCase();
-    }
     return "";
 }

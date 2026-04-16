@@ -29,6 +29,7 @@ import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
 import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
 import { useDeviceCategories } from "@/hooks/useDeviceCategories"
+import { hasFilledFields } from "@/hooks/useHasFilledFields"
 import { TransferFormDevice } from "./transfer/TransferFormDevice"
 import { TransferFormNewKol } from "./transfer/TransferFormNewKol"
 import { TransferFormDetails } from "./transfer/TransferFormDetails"
@@ -152,7 +153,8 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                 open={open}
                 onOpenChange={(v) => {
                     if (!v) {
-                        if (form.formState.isDirty) {
+                        const shouldWarn = form.formState.isDirty || hasFilledFields(form.getValues());
+                        if (shouldWarn) {
                             setShowDiscardDialog(true);
                         } else {
                             setOpen(false);

@@ -11,7 +11,6 @@ import {
   OVERDUE_COLS,
   CACHE_TAG_INVENTORY,
   CACHE_REVALIDATE_SECONDS,
-  QUICKVIEW_HIDDEN_KEYS,
   isStatusLoaned,
 } from "@/lib/constants";
 
@@ -75,7 +74,14 @@ export const getInventory = unstable_cache(
 
       const step3Map = buildStep3LookupMap(reqRows);
 
-      return rows.slice(1).map((rawRow) => {
+      return rows.slice(1)
+        .filter((rawRow) => {
+          const row = rawRow as string[];
+          const hasImei = (row[STEP1_COLS.IMEI] || "").trim() !== "";
+          const hasUnit = (row[STEP1_COLS.UNIT_NAME] || "").trim() !== "";
+          return hasImei || hasUnit;
+        })
+        .map((rawRow) => {
         const row = rawRow as string[];
         const s1 = parseStep1Row(row);
 
@@ -86,8 +92,6 @@ export const getInventory = unstable_cache(
         if (!step3 && s1.unitName && s1.onHolder) {
           step3 = step3Map.get(`${s1.unitName}||${s1.onHolder}`) || null;
         }
-
-        const fullData = buildFullDataCompat(s1, step3);
 
         return {
           imei: s1.imei,
@@ -101,7 +105,6 @@ export const getInventory = unstable_cache(
           campaignName: s1.campaignName,
           step1Data: s1,
           step3Data: step3,
-          fullData,
         };
       });
     } catch (error) {
@@ -137,43 +140,6 @@ function buildStep3LookupMap(
   }
 
   return map;
-}
-
-function buildFullDataCompat(s1: Step1Data, step3: Step3RefData | null): Record<string, string> {
-  const fd: Record<string, string> = {};
-
-  const step1Entries: [string, string][] = [
-    ["DATE OF RECEIPT", s1.dateOfReceipt],
-    ["SEIN PIC NAME", s1.seinPicName],
-    ["FOC TYPE", s1.focType],
-    ["SERIAL NUMBER (IMEI/SN)", s1.imei],
-    ["UNIT NAME", s1.unitName],
-    ["FOC STATUS", s1.focStatus],
-    ["PLANNED RETURN DATE", s1.plannedReturnDate],
-    ["CAMPAIGN NAME", s1.campaignName],
-    ["STATUS", s1.status],
-    ["STATUS LOCATION", s1.statusLocation],
-    ["ON HOLDER", s1.onHolder],
-  ];
-
-  for (const [header, value] of step1Entries) {
-    if (!QUICKVIEW_HIDDEN_KEYS.has(header.toLowerCase())) {
-      fd[header] = value || "-";
-    }
-  }
-
-  if (step3) {
-    fd["Step 3 Request Date"] = step3.timestamp;
-    fd["Step 3 Email"] = step3.email;
-    fd["Step 3 Requestor"] = step3.requestor;
-    fd["Step 3 Phone"] = step3.kolPhone;
-    fd["Step 3 Address"] = step3.kolAddress;
-    fd["Step 3 Type of FOC"] = step3.typeOfFoc;
-  } else {
-    fd["Step 3 Request Date"] = "-";
-  }
-
-  return fd;
 }
 
 export async function revalidateInventory() {

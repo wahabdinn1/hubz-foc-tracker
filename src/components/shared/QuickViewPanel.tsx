@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import type { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { Clock, ArrowRight, X } from "lucide-react";
-import { QUICKVIEW_HIDDEN_KEYS, isStatusAvailable, isStatusLoaned } from "@/lib/constants";
+import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { isEmptyValue, getReturnUrgency } from "@/lib/date-utils";
 
 interface QuickViewPanelProps {
@@ -21,7 +21,7 @@ interface QuickViewPanelProps {
 export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelProps) {
     if (!item) return null;
 
-    const requestDate = item.step3Data?.timestamp || item.fullData?.["Step 3 Request Date"] || item.fullData?.["Request Date"];
+    const requestDate = item.step3Data?.timestamp;
     const urgency = getReturnUrgency(item.plannedReturnDate);
     const showTimeline = !isEmptyValue(requestDate) || !isEmptyValue(item.plannedReturnDate);
 
@@ -105,35 +105,39 @@ export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelPro
                     </div>
 
                     <div className="grid grid-cols-1 gap-3">
-                        {Object.entries(item.fullData || {})
-                            .filter(([key, value]) => {
-                                const k = key.trim().toLowerCase();
-                                if (QUICKVIEW_HIDDEN_KEYS.has(k)) return false;
-                                if (k === "" && isEmptyValue(value)) return false;
-                                return true;
-                            })
-                            .map(([key, value]) => {
-                                const displayValue = value && value.trim() !== "" ? value : "—";
-                                const isDate = key.toLowerCase().includes('date') || key.toLowerCase().includes('timestamp');
-                                const isLink = value?.startsWith('http');
-                                const isEmpty = displayValue === "—";
+                        {[
+                            { label: "IMEI / Serial", value: item.imei },
+                            { label: "FOC Status", value: item.focStatus },
+                            { label: "Status Location", value: item.statusLocation },
+                            { label: "On Holder", value: item.onHolder },
+                            { label: "GOAT PIC", value: item.goatPic },
+                            { label: "SEIN PIC", value: item.seinPic },
+                            { label: "Campaign", value: item.campaignName },
+                            { label: "Planned Return", value: item.plannedReturnDate },
+                            ...(item.step3Data ? [
+                                { label: "Requestor", value: item.step3Data.requestor },
+                                { label: "Email", value: item.step3Data.email },
+                                { label: "KOL Name", value: item.step3Data.kolName },
+                                { label: "KOL Phone", value: item.step3Data.kolPhone },
+                                { label: "KOL Address", value: item.step3Data.kolAddress },
+                                { label: "Delivery Date", value: item.step3Data.deliveryDate },
+                                { label: "Type of Delivery", value: item.step3Data.typeOfDelivery },
+                            ] : []),
+                        ]
+                            .filter(({ value }) => value && value.trim() !== "" && value.trim() !== "-")
+                            .map(({ label, value }) => {
+                                const isDate = label.toLowerCase().includes('date') || label.toLowerCase().includes('return') || label.toLowerCase().includes('timestamp');
 
                                 return (
-                                    <div key={key} className="flex flex-col space-y-1.5 p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-900/40 transition-colors border border-black/5 dark:border-neutral-800/50 hover:bg-black/5 dark:hover:bg-neutral-800/50">
-                                        <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">{key}</span>
-                                        {isLink ? (
-                                            <a href={value} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-400 hover:text-blue-300 hover:underline break-all">
-                                                {displayValue}
-                                            </a>
-                                        ) : (
-                                            <span className={cn(
-                                                "text-sm font-medium whitespace-pre-wrap",
-                                                isEmpty ? "text-neutral-300 dark:text-neutral-600 italic" : "text-neutral-900 dark:text-neutral-200",
-                                                isDate ? "font-mono" : ""
-                                            )}>
-                                                {displayValue}
-                                            </span>
-                                        )}
+                                    <div key={label} className="flex flex-col space-y-1.5 p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-900/40 transition-colors border border-black/5 dark:border-neutral-800/50 hover:bg-black/5 dark:hover:bg-neutral-800/50">
+                                        <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">{label}</span>
+                                        <span className={cn(
+                                            "text-sm font-medium whitespace-pre-wrap",
+                                            "text-neutral-900 dark:text-neutral-200",
+                                            isDate ? "font-mono" : ""
+                                        )}>
+                                            {value}
+                                        </span>
                                     </div>
                                 );
                             })}

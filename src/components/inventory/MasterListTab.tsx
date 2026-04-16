@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useTransition, useRef, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,7 +11,6 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
-  type ColumnFiltersState,
 } from "@tanstack/react-table";
 import type { InventoryItem } from "@/types/inventory";
 import { MasterListFilters } from "./master-list/MasterListFilters";
@@ -23,6 +23,7 @@ import { isItemOverdue } from "@/lib/date-utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { updateParam } from "@/lib/url-params";
 
 interface MasterListTabProps {
     inventory: InventoryItem[];
@@ -30,8 +31,38 @@ interface MasterListTabProps {
     initialFilter?: string;
 }
 
+function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
+    callback: T,
+    delay: number
+) {
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const callbackRef = useRef(callback);
+    callbackRef.current = callback;
+
+    const debounced = useCallback((...args: Parameters<T>) => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => (callbackRef.current as T)(...args), delay);
+    }, [delay]) as T & { cancel?: () => void };
+
+    debounced.cancel = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+
+    return debounced;
+}
+
 export function MasterListTab({ inventory, setSelectedItem, initialFilter }: MasterListTabProps) {
-    const [globalFilter, setGlobalFilter] = useState("");
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    const [isPending, startTransition] = useTransition();
+
+    const urlQ = searchParams.get("q") || "";
+    const urlSort = searchParams.get("sort") || "";
+    const urlDir = searchParams.get("dir") || "";
+    const urlPage = searchParams.get("page") || "";
+
+    const [globalFilter, setGlobalFilter] = useState(urlQ);
     const [statusFilter, setStatusFilter] = useState(() => {
         if (initialFilter === "unreturn") return "UNRETURN";
         return "ALL";
@@ -41,7 +72,69 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         if (initialFilter === "loaned") return "LOANED";
         return "ALL";
     });
-    const [sorting, setSorting] = useState<SortingState>([]);
+
+    const initialSorting = useMemo<SortingState>(() => {
+        if (urlSort && (urlDir === "asc" || urlDir === "desc")) {
+            return [{ id: urlSort, desc: urlDir === "desc" }];
+        }
+        return [];
+    }, []);
+
+    const [sorting, setSorting] = useState<SortingState>(initialSorting);
+    const [currentPage, setCurrentPage] = useState(() => {
+        const p = parseInt(urlPage, 10);
+        return p > 0 ? p : 1;
+    });
+
+    const syncUrl = useCallback((updates: Record<string, string | null>) => {
+        startTransition(() => {
+            let params = new URLSearchParams(searchParams.toString());
+            for (const [key, value] of Object.entries(updates)) {
+                if (value === null || value === "") {
+                    params.delete(key);
+                } else {
+                    params.set(key, value);
+                }
+            }
+            const str = params.toString();
+            router.replace(`${pathname}${str ? `?${str}` : ""}`, { scroll: false });
+        });
+    }, [searchParams, router, pathname]);
+
+    const debouncedSyncSearch = useDebouncedCallback((query: string) => {
+        syncUrl({ q: query || null, page: null });
+    }, 300);
+
+    const handleSearchChange = useCallback((value: string) => {
+        setGlobalFilter(value);
+        setCurrentPage(1);
+        debouncedSyncSearch(value);
+    }, [debouncedSyncSearch]);
+
+    const handleSortingChange = useCallback((updater: SortingState | ((old: SortingState) => SortingState)) => {
+        const newSorting = typeof updater === "function" ? updater(sorting) : updater;
+        setSorting(newSorting);
+        const first = newSorting[0];
+        syncUrl({
+            sort: first?.id || null,
+            dir: first ? (first.desc ? "desc" : "asc") : null,
+            page: null,
+        });
+        setCurrentPage(1);
+    }, [sorting, syncUrl]);
+
+    const handlePageChange = useCallback((page: number) => {
+        setCurrentPage(page);
+        syncUrl({ page: page > 1 ? String(page) : null });
+    }, [syncUrl]);
+
+    useEffect(() => {
+        return () => {
+            if (debouncedSyncSearch) {
+                (debouncedSyncSearch as unknown as { cancel?: () => void }).cancel?.();
+            }
+        };
+    }, [debouncedSyncSearch]);
 
     const columns = useMemo<ColumnDef<InventoryItem, unknown>[]>(() => [
         {
@@ -154,18 +247,19 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         state: {
             sorting,
             globalFilter,
+            pagination: {
+                pageIndex: currentPage - 1,
+                pageSize: 10,
+            },
         },
-        onSortingChange: setSorting,
+        onSortingChange: handleSortingChange,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: {
-            pagination: {
-                pageSize: 10,
-            },
-        },
+        manualPagination: true,
+        pageCount: Math.ceil(filteredData.length / 10),
         globalFilterFn: (row, _columnId, filterValue) => {
             const query = String(filterValue).toLowerCase();
             const item = row.original;
@@ -183,7 +277,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         <div className="border border-black/5 dark:border-white/[0.08] rounded-xl md:rounded-2xl bg-white/80 dark:bg-neutral-900/40 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col">
             <MasterListFilters
                 searchQuery={globalFilter}
-                setSearchQuery={setGlobalFilter}
+                setSearchQuery={handleSearchChange}
                 statusFilter={statusFilter}
                 setStatusFilter={setStatusFilter}
                 locationFilter={locationFilter}
@@ -192,13 +286,11 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             />
 
             <div className="overflow-x-auto flex-1 relative max-h-[calc(100vh-280px)] md:max-h-[600px] overflow-y-auto custom-scrollbar">
-                {/* Mobile Cards */}
                 <MasterListMobileCards
                     paginatedInventory={table.getRowModel().rows.map(r => r.original)}
                     setSelectedItem={setSelectedItem}
                 />
 
-                {/* Desktop Table */}
                 <table className="hidden md:table w-full text-sm text-left border-collapse">
                     <thead className="text-xs uppercase bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-20 shadow-md">
                         {table.getHeaderGroups().map(headerGroup => (
@@ -271,11 +363,11 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             </div>
 
             <MasterListPagination
-                currentPage={table.getState().pagination.pageIndex + 1}
-                setCurrentPage={(page: number) => table.setPageIndex(page - 1)}
+                currentPage={currentPage}
+                setCurrentPage={handlePageChange}
                 totalPages={table.getPageCount()}
-                rowsPerPage={table.getState().pagination.pageSize}
-                setRowsPerPage={(size: number) => table.setPageSize(size)}
+                rowsPerPage={10}
+                setRowsPerPage={() => {}}
             />
         </div>
     );

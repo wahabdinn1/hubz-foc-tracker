@@ -68,12 +68,14 @@
 ### Types
 - Inventory: `InventoryItem` | Step data: `Step1Data`, `Step3RefData`
 - NEVER use `any` for inventory data.
-- `fullData: Record<string, string>` is deprecated — do NOT use in new code.
+- `fullData: Record<string, string>` has been REMOVED. Use `step1Data` and `step3Data` instead.
 
 ### Zod + ActionResult
 - ALL mutations validated by Zod schemas in `src/lib/validations.ts`.
 - Same schema for client (react-hook-form) and server validation.
-- ALL server actions return `ActionResult<T>` = `{ success: true; data: T } | { success: false; error: string }`
+- ALL server actions return `ActionResult<T>` = `{ success: true; data?: T } | { success: false; error: string }`
+- Default `ActionResult` (no type param) = `ActionResult<void>` — use for mutations that return no data.
+- Use `ActionResult<CCRecipient>` etc. for actions that return data.
 - NEVER throw from a server action.
 
 ---
@@ -114,6 +116,7 @@
 - ALWAYS use DiscardGuardDialog when isDirty = true
 - ALWAYS attach useScrollToFirstError as onInvalid handler
 - Multi-unit returns: use MultiImeiReturnSelector + sendFocBatchNotification
+- Multi-unit requests: use useFieldArray + RequestFormDeviceRow for repeatable device rows
 
 ---
 
@@ -169,7 +172,7 @@
 - ❌ Use pages/ directory (App Router project)
 - ❌ Use middleware.ts (use proxy.ts instead)
 - ❌ Use `any` for inventory types
-- ❌ Use fullData field in new code (deprecated)
+- ❌ Use fullData field (removed — use step1Data/step3Data)
 - ❌ Use recharts (use built-in SVG DonutChart)
 - ❌ Use @tabler/icons-react (use Lucide React)
 - ❌ Use npm or yarn (pnpm only)

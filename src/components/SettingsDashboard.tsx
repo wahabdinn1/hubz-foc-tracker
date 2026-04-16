@@ -60,14 +60,16 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
 
     startAddTransition(async () => {
       const result = await addCCRecipient(email);
-      if (result.success && result.data) {
+      if (!result.success) {
+        toast.error("Failed to add email", { description: result.error });
+        return;
+      }
+      if (result.data) {
         setRecipients((prev) => [...prev, result.data!]);
         setNewEmail("");
         toast.success("Email added", {
           description: `${result.data!.email} has been added to the CC list.`,
         });
-      } else {
-        toast.error("Failed to add email", { description: result.error });
       }
     });
   }, [newEmail, recipients]);
@@ -185,7 +187,11 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
 
     startEditTransition(async () => {
       const result = await updateCCRecipient(editingId!, trimmed);
-      if (result.success && result.data) {
+      if (!result.success) {
+        toast.error("Failed to update", { description: result.error });
+        return;
+      }
+      if (result.data) {
         setRecipients((prev) =>
           prev.map((r) => (r.id === editingId ? result.data! : r))
         );
@@ -193,8 +199,6 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
           description: `Updated to ${result.data.email}`,
         });
         cancelEdit();
-      } else {
-        toast.error("Failed to update", { description: result.error });
       }
     });
   }, [editingId, editValue, recipients, cancelEdit]);

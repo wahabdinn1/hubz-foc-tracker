@@ -2,12 +2,15 @@ import * as z from "zod";
 
 // --- REQUEST (OUTBOUND) SCHEMAS ---
 
-const requestBase = {
+const requestSharedBase = {
   username: z.string().min(1, "Username is required"),
   requestor: z.string().min(1, "Requestor is required"),
   customRequestor: z.string().optional(),
   campaignName: z.string().min(1, "Campaign Name is required"),
   customCampaign: z.string().optional(),
+};
+
+const requestDeviceItem = {
   unitName: z.string().min(1, "Unit Name is required"),
   imeiIfAny: z.string().optional(),
   kolName: z.string().min(1, "KOL Name is required"),
@@ -18,13 +21,19 @@ const requestBase = {
 };
 
 export const requestFormSchema = z.object({
-  ...requestBase,
-  deliveryDate: z.date(),
+  ...requestSharedBase,
+  devices: z.array(z.object({
+    ...requestDeviceItem,
+    deliveryDate: z.date(),
+  })).min(1, "Add at least one device"),
 });
 
 export const requestPayloadSchema = z.object({
-  ...requestBase,
-  deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  ...requestSharedBase,
+  devices: z.array(z.object({
+    ...requestDeviceItem,
+    deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  })).min(1),
 });
 
 export type RequestPayload = z.infer<typeof requestPayloadSchema>;

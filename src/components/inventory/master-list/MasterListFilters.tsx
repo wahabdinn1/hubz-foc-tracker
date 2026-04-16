@@ -11,7 +11,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 interface MasterListFiltersProps {
     searchQuery: string;
-    setSearchQuery: Dispatch<SetStateAction<string>>;
+    setSearchQuery: (value: string) => void;
     statusFilter: string;
     setStatusFilter: Dispatch<SetStateAction<string>>;
     locationFilter: string;

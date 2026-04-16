@@ -30,6 +30,7 @@ import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
 import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
 import { resolveRequestorWithFallback, resolveFocTypeWithMatch } from "@/lib/form-utils"
+import { hasFilledFields } from "@/hooks/useHasFilledFields"
 
 const returnFormSchema = z.object({
     username: z.string().min(1, "Username is required"),
@@ -38,32 +39,32 @@ const returnFormSchema = z.object({
 type ReturnFormValues = z.infer<typeof returnFormSchema>;
 
 function resolveEmail(item: InventoryItem): string {
-    return item.step3Data?.email || item.fullData?.["Step 3 Email"] || item.fullData?.["Email"] || item.fullData?.["Email Address"] || "-"
+    return item.step3Data?.email || "-"
 }
 
 function resolveRequestor(item: InventoryItem): string {
-    const raw = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || ""
+    const raw = item.step3Data?.requestor || ""
     if (!raw) return "-"
     const { requestor } = resolveRequestorWithFallback(raw)
     return requestor === "Other" ? item.step3Data?.requestor || "-" : requestor
 }
 
 function resolveFocType(item: InventoryItem): string {
-    const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || item.fullData?.["Step 3 Type of FOC"] || item.fullData?.["FOC TYPE"] || item.fullData?.["TYPE OF FOC"] || ""
+    const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || ""
     if (!raw) return "-"
     return resolveFocTypeWithMatch(raw)
 }
 
 function resolvePhone(item: InventoryItem): string {
-    return item.step3Data?.kolPhone || item.fullData?.["Step 3 Phone"] || item.fullData?.["KOL Phone Number"] || item.fullData?.["Phone Number"] || "-"
+    return item.step3Data?.kolPhone || "-"
 }
 
 function resolveAddress(item: InventoryItem): string {
-    return item.step3Data?.kolAddress || item.fullData?.["Step 3 Address"] || item.fullData?.["KOL Address"] || item.fullData?.["Address"] || "-"
+    return item.step3Data?.kolAddress || "-"
 }
 
 function buildReturnPayload(item: InventoryItem, username: string): ReturnPayload {
-    const rawReq = item.step3Data?.requestor || item.fullData?.["Step 3 Requestor"] || ""
+    const rawReq = item.step3Data?.requestor || ""
     const { requestor, customRequestor } = resolveRequestorWithFallback(rawReq)
     const rawFoc = resolveFocType(item)
     const typeOfFoc = resolveFocTypeWithMatch(rawFoc)
@@ -153,7 +154,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         }
     }
 
-    const isDirty = form.formState.isDirty || selectedItems.length > 0
+    const isDirty = form.formState.isDirty || selectedItems.length > 0 || hasFilledFields(form.getValues())
 
     const handleDiscard = useCallback(() => {
         setShowDiscardDialog(false)

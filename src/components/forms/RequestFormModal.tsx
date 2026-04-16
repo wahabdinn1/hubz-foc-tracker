@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
 import { Plus, AlertTriangle } from "lucide-react"
@@ -20,36 +20,21 @@ import {
 import {
     Form,
 } from "@/components/ui/form"
-import { requestUnit } from "@/server/mutations"
+import { requestUnits } from "@/server/mutations"
 import type { InventoryItem } from "@/types/inventory"
 import { requestFormSchema, RequestPayload } from "@/lib/validations"
-import { getDeviceCategory, extractFocType } from "@/lib/device-utils"
 import { RequestFormCampaign } from "./request/RequestFormCampaign"
-import { RequestFormDevice } from "./request/RequestFormDevice"
-import { RequestFormKol } from "./request/RequestFormKol"
-import { RequestFormDelivery } from "./request/RequestFormDelivery"
+import { RequestFormDeviceRow } from "./request/RequestFormDeviceRow"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
-import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
-import { useDeviceCategories } from "@/hooks/useDeviceCategories"
+import { hasFilledFields } from "@/hooks/useHasFilledFields"
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [showDiscardDialog, setShowDiscardDialog] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [selectedCategory, setSelectedCategory] = useState<string>("")
-    const [imeiPopoverOpen, setImeiPopoverOpen] = useState(false)
 
-    const filterAvailable = useCallback((item: InventoryItem) => {
-        return item.statusLocation?.toUpperCase().includes("AVAILABLE") ?? false
-    }, [])
-
-    const { categories, getFilteredItems } = useDeviceCategories(availableItems, filterAvailable)
-
-    const filteredItems = useMemo(() => getFilteredItems(selectedCategory), [selectedCategory, getFilteredItems])
-
-    // React Hook Form setup
     const form = useForm<z.infer<typeof requestFormSchema>>({
         resolver: zodResolver(requestFormSchema),
         defaultValues: {
@@ -58,63 +43,72 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
             customRequestor: "",
             campaignName: "",
             customCampaign: "",
-            unitName: "",
-            imeiIfAny: "",
-            kolName: "",
-            kolAddress: "",
-            kolPhoneNumber: "",
-            typeOfDelivery: "",
-            typeOfFoc: "",
+            devices: [
+                {
+                    unitName: "",
+                    imeiIfAny: "",
+                    kolName: "",
+                    kolAddress: "",
+                    kolPhoneNumber: "",
+                    typeOfDelivery: "",
+                    typeOfFoc: "",
+                    deliveryDate: undefined as unknown as Date,
+                },
+            ],
         },
     })
 
-    const [autoFilledFoc, setAutoFilledFoc] = useState<string | null>(null);
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "devices",
+    })
 
-    // Handle category change — reset IMEI selection
-    function handleCategoryChange(value: string) {
-        setSelectedCategory(value);
-        form.setValue("imeiIfAny", "");
-        form.setValue("unitName", "");
-        form.setValue("typeOfFoc", "");
-        setAutoFilledFoc(null);
-    }
+    const watchedDevices = useWatch({ control: form.control, name: "devices" });
+
+    const selectedImeis = useMemo(() => {
+        const imeis = new Set<string>()
+        for (const device of watchedDevices || []) {
+            const imei = device?.imeiIfAny?.trim()
+            if (imei && imei !== "none") imeis.add(imei)
+        }
+        return imeis
+    }, [watchedDevices])
 
     function resetFormState() {
-        setSelectedCategory("");
-        form.reset();
+        form.reset()
     }
 
-    // Submit handler with 409 conflict handling
     async function onSubmit(values: z.infer<typeof requestFormSchema>) {
         setIsSubmitting(true)
 
         const payload: RequestPayload = {
-            ...values,
-            deliveryDate: format(values.deliveryDate, "yyyy-MM-dd"),
+            username: values.username,
+            requestor: values.requestor,
+            customRequestor: values.customRequestor,
+            campaignName: values.campaignName,
+            customCampaign: values.customCampaign,
+            devices: values.devices.map(d => ({
+                ...d,
+                deliveryDate: format(d.deliveryDate, "yyyy-MM-dd"),
+            })),
         }
 
         try {
-            const result = await requestUnit(payload)
+            const result = await requestUnits(payload)
 
             if (result.success) {
                 resetFormState()
                 setOpen(false)
                 toast.success("Request submitted successfully", {
-                    description: "Syncing with Google Sheets...",
+                    description: `${payload.devices.length} device(s) synced with Google Sheets...`,
                 })
                 router.refresh()
             } else {
-                // Handle 409-style conflict errors from the server action
                 const isConflict =
                     result.error?.includes("just been taken") ||
-                    result.error?.includes("collision detected");
+                    result.error?.includes("collision detected")
 
                 if (isConflict) {
-                    // Reset IMEI selection immediately
-                    form.setValue("imeiIfAny", "");
-                    form.setValue("unitName", "");
-                    setSelectedCategory("");
-
                     toast.error("Unit Unavailable", {
                         description: result.error,
                         icon: <AlertTriangle className="w-4 h-4" />,
@@ -153,7 +147,9 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
 
             <Dialog open={open} onOpenChange={(v) => {
                 if (!v) {
-                    if (form.formState.isDirty) {
+                    const values = form.getValues();
+                    const shouldWarn = form.formState.isDirty || hasFilledFields(values);
+                    if (shouldWarn) {
                         setShowDiscardDialog(true);
                     } else {
                         setOpen(false);
@@ -177,31 +173,47 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                     <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-4">
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                             <RequestFormCampaign />
-
-                            {/* ============================================================ */}
-                            {/* 2-Step IMEI Selection: Category → Unit/IMEI                  */}
-                            {/* ============================================================ */}
-                            <RequestFormDevice
-                                categories={categories}
-                                filteredItems={filteredItems}
-                                selectedCategory={selectedCategory}
-                                handleCategoryChange={handleCategoryChange}
-                                imeiPopoverOpen={imeiPopoverOpen}
-                                setImeiPopoverOpen={setImeiPopoverOpen}
-                                setAutoFilledFoc={setAutoFilledFoc}
-                                autoFilledFoc={autoFilledFoc}
-                                extractFocType={extractFocType}
-                            />
-
-                            <RequestFormKol />
-                            
-                            <RequestFormDelivery />
-
                         </div>
+
+                        <div className="space-y-4">
+                            {fields.map((field, index) => (
+                                <RequestFormDeviceRow
+                                    key={field.id}
+                                    index={index}
+                                    availableItems={availableItems}
+                                    selectedImeis={selectedImeis}
+                                    onRemove={() => remove(index)}
+                                    canRemove={fields.length > 1}
+                                />
+                            ))}
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                append({
+                                    unitName: "",
+                                    imeiIfAny: "",
+                                    kolName: "",
+                                    kolAddress: "",
+                                    kolPhoneNumber: "",
+                                    typeOfDelivery: "",
+                                    typeOfFoc: "",
+                                    deliveryDate: undefined as unknown as Date,
+                                })
+                            }
+                            className="w-full border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Another Device
+                        </Button>
+
                         <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all mt-6">
-                            {isSubmitting ? "Submitting Request..." : "Submit Request"}
+                            {isSubmitting
+                                ? `Submitting ${fields.length} Request(s)...`
+                                : `Submit ${fields.length} Request${fields.length > 1 ? "s" : ""}`}
                         </Button>
                     </form>
                 </Form>

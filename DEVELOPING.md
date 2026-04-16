@@ -43,17 +43,15 @@ src/
       DiscardGuardDialog.tsx   # Reusable "Discard changes?" confirmation dialog
       Skeletons.tsx            # Loading skeleton components
     forms/                     # Data-entry modals
-      RequestFormModal.tsx     # Outbound (loan) request form
+      RequestFormModal.tsx     # Outbound (loan) request form — multi-device via useFieldArray
       ReturnFormModal.tsx      # Inbound (return) form — multi-unit selection
       TransferFormModal.tsx    # Direct transfer between KOLs (orchestrator only)
        MultiImeiReturnSelector.tsx  # Multi-select IMEI combobox for return form
-       ImeiReturnSelector.tsx   # Single-select IMEI combobox (legacy)
        shared/                  # Shared form sub-components
         UsernameEmailInput.tsx # Username + EMAIL_DOMAIN suffix input
       request/                 # Request form sub-components
         RequestFormCampaign.tsx
-        RequestFormDevice.tsx
-        RequestFormKol.tsx
+        RequestFormDeviceRow.tsx # Repeatable per-device row (useFieldArray)
         RequestFormDelivery.tsx
       transfer/               # Transfer form sub-components
         TransferFormDevice.tsx # Requestor + category + IMEI + holder
@@ -117,7 +115,7 @@ src/
   server/
     actions.ts                 # Barrel re-export of all server actions
     inventory.ts               # getInventory() + revalidateInventory() + getDashboardData()
-    mutations.ts               # requestUnit() + returnUnit() + returnUnits() + transferUnit()
+    mutations.ts               # requestUnits() + returnUnit() + returnUnits() + transferUnit()
     auth.ts                    # verifyPin() server action (timing-safe PIN comparison)
     google.ts                  # Google Sheets API client setup
 
@@ -141,8 +139,8 @@ src/
 | `db/schema.ts` | Drizzle ORM schema — `cc_recipients` table (id serial PK, email text unique, createdAt timestamp) |
 | `db/index.ts` | Drizzle client initialized with `postgres.js` + `DATABASE_URL` |
 | `server/auth.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
-| `types/inventory.ts` | `InventoryItem`, `Step1Data`, `Step3RefData`, `KOLProfile`, `ActionResult` type definitions |
-| `lib/constants.ts` | Centralized constants: `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`, `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, `FOC_TYPE_KEYS`, sheet names, column headers |
+| `types/inventory.ts` | `InventoryItem`, `Step1Data`, `Step3RefData`, `KOLProfile`, `ActionResult<T>` type definitions |
+| `lib/constants.ts` | Centralized constants: `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`, `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, sheet names, column headers |
 | `lib/form-utils.ts` | `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` — shared form data resolution |
 | `lib/device-utils.ts` | Shared device helpers: `getDeviceCategory()`, `getCategoryIcon()`, `extractFocType()` |
 | `lib/date-utils.ts` | `getReturnUrgency()`, `isItemOverdue()`, `isEmptyValue()` — shared date/urgency logic |
@@ -188,11 +186,12 @@ Every `InventoryItem` now includes:
 
 - **`step1Data: Step1Data`** — Typed column data from "Step 1 Data Bank" with named fields (e.g., `step1Data.imei`, `step1Data.focType`, `step1Data.statusLocation`).
 - **`step3Data: Step3RefData | null`** — Cross-referenced data from "Step 3 FOC Request", matched by IMEI or composite key (UnitName||KOL). Provides `requestor`, `kolPhone`, `kolAddress`, `typeOfFoc`, etc.
-- **`fullData: Record<string, string>`** — Deprecated backward-compat dictionary for QuickView panel.
+
+The deprecated `fullData: Record<string, string>` dictionary has been removed. All data access should use typed `step1Data` and `step3Data` fields.
 
 ### Dynamic Full Data
 
-Every row also generates a `fullData` dictionary keyed by header names. This powers the `QuickViewPanel`, which renders all columns dynamically. Hidden/irrelevant columns are filtered using `QUICKVIEW_HIDDEN_KEYS` from `lib/constants.ts`.
+The deprecated `fullData` dictionary has been removed. The `QuickViewPanel` now renders typed fields from `step1Data` and `step3Data` instead of dynamically iterating over header-name keys.
 
 ### Real-time Caching and Revalidation
 
@@ -532,17 +531,19 @@ newFieldName: z.string().min(1, "Field is required"),
 
 Add a default value in the `useForm` setup (in the parent modal), then add the `<FormField>` JSX in the desired sub-component.
 
+For the Request form, new per-device fields go in `RequestFormDeviceRow.tsx` (which renders inside a `useFieldArray` loop). Shared fields (campaign, username) go in `RequestFormCampaign.tsx`.
+
 #### 3. Server Action — `src/server/mutations.ts`
 
-Add the new field to the row array that gets appended to Google Sheets. Find the mutation function and locate the `values` array:
+Add the new field to the row array that gets appended to Google Sheets. Find the mutation function and locate the `rowsToWrite` mapping:
 
 ```tsx
-await writeToNextRow(SHEETS.FOC_REQUEST, [[
+const rowsToWrite = validated.devices.map(device => [
     timestamp,
     emailAddress,
     // ... existing fields
-    validated.newFieldName,      // ← Add the new field here
-]]);
+    device.newFieldName,      // ← Add the new field here
+]);
 ```
 
 > **Important:** The position in the array must match the target column in the Google Sheet. Refer to `STEP3_COLS` in `lib/constants.ts` for the exact column positions.
@@ -751,12 +752,13 @@ The following improvements are planned but not yet implemented:
 - [x] **Scroll-to-Error** — On form validation failure, smooth-scroll to the first error field
 - [ ] **Dashboard Date Range Filter** — Add date range selector to filter dashboard analytics by time period
 - [x] **Multi-Unit Return** — Select multiple loaned devices in the Inbound (Return) form; per-item data auto-resolved from Step 3 sheet
+- [x] **Multi-Unit Request** — Submit multiple device requests in a single form using `useFieldArray` + `RequestFormDeviceRow`; batch write to Google Sheets with `sendFocBatchNotification`
 - [ ] **Bulk Operations** — Multi-select rows in Master List for batch status updates
 - [ ] **Notification System** — Toast-based alerts for overdue returns and approaching deadlines
 
 ### Code Quality
 - [x] **Component Decomposition** — Break down large components:
-  - [x] `RequestFormModal.tsx` → extracted step sections into `RequestFormCampaign`, `RequestFormDevice`, `RequestFormKol`, `RequestFormDelivery`
+  - [x] `RequestFormModal.tsx` → extracted step sections into `RequestFormCampaign`, `RequestFormDeviceRow` (multi-device via useFieldArray), `RequestFormDelivery`
   - [x] `TransferFormModal.tsx` → extracted into `TransferFormDevice`, `TransferFormDetails`, `TransferFormNewKol`
   - [x] `ModelsTab.tsx` → extracted level views into `ModelLevel1Grid`, `ModelLevel2Cards`, `ModelLevel3Units`
   - [x] `ReturnFormModal.tsx` → extracted IMEI selector into `MultiImeiReturnSelector` (multi-select)
@@ -768,6 +770,9 @@ The following improvements are planned but not yet implemented:
 - [x] **Consolidated Stats Hook** — Single-pass `useInventoryStats` with `parseDateStr` for reliable sorting
 - [x] **Unit Tests** — Vitest setup with tests covering constants, form-utils, device-utils, crypto, date-utils, rate-limit, status-utils, and validations
 - [x] **Positional Column Parsing** — Replaced header-name matching with `STEP1_COLS`/`STEP3_COLS`/`STEP4_COLS` index constants + `cell(row, idx)` parser
+- [x] **Removed fullData** — Eliminated deprecated `fullData: Record<string, string>` dictionary; QuickViewPanel now renders typed `step1Data`/`step3Data` fields
+- [x] **Generic ActionResult** — `ActionResult<T>` with discriminated union; `ActionResult` defaults to `ActionResult<void>`; `ActionResult<CCRecipient>` for data-returning actions
+- [x] **RequestHistoryItem = Step3RefData** — Merged duplicate type into type alias
 - [ ] **React.memo optimization** — Memoize expensive child components (Scorecard, table rows)
 
 ### Security
