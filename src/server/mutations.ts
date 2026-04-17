@@ -195,7 +195,19 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
               const rowImei = (row[STEP3_COLS.IMEI] || "").trim().toUpperCase();
               if (rowImei !== submittedImei.toUpperCase()) return false;
               const deliverCol = row[STEP3_COLS.DELIVER];
-              return deliverCol?.trim().toUpperCase() === "TRUE";
+              if (deliverCol?.trim().toUpperCase() !== "TRUE") return false;
+
+              const timestampStr = row[STEP3_COLS.TIMESTAMP];
+              if (!timestampStr) return true; // Fallback to old behavior if no timestamp
+
+              // Parse MM/DD/YYYY HH:mm:ss assuming GMT+7
+              const rowDate = new Date(`${timestampStr} GMT+0700`);
+              if (isNaN(rowDate.getTime())) return true;
+
+              const now = new Date();
+              const diffMs = now.getTime() - rowDate.getTime();
+              // Only consider it a collision if it happened in the last 5 minutes (300,000 ms)
+              return diffMs < 5 * 60 * 1000;
             }
           );
 
