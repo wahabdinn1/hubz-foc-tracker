@@ -333,48 +333,33 @@ export function RequestFormDeviceRow({
                     )}
                 />
 
-                {/* Unit Name */}
-                <FormField
-                    control={form.control}
-                    name={`${prefix}.unitName`}
-                    render={({ field }) => (
-                        <FormItem
-                            className={
-                                watchImei &&
-                                watchImei !== "none" &&
-                                watchImei !== ""
-                                    ? ""
-                                    : "md:col-span-2"
-                            }
-                        >
-                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                                Unit Name
-                            </FormLabel>
-                            <FormControl>
-                                <Input
-                                    placeholder="e.g. S24 Ultra Titanium"
-                                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500 disabled:opacity-50"
-                                    disabled={
-                                        !!watchImei &&
-                                        watchImei !== "none" &&
-                                        watchImei !== ""
-                                    }
-                                    {...field}
-                                />
-                            </FormControl>
-                            {watchImei &&
-                                watchImei !== "none" &&
-                                watchImei !== "" && (
-                                    <p className="text-xs text-blue-500 mt-1">
-                                        Auto-filled from selected unit
-                                    </p>
-                                )}
-                            <FormMessage className="text-red-400" />
-                        </FormItem>
-                    )}
-                />
+                {/* Unit Name + Type of FOC — shown together when IMEI selected */}
+                {watchImei && watchImei !== "none" && watchImei !== "" && (
+                    <FormField
+                        control={form.control}
+                        name={`${prefix}.unitName`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                    Unit Name
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        value={field.value || ""}
+                                        readOnly
+                                        className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors disabled:opacity-50 cursor-not-allowed"
+                                    />
+                                </FormControl>
+                                <p className="text-xs text-blue-500 mt-1">
+                                    Auto-filled from selected unit
+                                </p>
+                                <FormMessage className="text-red-400" />
+                            </FormItem>
+                        )}
+                    />
+                )}
 
-                {/* Type of FOC (conditional, disabled when auto-filled from IMEI) */}
+                {/* Type of FOC — shown only when IMEI selected */}
                 {watchImei && watchImei !== "none" && watchImei !== "" && (
                     <FormField
                         control={form.control}

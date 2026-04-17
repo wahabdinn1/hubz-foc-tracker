@@ -99,7 +99,11 @@ export function useAutoSync(
 }
 
 export function useAutoSyncEnabled() {
-    const [enabled, setEnabled] = useState(getStoredEnabled)
+    const [enabled, setEnabled] = useState(false)
+
+    useEffect(() => {
+        setEnabled(getStoredEnabled())
+    }, [])
 
     const toggle = useCallback(() => {
         setEnabled((prev) => {
