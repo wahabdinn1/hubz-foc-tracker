@@ -187,18 +187,6 @@ export const EMAIL_DOMAIN = "@wppmedia.com";
 // Form Dropdown Options
 // ---------------------------------------------------------------------------
 
-/** Requestor names for the dropdown in both Request and Return forms. */
-export const REQUESTORS = [
-  "Abigail",
-  "Aliya",
-  "Khalida",
-  "Oliv",
-  "Sulu",
-  "Tashya",
-  "Venni",
-  "Other",
-] as const;
-
 /** FOC type options (used in both forms). */
 export const FOC_TYPES = [
   "ACCESSORIES",
@@ -209,39 +197,6 @@ export const FOC_TYPES = [
   "RUGGED",
   "TAB",
   "WEARABLES",
-] as const;
-
-/** Delivery type options (used in Request form). */
-export const DELIVERY_TYPES = [
-  "BLUEBIRD",
-  "TIKI",
-] as const;
-
-/** Campaign options (used in Request and Transfer forms). */
-export const CAMPAIGNS = [
-  "Galaxy S25 FE Sustenance 2026",
-  "Q7B7 Sustenance Batch 2",
-  "A07 5G Launch",
-  "A07 & A17 Sust Ramadan",
-  "Buds 4 Launch",
-  "Galaxy Tab A11+ Launch",
-  "Ramadan 2026",
-  "Living DA",
-  "Kitchen DA",
-  "AC DA",
-  "Tab A11 Kids Pack",
-  "Tiktok Branded Mission PAF4",
-  "UGC PAF4",
-  "Miracle Annual KOL 2026",
-  "Miracle KOL and Community",
-  "Miracle GCL BKK",
-  "Miracle UNPK Riders",
-  "Tab S11 Sustenance",
-  "A57/A37 Launching",
-  "A Series Tiara Andini (Annual)",
-  "Internet Media A07 5G GOAT - Mar - 005",
-  "Internet Media A07 A17 Ramadhan GOAT - Mar - 009",
-  "Other",
 ] as const;
 
 /** Device category prefixes for the 2-step unit selection. */

@@ -14,7 +14,7 @@ import {
 } from "@/lib/validations";
 import { SHEETS, SHEET_RANGES, EMAIL_DOMAIN, STEP1_COLS, STEP3_COLS } from "@/lib/constants";
 import { sendFocNotification, sendFocBatchNotification } from "@/lib/mailer";
-import { resolveRequestorWithFallback } from "@/lib/form-utils";
+// Removed resolveRequestorWithFallback import
 import type { ActionResult } from "@/types/inventory";
 
 type MutationResult = ActionResult;
@@ -75,8 +75,7 @@ function resolveEmailAddress(username: string): string {
 
 /** Resolve the effective requestor name with case-insensitive matching. */
 function resolveRequestor(requestor: string, customRequestor?: string): string {
-  const { requestor: resolved, customRequestor: custom } = resolveRequestorWithFallback(requestor === "Other" ? customRequestor || "Other" : requestor);
-  return custom || resolved;
+  return requestor === "Other" ? (customRequestor || "Other") : requestor;
 }
 
 /** Resolve the effective campaign name, handling "Other" → custom fallback. */

@@ -110,13 +110,20 @@
 2. Add to `defaultValues` in useForm
 3. Add `<FormField>` JSX in sub-component
 4. Add value to `values` array in mutation (matching column position)
-5. Update STEP*_COLS if new sheet column added
+5. Update `STEP*_COLS` if new sheet column added
+6. **Dropdown Options:** NEVER hardcode dropdown values (e.g., Campaigns, Requestors, Delivery Types) in `constants.ts`. Always link new fields to the Supabase `dropdown_options` table and manage them via the Settings page.
 
 ### Form Rules
 - ALWAYS use DiscardGuardDialog when isDirty = true
 - ALWAYS attach useScrollToFirstError as onInvalid handler
 - Multi-unit returns: use MultiImeiReturnSelector + sendFocBatchNotification
 - Multi-unit requests: use useFieldArray + RequestFormDeviceRow for repeatable device rows
+
+### Offline & Sync Capabilities
+- The app uses IndexedDB and Service Workers to handle offline capabilities.
+- When `!navigator.onLine`, mutations are intercepted and queued locally.
+- When connection is restored, `useAutoSync` automatically flushes the queue to the backend.
+- ALWAYS ensure that new forms or mutations are compatible with the `saveToSyncQueue` utility if they need to support offline usage.
 
 ---
 

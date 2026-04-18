@@ -38,10 +38,11 @@ import {
 } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Calendar } from "@/components/ui/calendar";
-import { FOC_TYPES, DELIVERY_TYPES } from "@/lib/constants";
+import { FOC_TYPES } from "@/lib/constants";
 import { getDeviceCategory, getCategoryIcon, extractFocType } from "@/lib/device-utils";
 import type { InventoryItem } from "@/types/inventory";
 import { useDeviceCategories } from "@/hooks/useDeviceCategories";
+import { useDropdownOptions } from "@/hooks/useDropdownOptions";
 
 interface RequestFormDeviceRowProps {
     index: number;
@@ -91,6 +92,9 @@ export function RequestFormDeviceRow({
         form.setValue(`${prefix}.typeOfFoc`, "");
         setAutoFilledFoc(null);
     }
+    
+    const { options: deliveryOptions, isLoading: loadingDelivery } = useDropdownOptions("DELIVERY_TYPE");
+    const displayDeliveryTypes = deliveryOptions.map(o => o.value);
 
     return (
         <div className="relative border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 space-y-4 bg-neutral-50/50 dark:bg-neutral-950/30">
@@ -523,14 +527,15 @@ export function RequestFormDeviceRow({
                             <Select
                                 onValueChange={field.onChange}
                                 value={field.value || undefined}
+                                disabled={loadingDelivery}
                             >
                                 <FormControl>
                                     <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                        <SelectValue placeholder="Select Delivery" />
+                                        <SelectValue placeholder={loadingDelivery ? "Loading delivery types..." : "Select Delivery"} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                    {DELIVERY_TYPES.map((type) => (
+                                    {displayDeliveryTypes.map((type) => (
                                         <SelectItem
                                             key={type}
                                             value={type}
@@ -545,7 +550,6 @@ export function RequestFormDeviceRow({
                         </FormItem>
                     )}
                 />
-
             </div>
         </div>
     );

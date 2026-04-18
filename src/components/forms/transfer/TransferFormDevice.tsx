@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import { REQUESTORS } from "@/lib/constants"
 import { getDeviceCategory, getCategoryIcon, extractFocType } from "@/lib/device-utils"
 import type { InventoryItem } from "@/types/inventory"
+import { useDropdownOptions } from "@/hooks/useDropdownOptions"
 
 interface CategoryInfo {
     name: string
@@ -59,6 +59,9 @@ export function TransferFormDevice({
     const form = useFormContext()
     const watchImei = form.watch("imei")
     const watchCurrentHolder = form.watch("currentHolder")
+    
+    const { options: requestorOptions, isLoading: loadingRequestors } = useDropdownOptions("REQUESTOR");
+    const displayRequestors = [...new Set([...requestorOptions.map(o => o.value), "Other"])];
 
     return (
         <>
@@ -70,14 +73,14 @@ export function TransferFormDevice({
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
                             Requestor
                         </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={loadingRequestors}>
                             <FormControl>
                                 <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder="Select Requestor" />
+                                    <SelectValue placeholder={loadingRequestors ? "Loading requestors..." : "Select Requestor"} />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {REQUESTORS.map((req) => (
+                                {displayRequestors.map((req) => (
                                     <SelectItem
                                         key={req}
                                         value={req}

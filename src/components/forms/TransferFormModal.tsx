@@ -24,7 +24,6 @@ import {
 import { transferUnit } from "@/server/mutations"
 import type { InventoryItem } from "@/types/inventory"
 import { transferFormSchema, type TransferPayload } from "@/lib/validations"
-import { REQUESTORS, CAMPAIGNS } from "@/lib/constants"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
 import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"

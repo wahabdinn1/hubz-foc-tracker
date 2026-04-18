@@ -10,11 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { DELIVERY_TYPES } from "@/lib/constants";
+import { useDropdownOptions } from "@/hooks/useDropdownOptions";
 
 export function RequestFormDelivery() {
     const form = useFormContext();
     const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+    const { options: deliveryOptions, isLoading: loadingDelivery } = useDropdownOptions("DELIVERY_TYPE");
+
+    // Ensure "Other" is available if needed (assuming "Other" isn't mandatory, but let's add it for consistency, or just map DB)
+    const displayDeliveryTypes = deliveryOptions.map(o => o.value);
 
     return (
         <>
@@ -72,14 +76,14 @@ export function RequestFormDelivery() {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Type of Delivery</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={loadingDelivery}>
                             <FormControl>
                                 <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder="Select Delivery" />
+                                    <SelectValue placeholder={loadingDelivery ? "Loading delivery types..." : "Select Delivery"} />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {DELIVERY_TYPES.map((type) => (
+                                {displayDeliveryTypes.map((type) => (
                                     <SelectItem key={type} value={type} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                         {type}
                                     </SelectItem>

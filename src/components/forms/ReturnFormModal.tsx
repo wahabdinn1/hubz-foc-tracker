@@ -29,7 +29,7 @@ import { MultiImeiReturnSelector } from "./MultiImeiReturnSelector"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
 import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
-import { resolveRequestorWithFallback, resolveFocTypeWithMatch } from "@/lib/form-utils"
+import { resolveFocTypeWithMatch } from "@/lib/form-utils"
 import { hasFilledFields } from "@/hooks/useHasFilledFields"
 
 const returnFormSchema = z.object({
@@ -43,10 +43,7 @@ function resolveEmail(item: InventoryItem): string {
 }
 
 function resolveRequestor(item: InventoryItem): string {
-    const raw = item.step3Data?.requestor || ""
-    if (!raw) return "-"
-    const { requestor } = resolveRequestorWithFallback(raw)
-    return requestor === "Other" ? item.step3Data?.requestor || "-" : requestor
+    return item.step3Data?.requestor || "-"
 }
 
 function resolveFocType(item: InventoryItem): string {
@@ -65,14 +62,13 @@ function resolveAddress(item: InventoryItem): string {
 
 function buildReturnPayload(item: InventoryItem, username: string): ReturnPayload {
     const rawReq = item.step3Data?.requestor || ""
-    const { requestor, customRequestor } = resolveRequestorWithFallback(rawReq)
     const rawFoc = resolveFocType(item)
     const typeOfFoc = resolveFocTypeWithMatch(rawFoc)
 
     return {
         username,
-        requestor,
-        customRequestor: customRequestor || undefined,
+        requestor: rawReq || "-",
+        customRequestor: undefined,
         unitName: item.unitName || "",
         imei: item.imei || "",
         fromKol: item.onHolder || "",

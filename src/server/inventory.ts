@@ -11,7 +11,6 @@ import {
   OVERDUE_COLS,
   CACHE_TAG_INVENTORY,
   CACHE_REVALIDATE_SECONDS,
-  isStatusLoaned,
 } from "@/lib/constants";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;

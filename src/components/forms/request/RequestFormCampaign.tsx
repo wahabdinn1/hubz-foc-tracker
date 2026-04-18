@@ -10,14 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CAMPAIGNS, REQUESTORS } from "@/lib/constants";
 import { UsernameEmailInput } from "../shared/UsernameEmailInput";
+import { useDropdownOptions } from "@/hooks/useDropdownOptions";
 
 export function RequestFormCampaign() {
     const form = useFormContext();
     const [campaignOpen, setCampaignOpen] = useState(false);
     const watchRequestor = useWatch({ name: "requestor" });
     const watchCampaign = useWatch({ name: "campaignName" });
+    
+    const { options: campaignOptions, isLoading: loadingCampaigns } = useDropdownOptions("CAMPAIGN");
+    const { options: requestorOptions, isLoading: loadingRequestors } = useDropdownOptions("REQUESTOR");
+
+    // Ensure "Other" is always available even if not in DB
+    const displayCampaigns = [...new Set([...campaignOptions.map(o => o.value), "Other"])];
+    const displayRequestors = [...new Set([...requestorOptions.map(o => o.value), "Other"])];
 
     return (
         <>
@@ -34,14 +41,15 @@ export function RequestFormCampaign() {
                                     <Button
                                         variant="outline"
                                         role="combobox"
+                                        disabled={loadingCampaigns}
                                         className={cn(
                                             "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal",
                                             !field.value && "text-neutral-500"
                                         )}
                                     >
-                                        {field.value
-                                            ? CAMPAIGNS.find((campaign) => campaign === field.value)
-                                            : "Select Campaign"}
+                                        {loadingCampaigns ? "Loading campaigns..." : (field.value
+                                            ? displayCampaigns.find((campaign) => campaign === field.value)
+                                            : "Select Campaign")}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </FormControl>
@@ -52,7 +60,7 @@ export function RequestFormCampaign() {
                                     <CommandList>
                                         <CommandEmpty>No campaign found.</CommandEmpty>
                                         <CommandGroup>
-                                            {CAMPAIGNS.map((campaign) => (
+                                            {displayCampaigns.map((campaign) => (
                                                 <CommandItem
                                                     key={campaign}
                                                     value={campaign}
@@ -109,14 +117,14 @@ export function RequestFormCampaign() {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">Requestor</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={loadingRequestors}>
                             <FormControl>
                                 <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder="Select Requestor" />
+                                    <SelectValue placeholder={loadingRequestors ? "Loading requestors..." : "Select Requestor"} />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {REQUESTORS.map((req) => (
+                                {displayRequestors.map((req) => (
                                     <SelectItem key={req} value={req} className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer">
                                         {req}
                                     </SelectItem>

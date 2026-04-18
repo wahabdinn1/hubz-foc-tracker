@@ -188,3 +188,94 @@ export async function updateCCRecipient(
     return { success: false, error: "Failed to update email. Please try again." };
   }
 }
+
+import { dropdownOptions, type DropdownOption } from "@/db/schema";
+import { and } from "drizzle-orm";
+
+export async function getDropdownOptions(category?: string): Promise<DropdownOption[]> {
+  try {
+    if (category) {
+      return await db.select().from(dropdownOptions).where(eq(dropdownOptions.category, category)).orderBy(dropdownOptions.value);
+    }
+    return await db.select().from(dropdownOptions).orderBy(dropdownOptions.category, dropdownOptions.value);
+  } catch (error) {
+    console.error("[SETTINGS] Failed to fetch dropdown options:", error);
+    return [];
+  }
+}
+
+export async function addDropdownOption(category: string, value: string): Promise<ActionResult<DropdownOption>> {
+  const trimmedCategory = category.trim().toUpperCase();
+  const trimmedValue = value.trim();
+
+  if (!trimmedCategory || !trimmedValue) {
+    return { success: false, error: "Category and value are required." };
+  }
+
+  try {
+    const [created] = await db.insert(dropdownOptions).values({ 
+      category: trimmedCategory, 
+      value: trimmedValue 
+    }).returning();
+    return { success: true, data: created };
+  } catch (error: unknown) {
+    const pgError = error as { code?: string };
+    if (pgError.code === "23505") {
+      return { success: false, error: "This option already exists in this category." };
+    }
+    console.error("[SETTINGS] Failed to add dropdown option:", error);
+    return { success: false, error: "Failed to add option. Please try again." };
+  }
+}
+
+export async function updateDropdownOption(
+  id: number,
+  updates: { value?: string; isActive?: boolean }
+): Promise<ActionResult<DropdownOption>> {
+  try {
+    const toUpdate: { value?: string; isActive?: boolean } = {};
+    if (updates.value !== undefined) {
+      const trimmedValue = updates.value.trim();
+      if (!trimmedValue) return { success: false, error: "Value cannot be empty." };
+      toUpdate.value = trimmedValue;
+    }
+    if (updates.isActive !== undefined) {
+      toUpdate.isActive = updates.isActive;
+    }
+
+    if (Object.keys(toUpdate).length === 0) {
+      return { success: false, error: "No updates provided." };
+    }
+
+    const [updated] = await db
+      .update(dropdownOptions)
+      .set(toUpdate)
+      .where(eq(dropdownOptions.id, id))
+      .returning();
+
+    if (!updated) {
+      return { success: false, error: "Option not found." };
+    }
+    return { success: true, data: updated };
+  } catch (error: unknown) {
+    const pgError = error as { code?: string };
+    if (pgError.code === "23505") {
+      return { success: false, error: "This option already exists in this category." };
+    }
+    console.error("[SETTINGS] Failed to update dropdown option:", error);
+    return { success: false, error: "Failed to update option. Please try again." };
+  }
+}
+
+export async function deleteDropdownOption(id: number): Promise<ActionResult> {
+  try {
+    const result = await db.delete(dropdownOptions).where(eq(dropdownOptions.id, id)).returning();
+    if (result.length === 0) {
+      return { success: false, error: "Option not found." };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error("[SETTINGS] Failed to delete dropdown option:", error);
+    return { success: false, error: "Failed to delete option. Please try again." };
+  }
+}

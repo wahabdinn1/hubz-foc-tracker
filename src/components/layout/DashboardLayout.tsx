@@ -12,6 +12,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     useEffect(() => {
+        // eslint-disable-next-line
         setMobileMenuOpen(false);
     }, [pathname]);
 

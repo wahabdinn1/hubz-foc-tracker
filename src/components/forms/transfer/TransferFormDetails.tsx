@@ -34,14 +34,18 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command"
-import { FOC_TYPES, CAMPAIGNS } from "@/lib/constants"
+import { FOC_TYPES } from "@/lib/constants"
 import { useState } from "react"
+import { useDropdownOptions } from "@/hooks/useDropdownOptions"
 
 export function TransferFormDetails() {
     const form = useFormContext()
     const watchCampaign = form.watch("campaignName")
     const [datePopoverOpen, setDatePopoverOpen] = useState(false)
     const [campaignPopoverOpen, setCampaignPopoverOpen] = useState(false)
+
+    const { options: campaignOptions, isLoading: loadingCampaigns } = useDropdownOptions("CAMPAIGN");
+    const displayCampaigns = [...new Set([...campaignOptions.map(o => o.value), "Other"])];
 
     return (
         <>
@@ -146,14 +150,15 @@ export function TransferFormDetails() {
                                     <Button
                                         variant="outline"
                                         role="combobox"
+                                        disabled={loadingCampaigns}
                                         className={cn(
                                             "w-full justify-between bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors font-normal",
                                             !field.value && "text-neutral-500"
                                         )}
                                     >
-                                        {field.value
-                                            ? CAMPAIGNS.find((campaign) => campaign === field.value)
-                                            : "Select Campaign"}
+                                        {loadingCampaigns ? "Loading campaigns..." : (field.value
+                                            ? displayCampaigns.find((campaign) => campaign === field.value)
+                                            : "Select Campaign")}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </FormControl>
@@ -164,7 +169,7 @@ export function TransferFormDetails() {
                                     <CommandList>
                                         <CommandEmpty>No campaign found.</CommandEmpty>
                                         <CommandGroup>
-                                            {CAMPAIGNS.map((campaign) => (
+                                            {displayCampaigns.map((campaign) => (
                                                 <CommandItem
                                                     key={campaign}
                                                     value={campaign}

@@ -5,7 +5,6 @@ import {
   STEP4_COLS,
   EMAIL_DOMAIN,
   STATUS,
-  REQUESTORS,
   FOC_TYPES,
 } from "@/lib/constants"
 
@@ -72,10 +71,6 @@ describe("Form constants", () => {
     expect(STATUS.AVAILABLE).toBe("AVAILABLE")
     expect(STATUS.LOANED).toBe("LOANED / ON KOL")
     expect(STATUS.RETURN_TO_TCC).toBe("RETURN TO TCC")
-  })
-
-  it("REQUESTORS includes Other as last option", () => {
-    expect(REQUESTORS[REQUESTORS.length - 1]).toBe("Other")
   })
 
   it("FOC_TYPES are all uppercase", () => {

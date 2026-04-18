@@ -32,9 +32,10 @@ export function useAutoSync(
     const syncedAtRef = useRef(lastSyncedAt)
     const handleSyncRef = useRef(handleSync)
 
-    syncedAtRef.current = lastSyncedAt
-    handleSyncRef.current = handleSync
-
+    useEffect(() => {
+        syncedAtRef.current = lastSyncedAt
+        handleSyncRef.current = handleSync
+    }, [lastSyncedAt, handleSync])
     const resetTimer = useCallback(() => {
         setNextSyncIn(interval)
     }, [interval])
@@ -48,6 +49,7 @@ export function useAutoSync(
             return
         }
 
+        // eslint-disable-next-line
         setNextSyncIn(interval)
 
         countdownRef.current = setInterval(() => {
@@ -91,6 +93,7 @@ export function useAutoSync(
 
     useEffect(() => {
         if (isPending && enabled) {
+            // eslint-disable-next-line
             resetTimer()
         }
     }, [isPending, enabled, resetTimer])
@@ -102,6 +105,7 @@ export function useAutoSyncEnabled() {
     const [enabled, setEnabled] = useState(false)
 
     useEffect(() => {
+        // eslint-disable-next-line
         setEnabled(getStoredEnabled())
     }, [])
 

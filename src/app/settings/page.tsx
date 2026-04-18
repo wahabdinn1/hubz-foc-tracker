@@ -1,4 +1,4 @@
-import { isSettingsUnlocked, getCCRecipients } from "@/app/actions/settings";
+import { isSettingsUnlocked, getCCRecipients, getDropdownOptions } from "@/app/actions/settings";
 import { PinScreen } from "@/components/PinScreen";
 import { SettingsDashboard } from "@/components/SettingsDashboard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -20,11 +20,12 @@ export default async function SettingsPage() {
   }
 
   const recipients = await getCCRecipients();
+  const dropdownOptions = await getDropdownOptions();
 
   return (
     <DashboardLayout>
       <ErrorBoundary fallbackTitle="Failed to load settings">
-        <SettingsDashboard initialRecipients={recipients} />
+        <SettingsDashboard initialRecipients={recipients} initialDropdownOptions={dropdownOptions} />
       </ErrorBoundary>
     </DashboardLayout>
   );

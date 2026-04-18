@@ -25,14 +25,18 @@ import {
   X,
   Check,
   Users,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
-import type { CCRecipient } from "@/db/schema";
+import { DropdownOptionsCard } from "./settings/DropdownOptionsCard";
+import type { CCRecipient, DropdownOption } from "@/db/schema";
 
 interface SettingsDashboardProps {
   initialRecipients: CCRecipient[];
+  initialDropdownOptions: DropdownOption[];
 }
 
-export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps) {
+export function SettingsDashboard({ initialRecipients, initialDropdownOptions }: SettingsDashboardProps) {
   const [recipients, setRecipients] = useState<CCRecipient[]>(initialRecipients);
   const [newEmail, setNewEmail] = useState("");
   const [bulkText, setBulkText] = useState("");
@@ -44,6 +48,7 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
   const [editValue, setEditValue] = useState("");
   const [isEditing, startEditTransition] = useTransition();
   const editInputRef = useRef<HTMLInputElement>(null);
+  const [isEmailsExpanded, setIsEmailsExpanded] = useState(true);
 
   // --- Single Add ---
   const handleAdd = useCallback(() => {
@@ -128,7 +133,7 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
         toast.error("Bulk add failed", { description: result.error });
       }
     });
-  }, [bulkText]);
+  }, [bulkText, recipients]); // Added recipients to dependencies
 
   // --- Delete ---
   const handleDelete = useCallback((id: number, email: string) => {
@@ -223,11 +228,16 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
         </div>
       </div>
 
+      <DropdownOptionsCard initialOptions={initialDropdownOptions} />
+
       <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="p-0 space-y-6">
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden bg-white dark:bg-neutral-900/50 transition-colors">
             {/* Header */}
-            <div className="p-5 border-b border-neutral-100 dark:border-neutral-800">
+            <div 
+              className="p-5 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors flex items-center justify-between"
+              onClick={() => setIsEmailsExpanded(!isEmailsExpanded)}
+            >
               <div className="flex items-center gap-3">
                 <div className="inline-flex items-center justify-center p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -241,9 +251,13 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
                   </p>
                 </div>
               </div>
+              <Button variant="ghost" size="icon" className="shrink-0 pointer-events-none text-neutral-400">
+                {isEmailsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </Button>
             </div>
 
-            <div className="p-5 space-y-4">
+            {isEmailsExpanded && (
+              <div className="p-5 space-y-4">
               {/* Single add row */}
               <div className="flex gap-2">
                 <Input
@@ -427,6 +441,7 @@ export function SettingsDashboard({ initialRecipients }: SettingsDashboardProps)
                 {recipients.length} recipient{recipients.length !== 1 ? "s" : ""} configured. Emails are CC&apos;d on all FOC notifications.
               </p>
             </div>
+            )}
           </div>
         </CardContent>
       </Card>

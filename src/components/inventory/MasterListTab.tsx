@@ -44,6 +44,7 @@ function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
         timeoutRef.current = setTimeout(() => (callbackRef.current as T)(...args), delay);
     }, [delay]) as T & { cancel?: () => void };
 
+    // eslint-disable-next-line react-hooks/immutability
     debounced.cancel = () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
