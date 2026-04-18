@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { RequestFormModal } from "@/components/forms/RequestFormModal";
 import { ReturnFormModal } from "@/components/forms/ReturnFormModal";
-import { TransferFormModal } from "@/components/forms/TransferFormModal";
 import dynamic from "next/dynamic"
 
 const CommandPalette = dynamic(
     () => import("@/components/shared/CommandPalette").then((mod) => mod.CommandPalette),
+    { ssr: false }
+)
+
+const TransferFormModal = dynamic(
+    () => import("@/components/forms/TransferFormModal").then((mod) => mod.TransferFormModal),
     { ssr: false }
 )
 import { useSyncInventory } from "@/hooks/useSyncInventory";

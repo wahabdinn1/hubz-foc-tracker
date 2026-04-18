@@ -23,7 +23,6 @@ import { isItemOverdue } from "@/lib/date-utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { updateParam } from "@/lib/url-params";
 
 interface MasterListTabProps {
     inventory: InventoryItem[];
@@ -56,7 +55,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
 
     const urlQ = searchParams.get("q") || "";
     const urlSort = searchParams.get("sort") || "";
@@ -79,7 +78,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             return [{ id: urlSort, desc: urlDir === "desc" }];
         }
         return [];
-    }, []);
+    }, [urlSort, urlDir]);
 
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
     const [currentPage, setCurrentPage] = useState(() => {
@@ -89,7 +88,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
 
     const syncUrl = useCallback((updates: Record<string, string | null>) => {
         startTransition(() => {
-            let params = new URLSearchParams(searchParams.toString());
+            const params = new URLSearchParams(searchParams.toString());
             for (const [key, value] of Object.entries(updates)) {
                 if (value === null || value === "") {
                     params.delete(key);
@@ -242,6 +241,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         });
     }, [inventory, statusFilter, locationFilter]);
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const table = useReactTable({
         data: filteredData,
         columns,
@@ -259,8 +259,6 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        manualPagination: true,
-        pageCount: Math.ceil(filteredData.length / 10),
         globalFilterFn: (row, _columnId, filterValue) => {
             const query = String(filterValue).toLowerCase();
             const item = row.original;

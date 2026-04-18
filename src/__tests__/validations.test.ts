@@ -2,25 +2,24 @@ import { describe, it, expect } from "vitest";
 import { requestPayloadSchema, returnSchema, transferPayloadSchema } from "@/lib/validations";
 
 describe("requestPayloadSchema", () => {
-  const validPayload = {
-    username: "john.doe",
-    requestor: "Aliya",
-    customRequestor: "",
-    campaignName: "Galaxy S25 FE Sustenance 2026",
-    customCampaign: "",
-    devices: [
-      {
-        unitName: "G-S25U-001",
-        imeiIfAny: "",
-        kolName: "Test KOL",
-        kolAddress: "Jakarta",
-        kolPhoneNumber: "081234567890",
-        typeOfDelivery: "TIKI",
-        typeOfFoc: "HANDPHONE",
-        deliveryDate: "2026-01-15",
-      },
-    ],
-  };
+    const validPayload = {
+        requestor: "Aliya",
+        customRequestor: "",
+        campaignName: "Galaxy S25 FE Sustenance 2026",
+        customCampaign: "",
+        devices: [
+            {
+                unitName: "G-S25U-001",
+                imeiIfAny: "",
+                kolName: "Test KOL",
+                kolAddress: "Jakarta",
+                kolPhoneNumber: "081234567890",
+                typeOfDelivery: "TIKI",
+                typeOfFoc: "HANDPHONE",
+                deliveryDate: "2026-01-15",
+            },
+        ],
+    };
 
   it("validates a correct payload", () => {
     const result = requestPayloadSchema.safeParse(validPayload);
@@ -101,11 +100,11 @@ describe("returnSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing IMEI", () => {
-    const { imei, ...noImei } = validPayload;
-    const result = returnSchema.safeParse(noImei);
-    expect(result.success).toBe(false);
-  });
+    it("rejects missing IMEI", () => {
+        const { imei: _, ...noImei } = validPayload;
+        const result = returnSchema.safeParse(noImei);
+        expect(result.success).toBe(false);
+    });
 
   it("rejects empty required fields", () => {
     const result = returnSchema.safeParse({ ...validPayload, fromKol: "" });
@@ -140,9 +139,9 @@ describe("transferPayloadSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects missing required fields", () => {
-    const { kol2Name, ...noKol2 } = validPayload;
-    const result = transferPayloadSchema.safeParse(noKol2);
-    expect(result.success).toBe(false);
-  });
+    it("rejects missing required fields", () => {
+        const { kol2Name: _, ...noKol2 } = validPayload;
+        const result = transferPayloadSchema.safeParse(noKol2);
+        expect(result.success).toBe(false);
+    });
 });

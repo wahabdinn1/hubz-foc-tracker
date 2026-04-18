@@ -2,6 +2,7 @@
 
 import { sheets } from "./google";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { isAuthenticated } from "@/lib/auth";
 import {
@@ -160,14 +161,15 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
 
       const step1Rows = step1Response.data.values;
       if (step1Rows && step1Rows.length > 1) {
+        // Build an O(1) lookup Map for the inventory rows
+        const step1Map = new Map<string, string[]>();
+        for (const row of step1Rows.slice(1)) {
+          const rowImei = (row[STEP1_COLS.IMEI] || "").trim().toUpperCase();
+          if (rowImei) step1Map.set(rowImei, row);
+        }
+
         for (const submittedImei of imeisToCheck) {
-          const matchingRow = step1Rows
-            .slice(1)
-            .find(
-              (row) =>
-                (row[STEP1_COLS.IMEI] || "").trim().toUpperCase() ===
-                submittedImei.toUpperCase()
-            );
+          const matchingRow = step1Map.get(submittedImei.toUpperCase());
 
           if (matchingRow) {
             const currentStatus = (matchingRow[STEP1_COLS.STATUS_LOCATION] || "")
@@ -188,29 +190,40 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
         const recentRows = step3Rows.slice(
           Math.max(1, step3Rows.length - 100)
         );
-        for (const submittedImei of imeisToCheck) {
-          const collision = recentRows.find(
-            (row) => {
-              const rowImei = (row[STEP3_COLS.IMEI] || "").trim().toUpperCase();
-              if (rowImei !== submittedImei.toUpperCase()) return false;
-              const deliverCol = row[STEP3_COLS.DELIVER];
-              if (deliverCol?.trim().toUpperCase() !== "TRUE") return false;
-
-              const timestampStr = row[STEP3_COLS.TIMESTAMP];
-              if (!timestampStr) return true; // Fallback to old behavior if no timestamp
-
-              // Parse MM/DD/YYYY HH:mm:ss assuming GMT+7
+        
+        // Build an O(1) Set of recently collided IMEIs
+        const recentCollisions = new Set<string>();
+        const now = new Date();
+        
+        for (const row of recentRows) {
+          const deliverCol = row[STEP3_COLS.DELIVER];
+          if (deliverCol?.trim().toUpperCase() === "TRUE") {
+            const timestampStr = row[STEP3_COLS.TIMESTAMP];
+            let isCollision = false;
+            
+            if (!timestampStr) {
+              isCollision = true; // Fallback to old behavior if no timestamp
+            } else {
               const rowDate = new Date(`${timestampStr} GMT+0700`);
-              if (isNaN(rowDate.getTime())) return true;
-
-              const now = new Date();
-              const diffMs = now.getTime() - rowDate.getTime();
-              // Only consider it a collision if it happened in the last 5 minutes (300,000 ms)
-              return diffMs < 5 * 60 * 1000;
+              if (isNaN(rowDate.getTime())) {
+                isCollision = true;
+              } else {
+                const diffMs = now.getTime() - rowDate.getTime();
+                if (diffMs < 5 * 60 * 1000) {
+                  isCollision = true;
+                }
+              }
             }
-          );
+            
+            if (isCollision) {
+              const rowImei = (row[STEP3_COLS.IMEI] || "").trim().toUpperCase();
+              if (rowImei) recentCollisions.add(rowImei);
+            }
+          }
+        }
 
-          if (collision) {
+        for (const submittedImei of imeisToCheck) {
+          if (recentCollisions.has(submittedImei.toUpperCase())) {
             return {
               success: false,
               error: `Request collision detected for ${submittedImei}. This unit was just processed. Please select a different unit.`,
@@ -267,9 +280,13 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
           "Type of FOC": device.typeOfFoc,
         },
       }));
-      await sendFocBatchNotification(batchItems);
+      after(() => {
+        sendFocBatchNotification(batchItems).catch((mailError) => {
+          console.error("[MAILER] Failed to send request notification:", mailError);
+        });
+      });
     } catch (mailError) {
-      console.error("[MAILER] Failed to send request notification:", mailError);
+      console.error("[MAILER] Failed to schedule request notification:", mailError);
     }
 
     revalidatePath("/", "layout");
@@ -317,20 +334,24 @@ export async function returnUnit(data: ReturnPayload): Promise<MutationResult> {
     ]);
 
     try {
-      await sendFocNotification({
-        actionType: "RETURN",
-        unitName: validated.unitName,
-        imei: validated.imei,
-        kolName: validated.fromKol,
-        requestor: finalRequestor,
-        email: emailAddress,
-        timestamp,
-        additionalData: {
-          "Type of FOC": validated.typeOfFoc,
-        },
+      after(() => {
+        sendFocNotification({
+          actionType: "RETURN",
+          unitName: validated.unitName,
+          imei: validated.imei,
+          kolName: validated.fromKol,
+          requestor: finalRequestor,
+          email: emailAddress,
+          timestamp,
+          additionalData: {
+            "Type of FOC": validated.typeOfFoc,
+          },
+        }).catch((mailError) => {
+          console.error("[MAILER] Failed to send return notification:", mailError);
+        });
       });
     } catch (mailError) {
-      console.error("[MAILER] Failed to send return notification:", mailError);
+      console.error("[MAILER] Failed to schedule return notification:", mailError);
     }
 
     revalidatePath("/", "layout");
@@ -414,9 +435,13 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<MutationR
           },
         };
       });
-      await sendFocBatchNotification(batchItems);
+      after(() => {
+        sendFocBatchNotification(batchItems).catch((mailError) => {
+          console.error("[MAILER] Failed to send batch return notification:", mailError);
+        });
+      });
     } catch (mailError) {
-      console.error("[MAILER] Failed to send batch return notification:", mailError);
+      console.error("[MAILER] Failed to schedule batch return notification:", mailError);
     }
 
     revalidatePath("/", "layout");
@@ -547,22 +572,26 @@ export async function transferUnit(data: TransferPayload): Promise<MutationResul
     }
 
     try {
-      await sendFocNotification({
-        actionType: "TRANSFER",
-        unitName: validated.unitName,
-        imei: validated.imei,
-        kolName: `${validated.currentHolder} → ${validated.kol2Name}`,
-        requestor: finalRequestor,
-        email: emailAddress,
-        timestamp,
-        additionalData: {
-          Campaign: finalCampaign,
-          "Transfer Date": validated.transferDate,
-          "Type of FOC": validated.typeOfFoc,
-        },
+      after(() => {
+        sendFocNotification({
+          actionType: "TRANSFER",
+          unitName: validated.unitName,
+          imei: validated.imei,
+          kolName: `${validated.currentHolder} → ${validated.kol2Name}`,
+          requestor: finalRequestor,
+          email: emailAddress,
+          timestamp,
+          additionalData: {
+            Campaign: finalCampaign,
+            "Transfer Date": validated.transferDate,
+            "Type of FOC": validated.typeOfFoc,
+          },
+        }).catch((mailError) => {
+          console.error("[MAILER] Failed to send transfer notification:", mailError);
+        });
       });
     } catch (mailError) {
-      console.error("[MAILER] Failed to send transfer notification:", mailError);
+      console.error("[MAILER] Failed to schedule transfer notification:", mailError);
     }
 
     revalidatePath("/", "layout");

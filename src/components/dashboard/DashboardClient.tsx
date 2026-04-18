@@ -5,12 +5,16 @@ import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inve
 import { Scorecard } from "@/components/shared/Scorecard";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import dynamic from "next/dynamic"
+
+const QuickViewPanel = dynamic(
+    () => import("@/components/shared/QuickViewPanel").then((mod) => mod.QuickViewPanel),
+    { ssr: false }
+)
 import { ReturnTrackingTable } from "./ReturnTrackingTable";
 import { ActivityFeed } from "./ActivityFeed";
 import { DashboardDonutChart } from "./DashboardDonutChart";
 import { OverduePanel } from "./OverduePanel";
-import { ReturnHistoryPanel } from "./ReturnHistoryPanel";
 import { useInventoryStats, DashboardDateRange } from "@/hooks/useInventoryStats";
 import { motion } from "framer-motion";
 import {
@@ -166,11 +170,10 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = EMP
                 </div>
             </motion.div>
 
-            {/* Overdue + Return History */}
-            {(overdueItems.length > 0 || returnHistory.length > 0) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative z-10">
+            {/* Overdue */}
+            {(overdueItems.length > 0) && (
+                <div className="grid grid-cols-1 gap-4 md:gap-6 relative z-10">
                     <OverduePanel overdueItems={overdueItems} />
-                    <ReturnHistoryPanel returnHistory={returnHistory} />
                 </div>
             )}
 

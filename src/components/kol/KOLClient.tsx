@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import dynamic from "next/dynamic"
+
+const QuickViewPanel = dynamic(
+    () => import("@/components/shared/QuickViewPanel").then((mod) => mod.QuickViewPanel),
+    { ssr: false }
+)
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
 import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";

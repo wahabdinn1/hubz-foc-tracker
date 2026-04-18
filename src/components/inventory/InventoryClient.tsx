@@ -4,7 +4,12 @@ import { useState, useCallback, useTransition, useRef, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { InventoryItem } from "@/types/inventory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import dynamic from "next/dynamic"
+
+const QuickViewPanel = dynamic(
+    () => import("@/components/shared/QuickViewPanel").then((mod) => mod.QuickViewPanel),
+    { ssr: false }
+)
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Smartphone, Database, Megaphone } from "lucide-react";
 import { useInventoryStats } from "@/hooks/useInventoryStats";
