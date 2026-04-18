@@ -63,47 +63,48 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </motion.div>
 
             {/* Mobile Header */}
-            <div className="flex md:hidden h-16 w-full border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md items-center justify-between px-4 fixed top-0 z-50 transition-colors">
+            <div className="flex md:hidden h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] w-full border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md items-center justify-between px-4 fixed top-0 z-50 transition-colors">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
                         <Package className="text-white h-5 w-5" />
                     </div>
                     <span className="text-neutral-900 dark:text-white font-bold tracking-wide">Hubz FOC</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-neutral-500 dark:text-neutral-400 focus:outline-none" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu">
-                        {mobileMenuOpen ? <X /> : <Menu />}
-                    </button>
-                </div>
             </div>
 
-            {/* Mobile Menu Overlay */}
-            <AnimatePresence>
-                {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
-                        id="mobile-menu"
-                        className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-3xl p-4 border-t border-black/5 dark:border-white/5 transition-colors"
-                    >
-                        <nav className="space-y-2">
-                            <NavItem href="/" icon={<LayoutDashboard className={cn(pathname === "/" && "text-blue-400")} />} label="Dashboard" active={pathname === "/"} open={true} onClick={() => setMobileMenuOpen(false)} />
-                            <NavItem href="/inventory" icon={<Package className={cn(pathname.startsWith("/inventory") && "text-blue-400")} />} label="Inventory Bank" active={pathname.startsWith("/inventory")} open={true} onClick={() => setMobileMenuOpen(false)} />
-                            <NavItem href="/kol" icon={<Users className={cn(pathname.startsWith("/kol") && "text-blue-400")} />} label="KOL Management" active={pathname.startsWith("/kol")} open={true} onClick={() => setMobileMenuOpen(false)} />
-                            <NavItem href="/audit" icon={<History className={cn(pathname.startsWith("/audit") && "text-blue-400")} />} label="Audit Log" active={pathname.startsWith("/audit")} open={true} onClick={() => setMobileMenuOpen(false)} />
-                            <NavItem href="/faq" icon={<HelpCircle className={cn(pathname.startsWith("/faq") && "text-blue-400")} />} label="Help Center" active={pathname.startsWith("/faq")} open={true} onClick={() => setMobileMenuOpen(false)} />
-                            <NavItem href="/settings" icon={<Settings className={cn(pathname.startsWith("/settings") && "text-blue-400")} />} label="Settings" active={pathname.startsWith("/settings")} open={true} onClick={() => setMobileMenuOpen(false)} />
-                        </nav>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Mobile Bottom Navigation */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-xl border-t border-black/5 dark:border-white/10 flex justify-around items-center pb-[env(safe-area-inset-bottom)] pt-2 px-2 transition-colors shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
+                <BottomNavItem href="/" icon={<LayoutDashboard className="w-5 h-5" />} label="Home" active={pathname === "/"} />
+                <BottomNavItem href="/inventory" icon={<Package className="w-5 h-5" />} label="Inventory" active={pathname.startsWith("/inventory")} />
+                <BottomNavItem href="/kol" icon={<Users className="w-5 h-5" />} label="KOL" active={pathname.startsWith("/kol")} />
+                <BottomNavItem href="/audit" icon={<History className="w-5 h-5" />} label="Audit" active={pathname.startsWith("/audit")} />
+                <BottomNavItem href="/settings" icon={<Settings className="w-5 h-5" />} label="Settings" active={pathname.startsWith("/settings")} />
+            </div>
 
             {/* Main Content Pane */}
-            <div className="flex-1 relative z-10 w-full md:pt-0 pt-16 h-screen overflow-y-auto custom-scrollbar">
+            <div className="flex-1 relative z-10 w-full md:pt-0 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 h-screen overflow-y-auto custom-scrollbar">
                 {children}
             </div>
         </div>
+    );
+}
+
+function BottomNavItem({ href, icon, label, active }: { href: string, icon: React.ReactNode, label: string, active: boolean }) {
+    return (
+        <Link href={href} className="flex flex-col items-center justify-center w-16 h-12 gap-1 touch-manipulation">
+            <div className={cn(
+                "p-1 rounded-full transition-all duration-300",
+                active ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+            )}>
+                {icon}
+            </div>
+            <span className={cn(
+                "text-[10px] font-medium transition-colors",
+                active ? "text-blue-600 dark:text-blue-400" : "text-neutral-500 dark:text-neutral-400"
+            )}>
+                {label}
+            </span>
+        </Link>
     );
 }
 
