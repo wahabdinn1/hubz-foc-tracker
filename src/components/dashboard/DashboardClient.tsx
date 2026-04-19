@@ -51,7 +51,6 @@ const EMPTY_OVERDUE: OverdueItem[] = [];
 const EMPTY_RETURN_HISTORY: ReturnHistoryItem[] = [];
 
 interface DashboardClientProps {
-    inventory: InventoryItem[];
     isAuthenticated: boolean;
     overdueItems?: OverdueItem[];
     returnHistory?: ReturnHistoryItem[];
@@ -59,7 +58,6 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ 
-    inventory, 
     isAuthenticated, 
     overdueItems = EMPTY_OVERDUE, 
     returnHistory = EMPTY_RETURN_HISTORY,
@@ -80,7 +78,8 @@ export function DashboardClient({
         topUrgentReturns,
         availableUnits,
         loanedItems,
-        recentActivity
+        recentActivity,
+        allInventory
     } = stats;
 
     const handleDateRangeChange = async (newRange: DateRange | undefined) => {
@@ -117,7 +116,7 @@ export function DashboardClient({
                     subtitle="Real-time status of all FOC devices"
                     availableUnits={availableUnits}
                     loanedItems={loanedItems}
-                    allInventory={inventory}
+                    allInventory={allInventory}
                 />
                 
                 {/* Secondary Actions / Breadcrumbs could go here if needed */}
