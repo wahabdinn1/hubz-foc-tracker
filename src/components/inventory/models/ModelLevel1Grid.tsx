@@ -1,8 +1,15 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Smartphone, CheckCircle2, Package, Layers, RotateCcw, AlertTriangle, ChevronRight } from "lucide-react";
+import { Search, Smartphone, CheckCircle2, Package, Layers, RotateCcw, AlertTriangle, ChevronRight, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { DeviceModelGroup } from "./types";
 import { getModelIcon } from "./utils";
@@ -11,20 +18,47 @@ interface ModelLevel1GridProps {
     filteredGroups: DeviceModelGroup[];
     modelSearch: string;
     setModelSearch: (val: string) => void;
+    focStatusFilter: string;
+    setFocStatusFilter: (val: string) => void;
     setSelectedBaseModel: (model: string) => void;
 }
 
-export function ModelLevel1Grid({ filteredGroups, modelSearch, setModelSearch, setSelectedBaseModel }: ModelLevel1GridProps) {
+export function ModelLevel1Grid({ 
+    filteredGroups, 
+    modelSearch, 
+    setModelSearch, 
+    focStatusFilter, 
+    setFocStatusFilter, 
+    setSelectedBaseModel 
+}: ModelLevel1GridProps) {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="bg-white/80 dark:bg-neutral-900/40 p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl w-full max-w-sm flex items-center focus-within:border-white/[0.15] transition-colors">
-                <Search className="w-5 h-5 text-neutral-500 ml-3 shrink-0" />
-                <Input
-                    placeholder="Search Device Model..."
-                    className="border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white placeholder:text-neutral-500 shadow-none"
-                    value={modelSearch}
-                    onChange={(e) => setModelSearch(e.target.value)}
-                />
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="bg-white/80 dark:bg-neutral-900/40 p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl w-full max-w-sm flex items-center focus-within:border-white/[0.15] transition-colors">
+                    <Search className="w-5 h-5 text-neutral-500 ml-3 shrink-0" />
+                    <Input
+                        placeholder="Search Device Model..."
+                        className="border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white placeholder:text-neutral-500 shadow-none"
+                        value={modelSearch}
+                        onChange={(e) => setModelSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Select value={focStatusFilter} onValueChange={setFocStatusFilter}>
+                        <SelectTrigger className="w-full sm:w-[140px] shrink-0 h-11 bg-white/80 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 backdrop-blur-xl">
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-3 h-3 text-neutral-500 shrink-0" />
+                                <span className="truncate"><SelectValue placeholder="Status" /></span>
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200">
+                            <SelectItem value="ALL">All Status</SelectItem>
+                            <SelectItem value="RETURN">Return</SelectItem>
+                            <SelectItem value="UNRETURN">Unreturn</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {filteredGroups.length === 0 ? (

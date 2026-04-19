@@ -17,6 +17,7 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
     const [modelSearch, setModelSearch] = useState("");
     const [selectedBaseModel, setSelectedBaseModel] = useState<string | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+    const [focStatusFilter, setFocStatusFilter] = useState<string>("ALL");
 
     // Build two-level hierarchy: baseModel → variants → items
     const deviceModelGroups = useMemo(() => {
@@ -24,6 +25,12 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
 
         for (const item of inventory) {
             if (!item.unitName || item.unitName.trim() === "-" || item.unitName.trim() === "N/A" || item.unitName.trim() === "") continue;
+
+            // Apply FOC Status Filter
+            if (focStatusFilter !== "ALL") {
+                const itemStatus = item.focStatus?.toUpperCase().trim() || "";
+                if (itemStatus !== focStatusFilter) continue;
+            }
 
             const baseModel = extractBaseModel(item.unitName);
             const variantName = item.unitName.trim();
@@ -73,7 +80,7 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
         }
 
         return groups.sort((a, b) => b.total - a.total);
-    }, [inventory]);
+    }, [inventory, focStatusFilter]);
 
     const filteredGroups = deviceModelGroups.filter(g =>
         g.baseModel.toLowerCase().includes(modelSearch.toLowerCase()) ||
@@ -113,6 +120,8 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
             filteredGroups={filteredGroups}
             modelSearch={modelSearch}
             setModelSearch={setModelSearch}
+            focStatusFilter={focStatusFilter}
+            setFocStatusFilter={setFocStatusFilter}
             setSelectedBaseModel={setSelectedBaseModel}
         />
     );
