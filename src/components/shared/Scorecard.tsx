@@ -4,7 +4,7 @@ import React, { useCallback, ReactNode } from "react";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export function Scorecard({
+export const Scorecard = React.memo(function Scorecard({
     title,
     value,
     icon,
@@ -82,4 +82,6 @@ export function Scorecard({
             )}
         </div>
     );
-}
+});
+
+Scorecard.displayName = "Scorecard";

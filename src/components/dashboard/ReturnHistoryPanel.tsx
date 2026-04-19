@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import React, { useRef } from "react";
 import type { ReturnHistoryItem } from "@/types/inventory";
 import { Undo2, Calendar, User, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ interface ReturnHistoryPanelProps {
     returnHistory: ReturnHistoryItem[];
 }
 
-export function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
+export const ReturnHistoryPanel = React.memo(function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
@@ -135,4 +135,6 @@ export function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
             </div>
         </motion.div>
     );
-}
+});
+
+ReturnHistoryPanel.displayName = "ReturnHistoryPanel";

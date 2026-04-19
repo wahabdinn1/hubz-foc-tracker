@@ -1,3 +1,4 @@
+import React, { useRef } from "react";
 import type { InventoryItem, ReturnTrackingItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -5,14 +6,13 @@ import { Clock, Smartphone, CheckCircle } from "lucide-react";
 import { isItemOverdue } from "@/lib/date-utils";
 import { calculateUrgencyProgress } from "@/lib/device-utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef } from "react";
 
 interface ReturnTrackingProps {
     topUrgentReturns: ReturnTrackingItem[];
     setSelectedItem: (item: InventoryItem) => void;
 }
 
-export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: ReturnTrackingProps) {
+export const ReturnTrackingTable = React.memo(function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: ReturnTrackingProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -126,4 +126,6 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
             </div>
         </div>
     );
-}
+});
+
+ReturnTrackingTable.displayName = "ReturnTrackingTable";
