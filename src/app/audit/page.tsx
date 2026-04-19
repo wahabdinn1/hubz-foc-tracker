@@ -1,10 +1,10 @@
 import { Metadata } from "next";
-import { getRequestHistory, getReturnHistory, getInventory } from "@/server/inventory";
+import { getRequestHistory, getReturnHistory, getInventory } from "@/features/inventory/actions/queries";
 import { AuditLogTable } from "@/components/audit/AuditLogTable";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
 import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated } from "@/features/auth/utils";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 import { AuditHeader } from "@/components/audit/AuditHeader";

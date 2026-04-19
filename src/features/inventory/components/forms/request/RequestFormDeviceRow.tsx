@@ -39,7 +39,7 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Calendar } from "@/components/ui/calendar";
 
-import { getCategoryIcon, extractFocType } from "@/lib/device-utils";
+import { getCategoryIcon, extractFocType } from "@/features/inventory/utils";
 import type { InventoryItem } from "@/types/inventory";
 import { useDeviceCategories } from "@/hooks/useDeviceCategories";
 import { useDropdownOptions } from "@/hooks/useDropdownOptions";

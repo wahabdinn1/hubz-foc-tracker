@@ -23,8 +23,8 @@ import {
     Package, CheckCircle, Clock, Gift, ArrowDownRight, RefreshCw
 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import { getDashboardData } from "@/server/inventory";
-import { type DashboardData } from "@/lib/dashboard-utils";
+import { getDashboardData } from "../actions";
+import { type DashboardData } from "../utils";
 
 // ── Animation constants (extracted to avoid re-creation on every render) ──
 const CONTAINER_VARIANTS = {

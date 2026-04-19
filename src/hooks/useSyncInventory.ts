@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { revalidateInventory } from "@/server/inventory";
+import { revalidateInventory } from "@/features/inventory/actions/queries";
 import { toast } from "sonner";
 
 /**

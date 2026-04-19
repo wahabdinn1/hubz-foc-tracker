@@ -21,7 +21,7 @@ import {
 import {
     Form,
 } from "@/components/ui/form"
-import { transferUnit } from "@/server/mutations"
+import { transferUnit } from "@/features/inventory/actions/mutations"
 import type { InventoryItem } from "@/types/inventory"
 import { transferFormSchema, type TransferPayload } from "@/lib/validations"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"

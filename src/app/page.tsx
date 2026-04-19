@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { getDashboardData } from "@/server/inventory";
-import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { getDashboardData } from "@/features/dashboard/actions";
+import { DashboardClient } from "@/features/dashboard/components/DashboardClient";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
 import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated } from "@/features/auth/utils";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getDeviceCategory } from "@/lib/device-utils"
+import { getDeviceCategory } from "@/features/inventory/utils"
 
 describe("getDeviceCategory", () => {
   it("categorizes S Series devices", () => {

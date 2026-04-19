@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { getInventory } from "@/server/inventory";
+import { getInventory } from "@/features/inventory/actions/queries";
 import { KOLClient } from "@/components/kol/KOLClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/shared/PinModal";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated } from "@/features/auth/utils";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 
 export const revalidate = 60;

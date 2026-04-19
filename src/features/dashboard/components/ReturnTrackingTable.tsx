@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Clock, Smartphone, CheckCircle } from "lucide-react";
 import { isItemOverdue } from "@/lib/date-utils";
-import { calculateUrgencyProgress } from "@/lib/device-utils";
+import { calculateUrgencyProgress } from "@/features/inventory/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface ReturnTrackingProps {

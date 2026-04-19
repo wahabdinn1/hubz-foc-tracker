@@ -32,6 +32,7 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 - **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by the Next.js 16 Edge proxy intercepting all traffic.
 - **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.
 - **Mobile Responsive** — Full mobile support with collapsible sidebar, touch-friendly cards, and adaptive typography.
+- **Feature-Based Architecture** — Domain-specific logic (actions, components, and utils) is modularized into `src/features/` (auth, inventory, dashboard, settings), promoting scalability and clear separation of concerns.
 - **UX Stability** — Navigation persistence via layout-wrapped loading states, ensuring the sidebar remains interactive during data fetches.
 - **Error & Loading States** — Global `error.tsx` boundary with retry UI, `not-found.tsx` for 404s, and skeleton `loading.tsx` on every route.
 

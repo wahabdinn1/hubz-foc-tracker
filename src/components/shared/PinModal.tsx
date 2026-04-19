@@ -14,7 +14,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { verifyPin } from "@/server/auth";
+import { verifyPin } from "@/features/auth/actions";
 import { Loader2 } from "lucide-react";
 
 export function PinModal() {

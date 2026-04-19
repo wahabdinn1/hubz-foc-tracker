@@ -1,6 +1,6 @@
 import { isSettingsUnlocked, getCCRecipients, getDropdownOptions } from "@/app/actions/settings";
-import { PinScreen } from "@/components/PinScreen";
-import { SettingsDashboard } from "@/components/SettingsDashboard";
+import { PinScreen } from "@/features/auth/components/PinScreen";
+import { SettingsDashboard } from "@/features/settings/components/SettingsDashboard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 

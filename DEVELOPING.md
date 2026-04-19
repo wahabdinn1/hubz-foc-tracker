@@ -20,125 +20,74 @@ src/
     faq/page.tsx               # Help Center / FAQ
     settings/page.tsx          # Settings — CC email management (PIN-protected)
     actions/
-      settings.ts              # Server actions: verifySettingsPin, getCCRecipients,
-                               #   addCCRecipient, deleteCCRecipient, isSettingsUnlocked
+      settings.ts              # Server actions for settings (CC recipients)
     layout.tsx                 # Root layout + ThemeProvider
     globals.css                # Design tokens, custom scrollbars
-    error.tsx                  # Global error boundary with retry
+    error.tsx                  # Global error boundary
     not-found.tsx              # 404 page
     loading.tsx                 # Root loading skeleton
 
-  components/
-    layout/                    # App-shell components
-      DashboardLayout.tsx      # Sidebar navigation + responsive header
-      ThemeProvider.tsx         # next-themes wrapper
-      ThemeToggle.tsx           # Light/dark mode toggle button
+  features/                    # Domain-specific logic (Feature-Based Architecture)
+    auth/                      # Authentication feature
+      actions.ts               # verifyPin server action
+      utils.ts                 # JWT verification helpers
+      components/              # Auth-specific components (PinModal)
+    inventory/                 # Inventory & Spreadsheet feature
+      actions/
+        queries.ts             # getInventory() + cache logic
+        mutations.ts           # requestUnits() + returnUnit() + etc.
+        google.ts              # Google Sheets API client
+      components/              # Inventory-specific components
+      utils.ts                 # Inventory parsing & formatting helpers
+    dashboard/                 # Dashboard feature
+      actions.ts               # getDashboardData server action
+      utils.ts                 # aggregateDashboardData logic
+      components/              # Dashboard widgets (Scorecards, Charts)
+    settings/                  # Settings feature logic (moved from app/actions)
+
+  components/                  # Shared & Common UI
+    layout/                    # App-shell (Sidebar, Header)
     shared/                    # Reusable cross-feature components
-      PageHeader.tsx           # Unified page header toolbar (theme, sync, forms, Cmd+K)
-      CommandPalette.tsx       # Global Cmd+K search across nav, KOLs, campaigns
-      QuickViewPanel.tsx       # Slide-over device detail panel
-      Scorecard.tsx            # Animated stat card with spotlight effect
-      PinModal.tsx             # Authentication PIN lock screen
-      ErrorBoundary.tsx        # React error boundary with retry UI
-      DiscardGuardDialog.tsx   # Reusable "Discard changes?" confirmation dialog
-      Skeletons.tsx            # Loading skeleton components
-    forms/                     # Data-entry modals
-      RequestFormModal.tsx     # Outbound (loan) request form — multi-device via useFieldArray
-      ReturnFormModal.tsx      # Inbound (return) form — multi-unit selection
-      TransferFormModal.tsx    # Direct transfer between KOLs (orchestrator only)
-       MultiImeiReturnSelector.tsx  # Multi-select IMEI combobox for return form
-       shared/                  # Shared form sub-components
-        UsernameEmailInput.tsx # Username + EMAIL_DOMAIN suffix input
-      request/                 # Request form sub-components
-        RequestFormCampaign.tsx
-        RequestFormDeviceRow.tsx # Repeatable per-device row (useFieldArray)
-        RequestFormDelivery.tsx
-      transfer/               # Transfer form sub-components
-        TransferFormDevice.tsx # Requestor + category + IMEI + holder
-        TransferFormDetails.tsx # FOC type + date + campaign
-        TransferFormNewKol.tsx  # KOL 2 fields
-    dashboard/                 # Dashboard-specific widgets
-      DashboardClient.tsx      # Dashboard state orchestrator
-      DashboardDonutChart.tsx  # Lightweight SVG donut chart (replaces recharts)
-      ReturnTrackingTable.tsx  # Urgent return tracking table
-      ActivityFeed.tsx         # Recent activity timeline
-      OverduePanel.tsx         # Overdue items panel
-      ReturnHistoryPanel.tsx   # Return history panel
-    inventory/                 # Inventory tab components
-      InventoryClient.tsx      # Inventory view orchestrator
-      MasterListTab.tsx        # Searchable/sortable device table with page-jump
-      ModelsTab.tsx            # 3-level grouped-by-model view
-      CampaignsTab.tsx         # Grouped-by-campaign view
-     kol/                       # KOL directory components
-       KOLClient.tsx            # KOL list + individual profile views
-     faq/                       # FAQ page components
-       FaqClient.tsx            # Client-side FAQ with accordion and search
-     ui/                        # Shadcn primitives + custom components
-      EmptyState.tsx           # Reusable empty state with icon + message
+    ui/                        # Shadcn primitives
+    kol/                       # KOL directory components
+    faq/                       # FAQ page components
+    audit/                     # Audit log components
 
   db/                          # Drizzle ORM + Supabase database layer
-    schema.ts                  # Drizzle schema: cc_recipients table (id, email, createdAt)
-    index.ts                   # Drizzle client (postgres.js + DATABASE_URL)
+    schema.ts                  # Drizzle schema: cc_recipients table
+    index.ts                   # Drizzle client
 
   types/
     inventory.ts               # Centralized TypeScript interfaces
-                               #   InventoryItem, Step1Data, Step3RefData,
-                               #   KOLProfile, ActionResult, OverdueItem,
-                               #   ReturnHistoryItem, RequestHistoryItem
 
-   lib/
-     auth.ts                    # Shared server-side JWT verification
-     crypto.ts                  # Timing-safe comparison utilities for PIN verification
-     env.ts                     # Environment variable validation helper
-     faq-data.ts                # FAQ accordion data (questions, answers, categories)
-     constants.ts               # Centralized constants: STEP1_COLS, STEP3_COLS,
-                               #   STEP4_COLS, REQUESTORS, FOC_TYPES,
-                               #   DELIVERY_TYPES, CAMPAIGNS, DEVICE_CATEGORIES,
-                               #   FOC_TYPE_KEYS, sheet names, auth config, etc.
-    form-utils.ts              # Shared form helpers: resolveRequestorWithFallback(),
-                               #   resolveFocTypeWithMatch()
-    device-utils.ts            # Shared device helpers: getDeviceCategory(), getCategoryIcon(), extractFocType()
+  lib/
+    constants.ts               # Centralized constants (STEP*_COLS, etc.)
     date-utils.ts              # Shared date/urgency helpers
-    validations.ts             # Centralized Zod schemas (request + return + transfer)
-    utils.ts                   # Tailwind class merge & helpers
+    device-utils.ts            # Shared device helpers
+    form-utils.ts              # Shared form helpers
+    validations.ts             # Centralized Zod schemas
+    mailer.ts                  # Nodemailer email notification utility
     rate-limit.ts              # In-memory per-IP PIN brute-force prevention
-    mailer.ts                  # Nodemailer email notification utility (Gmail-threaded)
-                               #   CC recipients fetched from Supabase via Drizzle,
-                               #   with fallback to CC_EMAILS env var
+    utils.ts                   # Tailwind class merge & helpers
+    env.ts                     # Environment variable validation helper
 
-  hooks/
-    useInventoryStats.ts       # Derives stats (available, loaned, etc.) from inventory
-    useSyncInventory.ts        # Centralized sync-with-Sheets + transition state
-    useScrollToFirstError.ts   # Shared onInvalid handler for react-hook-form
-    useDeviceCategories.ts     # Shared category → items map + sorted categories
-
-  server/
-    actions.ts                 # Barrel re-export of all server actions
-    inventory.ts               # getInventory() + revalidateInventory() + getDashboardData()
-    mutations.ts               # requestUnits() + returnUnit() + returnUnits() + transferUnit()
-    auth.ts                    # verifyPin() server action (timing-safe PIN comparison)
-    google.ts                  # Google Sheets API client setup
+  hooks/                       # Shared React hooks
 
   proxy.ts                     # Edge proxy (JWT verification, Next.js 16 convention)
 
   __tests__/                   # Vitest test suites
-    setup.ts                   # Test environment setup (jsdom + jest-dom)
-    constants.test.ts          # Column index and form constant tests
-    form-utils.test.ts         # Requestor/FOC type resolution tests
-    device-utils.test.ts       # Device category classification tests
 ```
 
 ### Module Responsibilities
 
 | Module | Responsibility |
 |---|---|
-| `server/inventory.ts` | Fetches and transforms data from Google Sheets using **positional column parsing** (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`); cached with 60s ISR |
-| `server/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; batch size limits; auto-expands Google Sheets grids beyond default numeric row limits (`ensureSheetCapacity`) |
-| `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; threads all emails into a single Gmail conversation; CC recipients are dynamically queried from the `cc_recipients` table via Drizzle ORM, with fallback to `CC_EMAILS` env var |
-| `app/actions/settings.ts` | Settings page server actions: `verifySettingsPin()` (timing-safe PIN check + HTTP-only session cookie), `isSettingsUnlocked()`, `getCCRecipients()`, `addCCRecipient()` (with email validation + duplicate check), `deleteCCRecipient()` |
+| `@/features/inventory/actions/queries.ts` | Fetches and transforms data from Google Sheets using **positional column parsing** (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`); cached with 60s ISR |
+| `@/features/inventory/actions/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; auto-expands Google Sheets grids |
+| `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; dynamic CC list from Supabase/Drizzle |
+| `app/actions/settings.ts` | Settings page server actions: `verifySettingsPin()`, `isSettingsUnlocked()`, `getCCRecipients()`, etc. |
 | `db/schema.ts` | Drizzle ORM schema — `cc_recipients` table (id serial PK, email text unique, createdAt timestamp) |
-| `db/index.ts` | Drizzle client initialized with `postgres.js` + `DATABASE_URL` |
-| `server/auth.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
+| `@/features/auth/actions.ts` | PIN verification with timing-safe comparison, JWT signing, cookie management |
 | `types/inventory.ts` | `InventoryItem`, `Step1Data`, `Step3RefData`, `KOLProfile`, `ActionResult<T>` type definitions |
 | `lib/constants.ts` | Centralized constants: `STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`, `REQUESTORS`, `FOC_TYPES`, `DELIVERY_TYPES`, `CAMPAIGNS`, `DEVICE_CATEGORIES`, sheet names, column headers |
 | `lib/form-utils.ts` | `resolveRequestorWithFallback()`, `resolveFocTypeWithMatch()` — shared form data resolution |
@@ -162,7 +111,7 @@ src/
 
 Data is sourced from the sheet named **"Step 1 Data Bank"**, columns A through P.
 
-The `getInventory()` server action reads the sheet and maps each row to the `InventoryItem` interface using **positional column parsing**:
+The `getInventory()` server action (in `@/features/inventory/actions/queries.ts`) reads the sheet and maps each row to the `InventoryItem` interface using **positional column parsing**:
 
 | Field | Sheet Column | Index (`STEP1_COLS`) |
 |---|---|---|
@@ -208,7 +157,7 @@ The deprecated `fullData` dictionary has been removed. The `QuickViewPanel` now 
 ### Flow
 
 1. User enters a 6-digit PIN via `PinModal`.
-2. `verifyPin()` (in `server/auth.ts`) checks against `AUTHORIZED_PINS` using timing-safe comparison.
+2. `verifyPin()` (in `@/features/auth/actions.ts`) checks against `AUTHORIZED_PINS` using timing-safe comparison.
 3. On success, a JWT is signed (using `JWT_SECRET` from env) and set as HTTP-only cookie (`foc_auth_token`).
 4. The edge proxy (`src/proxy.ts`) intercepts all routes and verifies the JWT. This is the **Next.js 16 approach** — the `proxy()` export replaces the legacy `middleware.ts` pattern.
 5. Server actions independently verify authentication before processing mutations.
@@ -543,7 +492,7 @@ Add a default value in the `useForm` setup (in the parent modal), then add the `
 
 For the Request form, new per-device fields go in `RequestFormDeviceRow.tsx` (which renders inside a `useFieldArray` loop). Shared fields (campaign, username) go in `RequestFormCampaign.tsx`.
 
-#### 3. Server Action — `src/server/mutations.ts`
+#### 3. Server Action — `@/features/inventory/actions/mutations.ts`
 
 Add the new field to the row array that gets appended to Google Sheets. Find the mutation function and locate the `rowsToWrite` mapping:
 
@@ -644,10 +593,10 @@ The application uses a **hybrid database approach**: Google Sheets remains the p
 
 **To add a completely different backend (e.g., Firebase):**
 
-1. Create a new service file in `src/server/` (e.g., `firebase.ts`).
+1. Create a new service file (e.g., `@/features/inventory/actions/firebase.ts`).
 2. Implement the same `getInventory()` return shape (`InventoryItem[]`).
-3. Replace the import in `src/server/inventory.ts`.
-4. Update mutation functions in `src/server/mutations.ts` to write to the new backend.
+3. Replace the import in `@/features/inventory/actions/queries.ts`.
+4. Update mutation functions in `@/features/inventory/actions/mutations.ts` to write to the new backend.
 5. Keep the Zod schemas unchanged — they validate the data shape, not the storage layer.
 
 ---

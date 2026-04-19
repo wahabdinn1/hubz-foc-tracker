@@ -4,7 +4,7 @@ import { sheets } from "./google";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated } from "@/features/auth/utils";
 import {
   requestPayloadSchema,
   returnSchema,

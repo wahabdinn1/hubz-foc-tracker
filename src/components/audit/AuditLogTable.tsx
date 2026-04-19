@@ -22,7 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { MasterListPagination } from "@/components/inventory/master-list/MasterListPagination";
+import { MasterListPagination } from "@/features/inventory/components/master-list/MasterListPagination";
 import type { RequestHistoryItem, ReturnHistoryItem } from "@/types/inventory";
 
 export interface AuditEvent {

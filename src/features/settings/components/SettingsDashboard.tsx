@@ -8,9 +8,9 @@ import {
   Mail, 
   ListFilter,
 } from "lucide-react";
-import { DropdownOptionsCard } from "./settings/DropdownOptionsCard";
-import { RecipientManager } from "./settings/RecipientManager";
-import { SystemHealthCard } from "./settings/SystemHealthCard";
+import { DropdownOptionsCard } from "./DropdownOptionsCard";
+import { RecipientManager } from "./RecipientManager";
+import { SystemHealthCard } from "./SystemHealthCard";
 import type { CCRecipient, DropdownOption } from "@/db/schema";
 
 interface SettingsDashboardProps {

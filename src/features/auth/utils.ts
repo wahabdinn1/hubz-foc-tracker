@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { AUTH_COOKIE_NAME } from "./constants";
+import { AUTH_COOKIE_NAME } from "@/lib/constants";
 
 /**
  * Returns the JWT signing secret.

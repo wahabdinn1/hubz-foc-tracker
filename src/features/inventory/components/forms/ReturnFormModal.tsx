@@ -20,7 +20,7 @@ import {
     Form,
 } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
-import { returnUnit, returnUnits } from "@/server/mutations"
+import { returnUnit, returnUnits } from "@/features/inventory/actions/mutations"
 import type { InventoryItem } from "@/types/inventory"
 import { ReturnPayload } from "@/lib/validations"
 

@@ -7,7 +7,7 @@ import { ccRecipients, type CCRecipient } from "@/db/schema";
 import type { ActionResult } from "@/types/inventory";
 import { timingSafeEqual } from "@/lib/crypto";
 import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } from "@/lib/rate-limit";
-import { sheets } from "@/server/google";
+import { sheets } from "@/features/inventory/actions/google";
 import { sql } from "drizzle-orm";
 
 const SETTINGS_COOKIE_NAME = "settings_unlocked";

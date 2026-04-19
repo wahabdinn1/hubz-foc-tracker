@@ -132,23 +132,6 @@ export async function revalidateInventory() {
   return { success: true };
 }
 
-import { aggregateDashboardData, type DashboardDateRange } from "@/lib/dashboard-utils";
-
-export async function getDashboardData(dateRange?: DashboardDateRange) {
-  const [inventory, overdueItems, returnHistory] = await Promise.all([
-    getInventory(),
-    getOverdueData(),
-    getReturnHistory(),
-  ]);
-
-  const stats = aggregateDashboardData(inventory, dateRange);
-
-  return { 
-    stats, 
-    overdueItems, 
-    returnHistory 
-  };
-}
 
 export const getOverdueData = cache(unstable_cache(
   async (): Promise<OverdueItem[]> => {

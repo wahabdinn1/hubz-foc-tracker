@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { getDeviceCategory } from "@/lib/device-utils"
+import { getDeviceCategory } from "@/features/inventory/utils"
 import type { InventoryItem } from "@/types/inventory"
 
 export type ItemFilterFn = (item: InventoryItem) => boolean
