@@ -84,7 +84,7 @@ export async function proxy(request: NextRequest) {
             response.headers.set('Retry-After', '900')
             response.headers.set('X-RateLimit-Limit', '5')
             response.headers.set('X-RateLimit-Remaining', '0')
-            response.headers.set('X-RateLimit-Reset', Math.floor(Date.now() / 1000) + 900)
+            response.headers.set('X-RateLimit-Reset', String(Math.floor(Date.now() / 1000) + 900))
             return response
         }
 
@@ -92,7 +92,7 @@ export async function proxy(request: NextRequest) {
         const response = NextResponse.next()
         response.headers.set('X-RateLimit-Limit', '5')
         response.headers.set('X-RateLimit-Remaining', remaining.toString())
-        response.headers.set('X-RateLimit-Reset', Math.floor(Date.now() / 1000) + 900)
+        response.headers.set('X-RateLimit-Reset', String(Math.floor(Date.now() / 1000) + 900))
         
         return response
     }
