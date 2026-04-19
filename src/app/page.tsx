@@ -3,7 +3,7 @@ import { getDashboardData } from "@/server/inventory";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
@@ -22,8 +22,6 @@ async function DashboardFetcher() {
   const { inventory, overdueItems, returnHistory } = await getDashboardData();
   return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
 }
-
-import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export default function Page() {
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
 import { AlertCircle, RefreshCw, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -40,7 +40,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
         return { 
             hasError: true, 
             error,
-            errorInfo: null 
+            errorInfo: null,
+            resetAttempts: 0 
         };
     }
 
@@ -60,7 +61,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         });
     }
 
-    componentDidUpdate(prevProps: Props, prevState: State) {
+    componentDidUpdate(_prevProps: Props, _prevState: State) {
         // Auto-reset error after timeout if specified
         if (
             this.state.hasError && 
