@@ -19,8 +19,10 @@ export default async function SettingsPage() {
     );
   }
 
-  const recipients = await getCCRecipients();
-  const dropdownOptions = await getDropdownOptions();
+  const [recipients, dropdownOptions] = await Promise.all([
+    getCCRecipients(),
+    getDropdownOptions()
+  ]);
 
   return (
     <DashboardLayout>
