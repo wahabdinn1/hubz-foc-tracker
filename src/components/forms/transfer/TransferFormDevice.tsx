@@ -228,9 +228,9 @@ export function TransferFormDevice({
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                    {displayRequestors.map((req) => (
+                                    {displayRequestors.map((req, idx) => (
                                         <SelectItem
-                                            key={req}
+                                            key={`${req}-${idx}`}
                                             value={req}
                                             className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer"
                                         >
