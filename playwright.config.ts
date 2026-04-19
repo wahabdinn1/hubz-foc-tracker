@@ -2,7 +2,6 @@
 // This file contains end-to-end tests for critical user flows
 
 import { defineConfig, devices } from '@playwright/test';
-import { getAuthToken } from './utils/auth';
 
 export default defineConfig({
   testDir: './tests/e2e',

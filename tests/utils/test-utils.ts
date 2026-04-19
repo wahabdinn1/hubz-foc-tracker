@@ -3,7 +3,6 @@
 
 import { render as rtlRender } from '@testing-library/react';
 import { server } from '@./mocks/server';
-import { rest } from '@mswjs/node';
 import { vi } from 'vitest';
 
 // Mock server responses

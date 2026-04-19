@@ -4,6 +4,37 @@
 import { setupServer } from '@mswjs/node';
 import { rest } from '@mswjs/node';
 
+// Types for mock request bodies
+interface RequestPayload {
+  username: string;
+  requestor: string;
+  customRequestor?: string;
+  campaignName: string;
+  customCampaign?: string;
+  devices: Array<{
+    unitName: string;
+    imeiIfAny: string;
+    kolName: string;
+    kolAddress: string;
+    kolPhoneNumber: string;
+    typeOfDelivery: string;
+    typeOfFoc: string;
+    deliveryDate: string;
+  }>;
+}
+
+interface ReturnPayload {
+  username: string;
+  requestor: string;
+  customRequestor?: string;
+  unitName: string;
+  imei: string;
+  fromKol: string;
+  kolAddress: string;
+  kolPhoneNumber: string;
+  typeOfFoc: string;
+}
+
 // Mock API endpoints
 export const server = setupServer(
   // Inventory endpoints
@@ -34,7 +65,7 @@ export const server = setupServer(
   }),
 
   rest.post('*/inventory/request', (req, res, ctx) => {
-    const body = req.body as any;
+    const body = req.body as RequestPayload;
     return res(
       ctx.status(200),
       ctx.json({
@@ -50,7 +81,7 @@ export const server = setupServer(
   }),
 
   rest.post('*/inventory/return', (req, res, ctx) => {
-    const body = req.body as any;
+    const body = req.body as ReturnPayload;
     return res(
       ctx.status(200),
       ctx.json({
@@ -77,7 +108,7 @@ export const server = setupServer(
   }),
 
   rest.post('*/settings/cc-recipients', (req, res, ctx) => {
-    const body = req.body as any;
+    const body = req.body as { email: string };
     return res(
       ctx.status(200),
       ctx.json({

@@ -27,18 +27,18 @@ const mockIntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-// @ts-ignore
-window.IntersectionObserver = mockIntersectionObserver;
+ // @ts-expect-error - Mocking browser API
+ window.IntersectionObserver = mockIntersectionObserver;
 
-// Mock Resize Observer
-const mockResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+ // Mock Resize Observer
+ const mockResizeObserver = vi.fn().mockImplementation(() => ({
+   observe: vi.fn(),
+   unobserve: vi.fn(),
+   disconnect: vi.fn(),
+ }));
 
-// @ts-ignore
-window.ResizeObserver = mockResizeObserver;
+ // @ts-expect-error - Mocking browser API
+ window.ResizeObserver = mockResizeObserver;
 
 // Mock console.warn to suppress warnings in tests
 vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -78,6 +78,7 @@ if (!document.createRange) {
 
 // Mock Date.now for consistent timestamps
 vi.stubGlobal('Date', class extends Date {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(...args: any[]) {
     if (args.length === 0) {
       return new Date(1234567890000);

@@ -10,6 +10,8 @@
 !.yarn/releases
 !.yarn/versions
 .kilo
+.agents
+.agent
 
 # testing
 /coverage

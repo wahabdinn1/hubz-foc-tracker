@@ -1,7 +1,7 @@
 // Component Tests for Settings Dashboard
 // Test React components with React Testing Library
 
-import { test, expect, describe, beforeEach, afterEach } from '@vitest/runner';
+import { test, expect, describe, afterEach } from '@vitest/runner';
 import { render, screen, fireEvent, waitFor } from '@test-utils';
 import { SettingsDashboard } from '@/components/SettingsDashboard';
 import { server } from '@./mocks/server';
