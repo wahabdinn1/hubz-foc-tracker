@@ -41,7 +41,7 @@ export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, 
     const countdownSec = Math.ceil(nextSyncIn / 1000);
 
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white transition-colors mb-1">
                     {title}
