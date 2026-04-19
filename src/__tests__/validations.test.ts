@@ -3,6 +3,7 @@ import { requestPayloadSchema, returnSchema, transferPayloadSchema } from "@/lib
 
 describe("requestPayloadSchema", () => {
     const validPayload = {
+        username: "john.doe",
         requestor: "Aliya",
         customRequestor: "",
         campaignName: "Galaxy S25 FE Sustenance 2026",
