@@ -47,7 +47,7 @@ function resolveRequestor(item: InventoryItem): string {
 }
 
 function resolveFocType(item: InventoryItem): string {
-    const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || ""
+    const raw = item.step3Data?.typeOfFoc || item.focType || ""
     if (!raw) return "-"
     return resolveFocTypeWithMatch(raw)
 }

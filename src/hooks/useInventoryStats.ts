@@ -59,7 +59,7 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
         for (const item of inventory) {
             if (isStatusReturnToTcc(item.statusLocation)) continue;
             // Also exclude items that have a RETURN TO TCC receipt (Column L is filled)
-            const tccReceipt = item.step1Data?.returnToTccReceipt?.trim();
+            const tccReceipt = item.returnToTccReceipt?.trim();
             if (tccReceipt && tccReceipt !== "" && tccReceipt !== "-") continue;
             const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
             if (!hasReturnDate) continue;
@@ -113,7 +113,7 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
         const pendingReturnCount = topUrgentReturns.length;
 
         const recentActivity = [...validInventory].filter(item => {
-            const dateStr = item.step3Data?.timestamp || item.step1Data?.dateOfReceipt;
+            const dateStr = item.step3Data?.timestamp || item.dateOfReceipt;
             if (!dateStr || dateStr.trim() === "" || dateStr.trim() === "-") return false;
             
             if (dateRange?.from || dateRange?.to) {
@@ -134,8 +134,8 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
             
             return true;
         }).sort((a, b) => {
-            const dateA = parseDateStr(a.step3Data?.timestamp || a.step1Data?.dateOfReceipt);
-            const dateB = parseDateStr(b.step3Data?.timestamp || b.step1Data?.dateOfReceipt);
+            const dateA = parseDateStr(a.step3Data?.timestamp || a.dateOfReceipt);
+            const dateB = parseDateStr(b.step3Data?.timestamp || b.dateOfReceipt);
             const timeA = dateA ? dateA.getTime() : 0;
             const timeB = dateB ? dateB.getTime() : 0;
             return timeB - timeA;

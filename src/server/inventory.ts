@@ -2,7 +2,7 @@
 
 import { sheets } from "./google";
 import { unstable_cache, revalidatePath } from "next/cache";
-import type { InventoryItem, OverdueItem, ReturnHistoryItem, RequestHistoryItem, Step1Data, Step3RefData } from "@/types/inventory";
+import type { InventoryItem, OverdueItem, ReturnHistoryItem, RequestHistoryItem, Step3RefData } from "@/types/inventory";
 import {
   SHEET_RANGES,
   STEP1_COLS,
@@ -19,25 +19,6 @@ function cell(row: string[], idx: number): string {
   return row[idx]?.trim() || "";
 }
 
-function parseStep1Row(row: string[]): Step1Data {
-  return {
-    dateOfReceipt:     cell(row, STEP1_COLS.DATE_OF_RECEIPT),
-    seinPicName:       cell(row, STEP1_COLS.SEIN_PIC_NAME),
-    focType:           cell(row, STEP1_COLS.FOC_TYPE),
-    imei:              cell(row, STEP1_COLS.IMEI),
-    unitName:          cell(row, STEP1_COLS.UNIT_NAME),
-    focStatus:         cell(row, STEP1_COLS.FOC_STATUS),
-    plannedReturnDate: cell(row, STEP1_COLS.PLANNED_RETURN),
-    receivedDateTimeStamp: cell(row, STEP1_COLS.RECEIVED_DATE_STAMP),
-    goatPic:           cell(row, STEP1_COLS.GOAT_PIC),
-    campaignName:      cell(row, STEP1_COLS.CAMPAIGN_NAME),
-    status:            cell(row, STEP1_COLS.STATUS),
-    statusLocation:    cell(row, STEP1_COLS.STATUS_LOCATION),
-    onHolder:          cell(row, STEP1_COLS.ON_HOLDER),
-    returnToTccReceipt: cell(row, STEP1_COLS.RETURN_TO_TCC),
-    comments:          cell(row, STEP1_COLS.COMMENTS),
-  };
-}
 
 function parseStep3Row(row: string[]): Step3RefData {
   return {
@@ -81,31 +62,35 @@ export const getInventory = unstable_cache(
           return hasImei || hasUnit;
         })
         .map((rawRow) => {
-        const row = rawRow as string[];
-        const s1 = parseStep1Row(row);
+          const row = rawRow as string[];
+          const imei = cell(row, STEP1_COLS.IMEI);
+          const unitName = cell(row, STEP1_COLS.UNIT_NAME);
+          const onHolder = cell(row, STEP1_COLS.ON_HOLDER);
 
-        let step3: Step3RefData | null = null;
-        if (s1.imei && s1.imei !== "-") {
-          step3 = step3Map.get(s1.imei) || null;
-        }
-        if (!step3 && s1.unitName && s1.onHolder) {
-          step3 = step3Map.get(`${s1.unitName}||${s1.onHolder}`) || null;
-        }
+          let step3: Step3RefData | null = null;
+          if (imei && imei !== "-") {
+            step3 = step3Map.get(imei) || null;
+          }
+          if (!step3 && unitName && onHolder) {
+            step3 = step3Map.get(`${unitName}||${onHolder}`) || null;
+          }
 
-        return {
-          imei: s1.imei,
-          unitName: s1.unitName,
-          focStatus: s1.focStatus,
-          goatPic: s1.goatPic,
-          seinPic: s1.seinPicName,
-          statusLocation: s1.statusLocation,
-          onHolder: s1.onHolder,
-          plannedReturnDate: s1.plannedReturnDate,
-          campaignName: s1.campaignName,
-          step1Data: s1,
-          step3Data: step3,
-        };
-      });
+          return {
+            imei,
+            unitName,
+            focStatus: cell(row, STEP1_COLS.FOC_STATUS),
+            goatPic: cell(row, STEP1_COLS.GOAT_PIC),
+            seinPic: cell(row, STEP1_COLS.SEIN_PIC_NAME),
+            statusLocation: cell(row, STEP1_COLS.STATUS_LOCATION),
+            onHolder,
+            plannedReturnDate: cell(row, STEP1_COLS.PLANNED_RETURN),
+            campaignName: cell(row, STEP1_COLS.CAMPAIGN_NAME),
+            dateOfReceipt: cell(row, STEP1_COLS.DATE_OF_RECEIPT),
+            focType: cell(row, STEP1_COLS.FOC_TYPE),
+            returnToTccReceipt: cell(row, STEP1_COLS.RETURN_TO_TCC),
+            step3Data: step3,
+          };
+        });
     } catch (error) {
       console.error("Failed to fetch inventory", error);
       throw new Error(

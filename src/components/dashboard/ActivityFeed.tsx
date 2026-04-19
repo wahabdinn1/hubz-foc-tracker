@@ -62,7 +62,7 @@ export const ActivityFeed = React.memo(function ActivityFeed({ recentActivity }:
 
                         {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                             const item = recentActivity[virtualItem.index];
-                            const timestamp = item.step3Data?.timestamp || item.step1Data?.dateOfReceipt || "Unknown Date";
+                            const timestamp = item.step3Data?.timestamp || item.dateOfReceipt || "Unknown Date";
                             const isAvailable = isStatusAvailable(item.statusLocation);
 
                             return (

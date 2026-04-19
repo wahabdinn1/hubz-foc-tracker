@@ -16,7 +16,7 @@ export function getCategoryIcon(name: string): string {
 }
 
 export function extractFocType(item: InventoryItem): string {
-    const raw = item.step3Data?.typeOfFoc || item.step1Data?.focType || "";
+    const raw = item.step3Data?.typeOfFoc || item.focType || "";
     if (raw && raw.trim() !== "" && raw.trim() !== "-") return raw.trim().toUpperCase();
     return "";
 }

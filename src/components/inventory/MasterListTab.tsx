@@ -170,7 +170,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             header: "GOAT PIC",
             cell: ({ row }) => (
                 <span className="text-neutral-500 dark:text-neutral-400 truncate">
-                    {row.original.goatPic || row.original.step1Data?.seinPicName || "-"}
+                    {row.original.goatPic || row.original.seinPic || "-"}
                 </span>
             ),
         },

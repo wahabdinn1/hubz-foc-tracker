@@ -110,8 +110,12 @@ export interface InventoryItem {
     plannedReturnDate: string;
     /** Marketing campaign this device is assigned to. */
     campaignName: string;
-    /** Typed column data from Step 1 Data Bank. */
-    step1Data: Step1Data;
+    /** Date when the device was first received into stock. */
+    dateOfReceipt: string;
+    /** Type of FOC — e.g. "Loan", "Gift". */
+    focType: string;
+    /** Link to return receipt for TCC returns. */
+    returnToTccReceipt: string;
     /** Cross-referenced Step 3 request data (if matched). */
     step3Data: Step3RefData | null;
 }

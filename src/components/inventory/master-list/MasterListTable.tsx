@@ -64,7 +64,7 @@ export function MasterListTable({
                                     <td className="px-5 py-4 font-medium text-neutral-900 dark:text-neutral-200 group-hover:text-blue-400 whitespace-nowrap">{item.unitName || "-"}</td>
                                     <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 font-mono text-xs whitespace-nowrap">{item.imei || "-"}</td>
                                     <td className="px-5 py-4 text-neutral-700 dark:text-neutral-300 min-w-[150px]">{item.onHolder || "-"}</td>
-                                    <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 whitespace-nowrap">{item.goatPic || item.step1Data?.seinPicName || "-"}</td>
+                                    <td className="px-5 py-4 text-neutral-500 dark:text-neutral-400 whitespace-nowrap">{item.goatPic || item.seinPic || "-"}</td>
                                     <td className="px-5 py-4 text-xs font-mono whitespace-nowrap">
                                         {(() => {
                                             const rd = item.step3Data?.timestamp;
