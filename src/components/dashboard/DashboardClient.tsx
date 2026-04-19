@@ -105,9 +105,9 @@ export function DashboardClient({
             <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-blue-500/10 dark:bg-blue-600/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute top-[20%] right-[-10%] w-[30%] h-[30%] bg-cyan-500/5 dark:bg-cyan-600/5 rounded-full blur-[100px] pointer-events-none" />
 
-            {!isAuthenticated && (
+            {!isAuthenticated ? (
                 <div className="fixed inset-0 z-40 bg-white/60 dark:bg-black/60 backdrop-blur-sm pointer-events-none transition-colors" />
-            )}
+            ) : null}
 
             {/* ── Dashboard Header ── */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
@@ -216,13 +216,13 @@ export function DashboardClient({
                 {/* ── WORK CENTER (Left, 66%) ── */}
                 <div className="xl:col-span-2 flex flex-col gap-6 md:gap-8">
                     {/* Urgent Alerts */}
-                    {!!overdueItems.length && (
+                    {overdueItems.length > 0 ? (
                         <ErrorBoundary fallbackTitle="Failed to load overdue panel">
                             <motion.div {...SECTION_ENTER}>
                                 <OverduePanel overdueItems={overdueItems} />
                             </motion.div>
                         </ErrorBoundary>
-                    )}
+                    ) : null}
 
                     {/* Return Tracking */}
                     <ErrorBoundary fallbackTitle="Failed to load return tracking">
@@ -251,7 +251,7 @@ export function DashboardClient({
                     <div className="flex items-center justify-between mb-[-12px]">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest px-2">Monitoring</h3>
-                            {isRefreshing && <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />}
+                            {isRefreshing ? <RefreshCw className="w-3 h-3 animate-spin text-blue-500" /> : null}
                         </div>
                         <DateRangePicker dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
                     </div>
