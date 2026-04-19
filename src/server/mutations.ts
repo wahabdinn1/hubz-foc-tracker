@@ -84,37 +84,13 @@ function resolveCampaign(campaignName: string, customCampaign?: string): string 
   return campaignName === "Other" ? customCampaign || "Other" : campaignName;
 }
 
-async function findLastDataRow(sheetName: string): Promise<number> {
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A:A`,
-  });
-
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) return 1;
-
-  let lastRow = 0;
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const row = rows[i];
-    if (row && row.length > 0 && row[0] !== undefined && String(row[0]).trim() !== "") {
-      lastRow = i + 1;
-      break;
-    }
-  }
-
-  return lastRow;
-}
-
 async function appendRows(
   sheetName: string,
   values: string[][]
 ): Promise<void> {
-  const lastRow = await findLastDataRow(sheetName);
-  const nextRow = lastRow + 1;
-
   const response = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${sheetName}!A${nextRow}`,
+    range: `${sheetName}!A:A`,
     valueInputOption: "USER_ENTERED",
     insertDataOption: "INSERT_ROWS",
     requestBody: {
@@ -128,13 +104,13 @@ async function appendRows(
 }
 
 export async function requestUnits(data: RequestPayload): Promise<MutationResult> {
+  const validated = requestPayloadSchema.parse(data);
+
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
 
   try {
-    const validated = requestPayloadSchema.parse(data);
-
     if (!validated.devices || validated.devices.length === 0) {
       return { success: false, error: "No devices provided for request." };
     }
@@ -307,13 +283,13 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
 }
 
 export async function returnUnit(data: ReturnPayload): Promise<MutationResult> {
+  const validated = returnSchema.parse(data);
+
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
 
   try {
-    const validated = returnSchema.parse(data);
-
     const timestamp = formatTimestampGMT7();
     const emailAddress = resolveEmailAddress(validated.username);
     const finalRequestor = resolveRequestor(validated.requestor, validated.customRequestor);
@@ -462,12 +438,13 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<MutationR
 }
 
 export async function transferUnit(data: TransferPayload): Promise<MutationResult> {
+  const validated = transferPayloadSchema.parse(data);
+
   if (!(await isAuthenticated())) {
     return { success: false, error: "Unauthorized — please log in first." };
   }
 
   try {
-    const validated = transferPayloadSchema.parse(data);
     const submittedImei = validated.imei.trim();
 
     const step1Response = await sheets.spreadsheets.values.get({
