@@ -8,6 +8,14 @@ import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts
 import type { ActionResult } from "@/types/inventory";
 
 export async function verifyPin(inputPin: string): Promise<ActionResult> {
+  const authorizedPinsStr = process.env.AUTHORIZED_PINS;
+  if (!authorizedPinsStr) {
+    return {
+      success: false,
+      error: "Server misconfigured — AUTHORIZED_PINS is not set.",
+    };
+  }
+
   const rateLimitKey = await getRateLimitKey();
 
   if (await isRateLimited(rateLimitKey)) {
@@ -17,7 +25,7 @@ export async function verifyPin(inputPin: string): Promise<ActionResult> {
     };
   }
 
-  const authorizedPins = process.env.AUTHORIZED_PINS?.split(",") || [];
+  const authorizedPins = authorizedPinsStr.split(",");
 
   const matchedPin = authorizedPins.find(pin => timingSafeEqual(pin.trim(), inputPin));
 
