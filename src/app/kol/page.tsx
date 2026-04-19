@@ -4,7 +4,7 @@ import { KOLClient } from "@/components/kol/KOLClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/shared/PinModal";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 
@@ -26,11 +26,14 @@ async function KOLFetcher() {
 export default function KOLPage() {
     return (
         <DashboardLayout>
-            <ErrorBoundary fallbackTitle="Failed to load KOL data">
+            <DashboardErrorBoundary 
+              fallbackTitle="Failed to load KOL data"
+              fallbackDescription="We encountered an issue while loading KOL management. Please try refreshing the page."
+            >
                 <Suspense fallback={<PageSkeleton />}>
                     <KOLFetcher />
                 </Suspense>
-            </ErrorBoundary>
+            </DashboardErrorBoundary>
         </DashboardLayout>
     );
 }

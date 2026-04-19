@@ -421,6 +421,8 @@ export function RequestFormDeviceRow({
                             </FormLabel>
                             <FormControl>
                                 <Input
+                                    type="tel"
+                                    inputMode="tel"
                                     placeholder="0812xxxxxxx"
                                     className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
                                     {...field}

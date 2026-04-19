@@ -186,7 +186,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                     <span className="hidden sm:inline">Inbound (Return)</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">
+            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Inbound (Return) Form</DialogTitle>
                 </DialogHeader>
@@ -254,10 +254,10 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedItems(prev => prev.filter(i => i.imei !== item.imei))}
-                                                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                                                    className="p-2.5 min-w-[44px] min-h-[44px] rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                                                     aria-label={`Remove ${item.unitName}`}
                                                 >
-                                                    <X className="w-4 h-4" />
+                                                    <X className="w-5 h-5" />
                                                 </button>
                                             </div>
                                         </div>

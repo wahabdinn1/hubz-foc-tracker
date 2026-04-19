@@ -1,5 +1,8 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FaqClient } from "@/components/faq/FaqClient";
+import { Suspense } from "react";
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { PageSkeleton } from "@/components/shared/Skeletons";
 import { faqUiEn, faqUiId } from "@/lib/faq-data";
 
 const faqData = {
@@ -244,7 +247,14 @@ const faqData = {
 export default function FAQPage() {
   return (
     <DashboardLayout>
-      <FaqClient faqData={faqData} />
+      <DashboardErrorBoundary 
+        fallbackTitle="Failed to load FAQ page"
+        fallbackDescription="We encountered an issue while loading the FAQ page. Please try refreshing the page."
+      >
+        <Suspense fallback={<PageSkeleton />}>
+          <FaqClient faqData={faqData} />
+        </Suspense>
+      </DashboardErrorBoundary>
     </DashboardLayout>
   );
 }

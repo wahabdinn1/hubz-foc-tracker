@@ -24,7 +24,11 @@ export default async function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <ErrorBoundary fallbackTitle="Failed to load settings">
+      <ErrorBoundary
+        fallbackTitle="Failed to load settings"
+        fallbackDescription="We encountered an issue while loading the settings page. Please try refreshing the page."
+        resetErrorTimeout={30000}
+      >
         <SettingsDashboard initialRecipients={recipients} initialDropdownOptions={dropdownOptions} />
       </ErrorBoundary>
     </DashboardLayout>

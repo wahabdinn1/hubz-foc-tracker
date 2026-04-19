@@ -170,7 +170,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                         <span className="hidden sm:inline">Transfer</span>
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">
+                <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                             <ArrowLeftRight className="w-5 h-5 text-amber-500" />
@@ -185,7 +185,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                             onSubmit={form.handleSubmit(onSubmit, onInvalid)}
                             className="space-y-6 mt-4"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                                 <UsernameEmailInput />
 
                                 <TransferFormDevice

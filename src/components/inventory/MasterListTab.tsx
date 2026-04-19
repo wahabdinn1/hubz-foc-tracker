@@ -142,7 +142,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             accessorKey: "unitName",
             header: "Unit Name",
             cell: ({ row }) => (
-                <span className="font-medium text-neutral-900 dark:text-neutral-200 group-hover:text-blue-400 whitespace-nowrap">
+                <span className="font-medium text-neutral-900 dark:text-neutral-200 group-hover:text-blue-400 truncate">
                     {row.original.unitName || "-"}
                 </span>
             ),
@@ -151,7 +151,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             accessorKey: "imei",
             header: "IMEI",
             cell: ({ row }) => (
-                <span className="text-neutral-500 dark:text-neutral-400 font-mono text-xs whitespace-nowrap">
+                <span className="text-neutral-500 dark:text-neutral-400 font-mono text-xs truncate">
                     {row.original.imei || "-"}
                 </span>
             ),
@@ -160,7 +160,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             accessorKey: "onHolder",
             header: "Holder",
             cell: ({ row }) => (
-                <span className="text-neutral-700 dark:text-neutral-300 min-w-[150px]">
+                <span className="text-neutral-700 dark:text-neutral-300 truncate">
                     {row.original.onHolder || "-"}
                 </span>
             ),
@@ -169,7 +169,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             accessorKey: "goatPic",
             header: "GOAT PIC",
             cell: ({ row }) => (
-                <span className="text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                <span className="text-neutral-500 dark:text-neutral-400 truncate">
                     {row.original.goatPic || row.original.step1Data?.seinPicName || "-"}
                 </span>
             ),
@@ -181,8 +181,8 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             cell: ({ row }) => {
                 const rd = row.original.step3Data?.timestamp;
                 return rd && rd.trim() !== "" && rd !== "-"
-                    ? <span className="text-neutral-600 dark:text-neutral-400">{rd}</span>
-                    : <span className="text-neutral-300 dark:text-neutral-600 italic">—</span>;
+                    ? <span className="text-neutral-600 dark:text-neutral-400 text-xs md:text-sm truncate">{rd}</span>
+                    : <span className="text-neutral-300 dark:text-neutral-600 italic text-xs md:text-sm">—</span>;
             },
         },
         {
@@ -190,10 +190,10 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             header: "FOC Status",
             cell: ({ row }) => {
                 const status = row.original.focStatus?.toUpperCase().trim();
-                if (!status || status === "-") return <span className="text-neutral-300 dark:text-neutral-600 italic">—</span>;
+                if (!status || status === "-") return <span className="text-neutral-300 dark:text-neutral-600 italic text-xs">—</span>;
                 return (
                     <Badge variant="outline" className={cn(
-                        "text-[11px] font-semibold",
+                        "text-[10px] md:text-[11px] font-semibold shrink-0",
                         status === "RETURN" ? "bg-green-500/10 text-green-500 border-green-500/20" :
                             status === "UNRETURN" ? "bg-red-500/10 text-red-500 border-red-500/20" :
                                 "bg-neutral-500/10 text-neutral-500 border-neutral-500/20"
@@ -212,6 +212,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
                 return (
                     <div className="text-right">
                         <Badge variant="outline" className={cn(
+                            "shrink-0 text-[10px] md:text-[11px]",
                             isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
                                 isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                     "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20",
@@ -298,75 +299,75 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
                     setSelectedItem={setSelectedItem}
                 />
 
-                <table className="hidden md:table w-full text-sm text-left border-collapse">
-                    <thead className="text-xs uppercase bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-20 shadow-md">
-                        {table.getHeaderGroups().map(headerGroup => (
-                            <tr key={headerGroup.id}>
-                                {headerGroup.headers.map(header => (
-                                    <th
-                                        key={header.id}
-                                        onClick={header.column.getToggleSortingHandler()}
-                                        className={cn(
-                                            "px-5 py-4 font-semibold tracking-wider",
-                                            header.column.getCanSort() ? "cursor-pointer hover:text-neutral-900 dark:hover:text-white" : "",
-                                            header.id === "statusLocation" ? "text-right" : "",
-                                            ["imei", "focStatus", "goatPic", "requestDate"].includes(header.id) ? "whitespace-nowrap" : ""
-                                        )}
-                                    >
-                                        <div className={cn("flex items-center gap-1", header.id === "statusLocation" && "justify-end")}>
-                                            {flexRender(header.column.columnDef.header, header.getContext())}
-                                            {header.column.getIsSorted() && (
-                                                <span className="text-blue-500 text-xs">
-                                                    {header.column.getIsSorted() === "asc" ? "↑" : "↓"}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800/50">
-                        <AnimatePresence mode="popLayout">
-                            {table.getRowModel().rows.length > 0 ? (
-                                table.getRowModel().rows.map((row, idx) => {
-                                    const item = row.original;
-                                    const overdue = isItemOverdue(item);
-                                    return (
-                                        <motion.tr
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            transition={{ duration: 0.15, delay: Math.min(idx * 0.03, 0.15) }}
-                                            key={`${item.imei}-${item.unitName}-${idx}`}
-                                            onClick={() => setSelectedItem(item)}
-                                            className={cn(
-                                                "transition-colors group cursor-pointer",
-                                                overdue ? "bg-red-950/20 hover:bg-red-900/30 border-l-[3px] border-l-orange-500" : "hover:bg-neutral-50 dark:hover:bg-white/5 border-l-[3px] border-l-transparent"
-                                            )}
-                                        >
-                                            {row.getVisibleCells().map(cell => (
-                                                <td key={cell.id} className="px-5 py-4">
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </td>
-                                            ))}
-                                        </motion.tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan={columns.length} className="px-0 py-8">
-                                        <EmptyState
-                                            icon={Search}
-                                            title="No devices found"
-                                            description="We couldn't find any inventory matching your search or filter criteria."
-                                        />
-                                    </td>
-                                </tr>
-                            )}
-                        </AnimatePresence>
-                    </tbody>
-                </table>
+                <table className="hidden lg:table w-full text-sm text-left border-collapse">
+                     <thead className="text-xs uppercase bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-20 shadow-md">
+                         {table.getHeaderGroups().map(headerGroup => (
+                             <tr key={headerGroup.id}>
+                                 {headerGroup.headers.map(header => (
+                                     <th
+                                         key={header.id}
+                                         onClick={header.column.getToggleSortingHandler()}
+                                         className={cn(
+                                             "px-3 py-3 md:px-5 md:py-4 font-semibold tracking-wider",
+                                             header.column.getCanSort() ? "cursor-pointer hover:text-neutral-900 dark:hover:text-white" : "",
+                                             header.id === "statusLocation" ? "text-right" : "",
+                                             ["imei", "focStatus", "goatPic", "requestDate"].includes(header.id) ? "whitespace-nowrap" : ""
+                                         )}
+                                     >
+                                         <div className={cn("flex items-center gap-1", header.id === "statusLocation" && "justify-end")}>
+                                             {flexRender(header.column.columnDef.header, header.getContext())}
+                                             {header.column.getIsSorted() && (
+                                                 <span className="text-blue-500 text-xs md:text-sm">
+                                                     {header.column.getIsSorted() === "asc" ? "↑" : "↓"}
+                                                 </span>
+                                             )}
+                                         </div>
+                                     </th>
+                                 ))}
+                             </tr>
+                         ))}
+                     </thead>
+                     <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800/50">
+                         <AnimatePresence mode="popLayout">
+                             {table.getRowModel().rows.length > 0 ? (
+                                 table.getRowModel().rows.map((row, idx) => {
+                                     const item = row.original;
+                                     const overdue = isItemOverdue(item);
+                                     return (
+                                         <motion.tr
+                                             initial={{ opacity: 0, y: 10 }}
+                                             animate={{ opacity: 1, y: 0 }}
+                                             exit={{ opacity: 0, y: -10 }}
+                                             transition={{ duration: 0.15, delay: Math.min(idx * 0.03, 0.15) }}
+                                             key={`${item.imei}-${item.unitName}-${idx}`}
+                                             onClick={() => setSelectedItem(item)}
+                                             className={cn(
+                                                 "transition-colors group cursor-pointer min-h-[60px] md:min-h-0",
+                                                 overdue ? "bg-red-950/20 hover:bg-red-900/30 border-l-[3px] border-l-orange-500" : "hover:bg-neutral-50 dark:hover:bg-white/5 border-l-[3px] border-l-transparent"
+                                             )}
+                                         >
+                                             {row.getVisibleCells().map(cell => (
+                                                 <td key={cell.id} className="px-3 py-3 md:px-5 md:py-4">
+                                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                 </td>
+                                             ))}
+                                         </motion.tr>
+                                     );
+                                 })
+                             ) : (
+                                 <tr>
+                                     <td colSpan={columns.length} className="px-0 py-8">
+                                         <EmptyState
+                                             icon={Search}
+                                             title="No devices found"
+                                             description="We couldn't find any inventory matching your search or filter criteria."
+                                         />
+                                     </td>
+                                 </tr>
+                             )}
+                         </AnimatePresence>
+                     </tbody>
+                 </table>
             </div>
 
             <MasterListPagination

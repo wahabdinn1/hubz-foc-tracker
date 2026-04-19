@@ -23,14 +23,19 @@ async function DashboardFetcher() {
   return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
 }
 
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
+
 export default function Page() {
   return (
     <DashboardLayout>
-      <ErrorBoundary fallbackTitle="Failed to load dashboard">
+      <DashboardErrorBoundary 
+        fallbackTitle="Failed to load dashboard"
+        fallbackDescription="We encountered an issue while loading the dashboard. Please try refreshing the page."
+      >
         <Suspense fallback={<PageSkeleton />}>
           <DashboardFetcher />
         </Suspense>
-      </ErrorBoundary>
+      </DashboardErrorBoundary>
     </DashboardLayout>
   );
 }

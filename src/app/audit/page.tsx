@@ -3,7 +3,7 @@ import { getRequestHistory, getReturnHistory, getInventory } from "@/server/inve
 import { AuditLogTable } from "@/components/audit/AuditLogTable";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PinModal } from "@/components/shared/PinModal";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
@@ -36,11 +36,14 @@ async function AuditFetcher() {
 export default function AuditPage() {
     return (
         <DashboardLayout>
-            <ErrorBoundary fallbackTitle="Failed to load audit log">
+            <DashboardErrorBoundary 
+              fallbackTitle="Failed to load audit log"
+              fallbackDescription="We encountered an issue while loading the audit log. Please try refreshing the page."
+            >
                 <Suspense fallback={<PageSkeleton />}>
                     <AuditFetcher />
                 </Suspense>
-            </ErrorBoundary>
+            </DashboardErrorBoundary>
         </DashboardLayout>
     );
 }

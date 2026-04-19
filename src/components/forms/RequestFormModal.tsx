@@ -165,7 +165,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                         <span className="hidden sm:inline">New Request</span>
                     </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh]">
+            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Outbound (Request) Form</DialogTitle>
                 </DialogHeader>

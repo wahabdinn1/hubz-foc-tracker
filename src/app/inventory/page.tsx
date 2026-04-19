@@ -4,7 +4,7 @@ import { InventoryClient } from "@/components/inventory/InventoryClient";
 import { Suspense } from "react";
 import { PinModal } from "@/components/shared/PinModal";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { DashboardErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { isAuthenticated } from "@/lib/auth";
 import { PageSkeleton } from "@/components/shared/Skeletons";
 
@@ -31,11 +31,14 @@ export default function InventoryPage({
 }) {
     return (
         <DashboardLayout>
-            <ErrorBoundary fallbackTitle="Failed to load inventory">
+            <DashboardErrorBoundary 
+              fallbackTitle="Failed to load inventory"
+              fallbackDescription="We encountered an issue while loading the inventory. Please try refreshing the page."
+            >
                 <Suspense fallback={<PageSkeleton />}>
                     <InventoryFetcher searchParamsPromise={searchParams} />
                 </Suspense>
-            </ErrorBoundary>
+            </DashboardErrorBoundary>
         </DashboardLayout>
     );
 }

@@ -72,6 +72,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <BottomNavItem href="/inventory" icon={<Package className="w-5 h-5" />} label="Inventory" active={pathname.startsWith("/inventory")} />
                 <BottomNavItem href="/kol" icon={<Users className="w-5 h-5" />} label="KOL" active={pathname.startsWith("/kol")} />
                 <BottomNavItem href="/audit" icon={<History className="w-5 h-5" />} label="Audit" active={pathname.startsWith("/audit")} />
+                <BottomNavItem href="/faq" icon={<HelpCircle className="w-5 h-5" />} label="Help" active={pathname.startsWith("/faq")} />
                 <BottomNavItem href="/settings" icon={<Settings className="w-5 h-5" />} label="Settings" active={pathname.startsWith("/settings")} />
             </div>
 
