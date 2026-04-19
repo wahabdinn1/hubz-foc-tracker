@@ -220,14 +220,20 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 }
             }}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 transition-all">
-                    <Undo2 />
+                <Button className="bg-green-600 hover:bg-green-500 text-white gap-2 shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all">
+                    <Undo2 className="w-4 h-4" />
                     <span className="hidden sm:inline">Inbound (Return)</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Inbound (Return) Form</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                        <Undo2 className="w-5 h-5 text-green-500" />
+                        Inbound (Return) Form
+                    </DialogTitle>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                        Record the return of loaned devices. You can scan or select multiple units at once to batch process returns.
+                    </p>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-6 mt-4">
@@ -305,7 +311,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                             </div>
                         )}
 
-                        <Button type="submit" disabled={isSubmitting || selectedItems.length === 0} className="w-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all mt-6">
+                        <Button type="submit" disabled={isSubmitting || selectedItems.length === 0} className="w-full bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(22,163,74,0.3)] transition-all mt-6">
                             {isSubmitting
                                 ? "Submitting Return..."
                                 : selectedItems.length === 0
