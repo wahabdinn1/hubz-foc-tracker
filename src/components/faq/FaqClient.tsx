@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, BookOpen, Layers, ShieldCheck, MapPin, Search } from "lucide-react";
+import { ChevronDown, BookOpen, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,15 +57,6 @@ function AccordionItem({ item, isOpen, onClick }: { item: FaqItem, isOpen: boole
     </div>
   );
 }
-
-const faqIcons: Record<string, React.ReactNode> = {
-  intro: <BookOpen className="w-5 h-5 text-blue-500" />,
-  dashboard: <Layers className="w-5 h-5 text-purple-500" />,
-  outbound: <MapPin className="w-5 h-5 text-orange-500" />,
-  inbound: <ShieldCheck className="w-5 h-5 text-emerald-500" />,
-  transfer: <Search className="w-5 h-5 text-blue-500" />,
-  troubleshooting: <ChevronDown className="w-5 h-5 text-red-500" />,
-};
 
 export function FaqClient({ faqData }: { faqData: FaqData }) {
   const [lang, setLang] = useState<Language>("en");

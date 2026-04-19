@@ -8,7 +8,7 @@ const SEGMENTS = [
     { key: 'unreturn', label: 'Unreturn', color: '#f43f5e' },
 ] as const;
 
-export function DashboardDonutChart({
+export const DashboardDonutChart = React.memo(function DashboardDonutChart({
     availableCount,
     onKolCount,
     unreturnCount
@@ -49,11 +49,10 @@ export function DashboardDonutChart({
     }
 
     return (
-        <div className="h-[300px] w-full flex flex-col items-center justify-center bg-white/50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] backdrop-blur-xl rounded-2xl p-4 shadow-lg group hover:border-black/10 dark:hover:border-white/[0.15] transition-colors relative overflow-hidden">
-            <h3 className="w-full text-left font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Inventory Distribution</h3>
-
-            <div className="flex-1 flex items-center justify-center w-full">
-                <svg viewBox="0 0 200 200" className="w-[180px] h-[180px]" role="img" aria-label={`Inventory distribution: ${availableCount} Available, ${onKolCount} On KOL, ${unreturnCount} Unreturn out of ${total} total units`}>
+        <div className="w-full flex flex-row items-center gap-4 md:gap-6 bg-white/50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] backdrop-blur-xl rounded-2xl p-4 md:p-5 shadow-lg group hover:border-black/10 dark:hover:border-white/[0.15] transition-colors relative overflow-hidden">
+            {/* Compact Donut */}
+            <div className="shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 200 200" className="w-[120px] h-[120px] md:w-[140px] md:h-[140px]" role="img" aria-label={`Inventory distribution: ${availableCount} Available, ${onKolCount} On KOL, ${unreturnCount} Unreturn out of ${total} total units`}>
                     {/* Background ring */}
                     <circle
                         cx={center} cy={center} r={radius}
@@ -87,17 +86,29 @@ export function DashboardDonutChart({
                 </svg>
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-4 mt-2">
-                {SEGMENTS.map((seg, i) => (
-                    <div key={seg.key} className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: seg.color }} />
-                        <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300">
-                            {seg.label} ({values[i]})
-                        </span>
-                    </div>
-                ))}
+            {/* Title + Inline Legend */}
+            <div className="flex flex-col gap-2 min-w-0">
+                <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 transition-colors">Inventory Distribution</h3>
+                <div className="flex flex-col gap-1.5">
+                    {SEGMENTS.map((seg, i) => {
+                        const pct = total > 0 ? Math.round((values[i] / total) * 100) : 0;
+                        return (
+                            <div key={seg.key} className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap">
+                                    {seg.label}
+                                </span>
+                                <span className="text-xs font-bold text-neutral-900 dark:text-white tabular-nums">
+                                    {values[i]}
+                                </span>
+                                <span className="text-[10px] text-neutral-400 tabular-nums">
+                                    ({pct}%)
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
-}
+});

@@ -2,10 +2,11 @@
 
 import { useRef } from "react";
 import type { ReturnHistoryItem } from "@/types/inventory";
-import { Undo2, Calendar, User } from "lucide-react";
+import { Undo2, Calendar, User, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRouter } from "next/navigation";
 
 interface ReturnHistoryPanelProps {
     returnHistory: ReturnHistoryItem[];
@@ -13,6 +14,7 @@ interface ReturnHistoryPanelProps {
 
 export function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -62,9 +64,18 @@ export function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
                         </p>
                     </div>
                 </div>
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs font-bold px-3">
-                    {returnHistory.length} Total
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => router.push('/audit')}
+                        className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20"
+                    >
+                        View All
+                        <ExternalLink className="w-3 h-3" />
+                    </button>
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs font-bold px-3">
+                        {returnHistory.length} Total
+                    </Badge>
+                </div>
             </div>
 
             {/* Set max-height for ~5 items (84px * 5 ≈ 420px) */}

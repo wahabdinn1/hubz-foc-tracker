@@ -9,7 +9,7 @@ import { ArrowLeftRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { cn } from "@/lib/utils"
+
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -78,10 +78,10 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
         form.setValue("currentHolder", "");
     }
 
-    function resetFormState() {
+    const resetFormState = useCallback(() => {
         setSelectedCategory("");
         form.reset();
-    }
+    }, [form])
 
     const onInvalid = useScrollToFirstError()
 

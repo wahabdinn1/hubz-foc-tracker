@@ -27,7 +27,7 @@ describe("requestPayloadSchema", () => {
   });
 
   it("rejects missing username", () => {
-    const { username, ...noUsername } = validPayload;
+    const { username: _username, ...noUsername } = validPayload;
     const result = requestPayloadSchema.safeParse(noUsername);
     expect(result.success).toBe(false);
   });

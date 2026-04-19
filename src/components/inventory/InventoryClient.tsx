@@ -27,7 +27,7 @@ export function InventoryClient({ inventory, initialFilter }: { inventory: Inven
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
-    const [isPending, startTransition] = useTransition();
+    const [_isPending, startTransition] = useTransition();
     const isUpdatingUrl = useRef(false);
 
     const urlTab = searchParams.get("tab");

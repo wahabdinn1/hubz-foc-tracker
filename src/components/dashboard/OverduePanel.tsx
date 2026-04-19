@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { OverdueItem } from "@/types/inventory";
 import { AlertTriangle, Clock, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,7 @@ interface OverduePanelProps {
     overdueItems: OverdueItem[];
 }
 
-export function OverduePanel({ overdueItems }: OverduePanelProps) {
+export const OverduePanel = React.memo(function OverduePanel({ overdueItems }: OverduePanelProps) {
     if (overdueItems.length === 0) return null;
 
     // Show max 8 items
@@ -93,4 +94,4 @@ export function OverduePanel({ overdueItems }: OverduePanelProps) {
             </div>
         </motion.div>
     );
-}
+});

@@ -1,20 +1,14 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LayoutDashboard, Package, Users, History, HelpCircle, Settings } from "lucide-react";
+import { LayoutDashboard, Package, Users, History, HelpCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [desktopExpanded, setDesktopExpanded] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const pathname = usePathname();
-
-    useEffect(() => {
-        // eslint-disable-next-line
-        setMobileMenuOpen(false);
-    }, [pathname]);
 
     return (
         <div className="flex bg-neutral-50 dark:bg-neutral-950 min-h-screen w-full relative overflow-hidden font-sans selection:bg-blue-500/30 text-neutral-900 dark:text-neutral-50 transition-colors">

@@ -38,8 +38,8 @@ import {
 } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Calendar } from "@/components/ui/calendar";
-import { FOC_TYPES } from "@/lib/constants";
-import { getDeviceCategory, getCategoryIcon, extractFocType } from "@/lib/device-utils";
+
+import { getCategoryIcon, extractFocType } from "@/lib/device-utils";
 import type { InventoryItem } from "@/types/inventory";
 import { useDeviceCategories } from "@/hooks/useDeviceCategories";
 import { useDropdownOptions } from "@/hooks/useDropdownOptions";
@@ -64,7 +64,7 @@ export function RequestFormDeviceRow({
 
     const [selectedCategory, setSelectedCategory] = useState("");
     const [imeiPopoverOpen, setImeiPopoverOpen] = useState(false);
-    const [autoFilledFoc, setAutoFilledFoc] = useState<string | null>(null);
+
     const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
     const watchImei = useWatch({ name: `${prefix}.imeiIfAny` });
@@ -90,7 +90,7 @@ export function RequestFormDeviceRow({
         form.setValue(`${prefix}.imeiIfAny`, "");
         form.setValue(`${prefix}.unitName`, "");
         form.setValue(`${prefix}.typeOfFoc`, "");
-        setAutoFilledFoc(null);
+
     }
     
     const { options: deliveryOptions, isLoading: loadingDelivery } = useDropdownOptions("DELIVERY_TYPE");
@@ -235,7 +235,7 @@ export function RequestFormDeviceRow({
                                                             `${prefix}.typeOfFoc`,
                                                             ""
                                                         );
-                                                        setAutoFilledFoc(null);
+
                                                         setImeiPopoverOpen(false);
                                                     }}
                                                     className="italic text-neutral-500"
@@ -276,9 +276,6 @@ export function RequestFormDeviceRow({
                                                                         shouldValidate:
                                                                             true,
                                                                     }
-                                                                );
-                                                                setAutoFilledFoc(
-                                                                    focType
                                                                 );
                                                             }
                                                             setImeiPopoverOpen(

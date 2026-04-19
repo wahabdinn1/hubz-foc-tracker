@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { returnUnit, returnUnits } from "@/server/mutations"
 import type { InventoryItem } from "@/types/inventory"
 import { ReturnPayload } from "@/lib/validations"
-import { FOC_TYPES, EMAIL_DOMAIN } from "@/lib/constants"
+
 import { cn } from "@/lib/utils"
 import { MultiImeiReturnSelector } from "./MultiImeiReturnSelector"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"

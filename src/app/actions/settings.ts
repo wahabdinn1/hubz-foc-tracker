@@ -190,7 +190,7 @@ export async function updateCCRecipient(
 }
 
 import { dropdownOptions, type DropdownOption } from "@/db/schema";
-import { and } from "drizzle-orm";
+
 
 export async function getDropdownOptions(category?: string): Promise<DropdownOption[]> {
   try {

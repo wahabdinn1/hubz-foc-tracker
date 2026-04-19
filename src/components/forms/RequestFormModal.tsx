@@ -74,9 +74,9 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         return imeis
     }, [watchedDevices])
 
-    function resetFormState() {
+    const resetFormState = useCallback(() => {
         form.reset()
-    }
+    }, [form])
 
     async function onSubmit(values: z.infer<typeof requestFormSchema>) {
         setIsSubmitting(true)

@@ -58,6 +58,9 @@ export function useInventoryStats(inventory: InventoryItem[], dateRange?: Dashbo
 
         for (const item of inventory) {
             if (isStatusReturnToTcc(item.statusLocation)) continue;
+            // Also exclude items that have a RETURN TO TCC receipt (Column L is filled)
+            const tccReceipt = item.step1Data?.returnToTccReceipt?.trim();
+            if (tccReceipt && tccReceipt !== "" && tccReceipt !== "-") continue;
             const hasReturnDate = item.plannedReturnDate && item.plannedReturnDate.trim() !== "" && item.plannedReturnDate.toUpperCase() !== "N/A";
             if (!hasReturnDate) continue;
 

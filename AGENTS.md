@@ -99,7 +99,35 @@
 - Duration: 200–300ms. Stagger: 0.05s. Max hover scale: scale-[1.01]
 
 ### React.memo
-- Memoize: Scorecard, table rows, KOL profile cards.
+- Memoize: Scorecard, table rows, KOL profile cards, OverduePanel, ActivityFeed, DashboardDonutChart.
+- All list-rendering panels that receive array props MUST be wrapped in `React.memo`.
+
+### Component Architecture (Single Responsibility)
+- NEVER mix >1 concern in a single component (state + date logic + render layout + animation config).
+- Extract reusable UI widgets (e.g., DateRangePicker, FilterBar) into their own files.
+- Business logic (urgency calculation, progress bars, status derivation) MUST live in `lib/` utils, NOT inline in JSX.
+- Animation variants MUST be extracted as module-level constants, never defined inside render functions.
+
+### Dashboard Layout Guidelines
+- **Urgency-first ordering:** OverduePanel MUST appear directly below Scorecards, NOT at the bottom.
+- **Information hierarchy:** Urgent > Primary content (ReturnTracking) > Secondary (Donut + Feed) > Historical.
+- **No dead panels:** Every component in `components/dashboard/` MUST be imported and rendered somewhere.
+- **Compact charts:** DonutChart uses horizontal layout (donut + inline legend side-by-side), NOT tall vertical stacks.
+- **Quick-action CTAs:** Scorecards MUST have onClick navigation to filtered inventory views.
+
+### Error Boundaries
+- The top-level page wraps `DashboardClient` in `ErrorBoundary`.
+- Each independent panel (OverduePanel, ReturnTrackingTable, DonutChart, ActivityFeed, ReturnHistoryPanel) MUST also be wrapped in its own `ErrorBoundary` inside `DashboardClient`.
+- Use `fallbackTitle` prop to give context-specific error messages per panel.
+
+### Responsiveness
+- NEVER use fixed pixel heights for charts (e.g., `h-[300px]`). Use responsive containers.
+- SVG charts MUST use responsive `viewBox` + relative sizing (e.g., `w-[120px] md:w-[140px]`).
+- All grid layouts MUST adapt from single-column mobile to multi-column desktop.
+
+### Dead Code Prevention
+- Every file in `components/dashboard/` MUST be actively imported and used.
+- Run periodic audits: unused component files = tech debt. Delete or integrate immediately.
 
 ---
 
@@ -186,3 +214,7 @@
 - ❌ Hardcode sheet names (use SHEETS constants)
 - ❌ Skip isAuthenticated() in mutations
 - ❌ Cache sensitive data (PINs, JWTs) in unstable_cache
+- ❌ Define animation variants inside render functions (extract to module constants)
+- ❌ Place urgent panels (Overdue) below non-urgent content on the dashboard
+- ❌ Leave unused component files in `components/dashboard/`
+- ❌ Use fixed pixel heights for charts without responsive fallbacks

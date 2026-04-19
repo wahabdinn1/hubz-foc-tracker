@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, ReactNode } from "react";
+import React, { useCallback, ReactNode } from "react";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { cn } from "@/lib/utils";
 

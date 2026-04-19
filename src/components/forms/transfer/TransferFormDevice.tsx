@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import { getDeviceCategory, getCategoryIcon, extractFocType } from "@/lib/device-utils"
+import { getCategoryIcon, extractFocType } from "@/lib/device-utils"
 import type { InventoryItem } from "@/types/inventory"
 import { useDropdownOptions } from "@/hooks/useDropdownOptions"
 

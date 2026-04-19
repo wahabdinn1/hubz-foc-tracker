@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Clock, Smartphone, CheckCircle } from "lucide-react";
 import { isItemOverdue } from "@/lib/date-utils";
+import { calculateUrgencyProgress } from "@/lib/device-utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
@@ -48,38 +49,7 @@ export function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: Retur
                             const item = topUrgentReturns[idx];
                             const isAsap = item.plannedReturnDate?.toUpperCase() === 'ASAP';
                             const overdue = isItemOverdue(item);
-
-                            let progressPercent = 0;
-                            let progressColor = "bg-neutral-500";
-
-                            if (isAsap || overdue) {
-                                progressPercent = 100;
-                                progressColor = "bg-red-500";
-                            } else if (item.plannedReturnDate) {
-                                const urgency = (() => {
-                                    const d = new Date(item.plannedReturnDate);
-                                    if (isNaN(d.getTime())) return null;
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
-                                    return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                                })();
-
-                                if (urgency !== null) {
-                                    if (urgency > 14) {
-                                        progressPercent = 20;
-                                        progressColor = "bg-green-500";
-                                    } else if (urgency > 7) {
-                                        progressPercent = 50;
-                                        progressColor = "bg-blue-500";
-                                    } else if (urgency > 3) {
-                                        progressPercent = 80;
-                                        progressColor = "bg-orange-500";
-                                    } else {
-                                        progressPercent = 95;
-                                        progressColor = "bg-red-400";
-                                    }
-                                }
-                            }
+                            const { percent: progressPercent, color: progressColor } = calculateUrgencyProgress(item);
 
                             return (
                                 <div

@@ -1,19 +1,21 @@
 "use client";
 
-import { useRef } from "react";
+import React, { useRef } from "react";
 import type { InventoryItem } from "@/types/inventory";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { History, ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon } from "lucide-react";
+import { History, ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
 import { isStatusAvailable } from "@/lib/constants";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRouter } from "next/navigation";
 
 interface ActivityFeedProps {
     recentActivity: InventoryItem[];
 }
 
-export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
+export const ActivityFeed = React.memo(function ActivityFeed({ recentActivity }: ActivityFeedProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -29,10 +31,17 @@ export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                     <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-tight transition-colors">Recent Activity</h2>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm transition-colors">Latest logistical movements</p>
                 </div>
+                <button
+                    onClick={() => router.push('/audit')}
+                    className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20"
+                >
+                    View All
+                    <ExternalLink className="w-3 h-3" />
+                </button>
             </div>
 
             {/* Set max-height for ~5 items (140px * 5 ≈ 700px) */}
@@ -121,4 +130,4 @@ export function ActivityFeed({ recentActivity }: ActivityFeedProps) {
             </div>
         </div>
     );
-}
+});

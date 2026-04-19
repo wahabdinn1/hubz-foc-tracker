@@ -219,6 +219,7 @@ export function AuditLogTable({ requests, returns }: AuditLogTableProps) {
         },
     ], []);
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const table = useReactTable({
         data: filteredData,
         columns,

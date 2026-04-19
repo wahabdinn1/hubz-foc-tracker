@@ -81,6 +81,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
     }, [urlSort, urlDir]);
 
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(() => {
         const p = parseInt(urlPage, 10);
         return p > 0 ? p : 1;
@@ -241,7 +242,14 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
         });
     }, [inventory, statusFilter, locationFilter]);
 
-    // eslint-disable-next-line react-hooks/incompatible-library
+    // Reset page to 1 when filters or search change
+    useEffect(() => {
+        setCurrentPage(1);
+        syncUrl({ page: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [statusFilter, locationFilter]);
+
+
     const table = useReactTable({
         data: filteredData,
         columns,
@@ -249,8 +257,8 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             sorting,
             globalFilter,
             pagination: {
-                pageIndex: currentPage - 1,
-                pageSize: 10,
+                pageIndex: Math.min(currentPage - 1, Math.max(0, Math.ceil(filteredData.length / rowsPerPage) - 1)),
+                pageSize: rowsPerPage,
             },
         },
         onSortingChange: handleSortingChange,
@@ -362,11 +370,15 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             </div>
 
             <MasterListPagination
-                currentPage={currentPage}
+                currentPage={Math.min(currentPage, table.getPageCount() || 1)}
                 setCurrentPage={handlePageChange}
                 totalPages={table.getPageCount()}
-                rowsPerPage={10}
-                setRowsPerPage={() => {}}
+                rowsPerPage={rowsPerPage}
+                setRowsPerPage={(size: number) => {
+                    setRowsPerPage(size);
+                    setCurrentPage(1);
+                    syncUrl({ page: null });
+                }}
             />
         </div>
     );
