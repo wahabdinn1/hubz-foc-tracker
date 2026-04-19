@@ -20,13 +20,6 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {
     Command,
     CommandEmpty,
     CommandGroup,
@@ -34,12 +27,13 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command"
-import { FOC_TYPES } from "@/lib/constants"
+
 import { useState } from "react"
 import { useDropdownOptions } from "@/hooks/useDropdownOptions"
 
 export function TransferFormDetails() {
     const form = useFormContext()
+    const watchImei = form.watch("imei")
     const watchCampaign = form.watch("campaignName")
     const [datePopoverOpen, setDatePopoverOpen] = useState(false)
     const [campaignPopoverOpen, setCampaignPopoverOpen] = useState(false)
@@ -49,36 +43,30 @@ export function TransferFormDetails() {
 
     return (
         <>
-            <FormField
-                control={form.control}
-                name="typeOfFoc"
-                render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                            Type of FOC
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+            {watchImei && (
+                <FormField
+                    control={form.control}
+                    name="typeOfFoc"
+                    render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                Type of FOC
+                            </FormLabel>
                             <FormControl>
-                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder="Select FOC Type" />
-                                </SelectTrigger>
+                                <Input
+                                    value={field.value || ""}
+                                    readOnly
+                                    className="bg-neutral-100 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors opacity-70 cursor-not-allowed"
+                                />
                             </FormControl>
-                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {FOC_TYPES.map((type) => (
-                                    <SelectItem
-                                        key={type}
-                                        value={type}
-                                        className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer"
-                                    >
-                                        {type}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-400" />
-                    </FormItem>
-                )}
-            />
+                            <p className="text-xs text-blue-500 mt-1">
+                                Auto-filled from spreadsheet data
+                            </p>
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
 
             <div className="md:col-span-2 border-t border-neutral-200 dark:border-neutral-800 pt-4 mt-2">
                 <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">

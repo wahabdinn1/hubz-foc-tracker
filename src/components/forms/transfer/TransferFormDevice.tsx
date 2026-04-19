@@ -1,6 +1,8 @@
 "use client"
 
+import { useMemo } from "react"
 import { useFormContext } from "react-hook-form"
+
 import { Check, ChevronsUpDown, Layers, Smartphone, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -60,66 +62,21 @@ export function TransferFormDevice({
     const watchImei = form.watch("imei")
     const watchCurrentHolder = form.watch("currentHolder")
     
-    const { options: requestorOptions, isLoading: loadingRequestors } = useDropdownOptions("REQUESTOR");
-    const displayRequestors = [...new Set([...requestorOptions.map(o => o.value), "Other"])];
+    const { options: requestorOptions } = useDropdownOptions("REQUESTOR");
+    const watchRequestorValue = form.watch("requestor");
+    const displayRequestors = useMemo(() => {
+        const base = [...requestorOptions.map(o => o.value), "Other"];
+        const unique = [...new Set(base)];
+        if (watchRequestorValue && !unique.includes(watchRequestorValue)) {
+            return [watchRequestorValue, ...unique];
+        }
+        return unique;
+    }, [requestorOptions, watchRequestorValue]);
+
+
 
     return (
         <>
-            <FormField
-                control={form.control}
-                name="requestor"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                            Requestor
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={loadingRequestors}>
-                            <FormControl>
-                                <SelectTrigger className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors">
-                                    <SelectValue placeholder={loadingRequestors ? "Loading requestors..." : "Select Requestor"} />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
-                                {displayRequestors.map((req) => (
-                                    <SelectItem
-                                        key={req}
-                                        value={req}
-                                        className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer"
-                                    >
-                                        {req}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-400" />
-                    </FormItem>
-                )}
-            />
-
-            {requestor === "Other" ? (
-                <FormField
-                    control={form.control}
-                    name="customRequestor"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                                Custom Requestor
-                            </FormLabel>
-                            <FormControl>
-                                <Input
-                                    placeholder="Enter custom name"
-                                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage className="text-red-400" />
-                        </FormItem>
-                    )}
-                />
-            ) : (
-                <div className="hidden md:block" />
-            )}
-
             <FormItem className="flex flex-col">
                 <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
                     <span className="flex items-center gap-1.5">
@@ -206,6 +163,14 @@ export function TransferFormDevice({
                                                         field.onChange(item.imei);
                                                         form.setValue("unitName", item.unitName || "");
                                                         form.setValue("currentHolder", item.onHolder || "");
+                                                        
+                                                        // Auto-fill requestor if available in Step 3 data
+                                                        if (item.step3Data?.requestor) {
+                                                            form.setValue("requestor", item.step3Data.requestor);
+                                                        } else {
+                                                            form.setValue("requestor", "");
+                                                        }
+
                                                         const focType = extractFocType(item);
                                                         if (focType) {
                                                             form.setValue("typeOfFoc", focType, { shouldValidate: true });
@@ -240,58 +205,123 @@ export function TransferFormDevice({
                 )}
             />
 
-            <FormField
-                control={form.control}
-                name="unitName"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                            Unit Name
-                        </FormLabel>
-                        <FormControl>
-                            <Input
-                                placeholder="Auto-filled from selection"
-                                className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500 disabled:opacity-60"
-                                disabled={!!watchImei}
-                                {...field}
-                            />
-                        </FormControl>
-                        {watchImei && (
-                            <p className="text-xs text-blue-500 mt-1">Auto-filled from selected unit</p>
-                        )}
-                        <FormMessage className="text-red-400" />
-                    </FormItem>
-                )}
-            />
+            {watchImei && (
+                <FormField
+                    control={form.control}
+                    name="requestor"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                Requestor (from original request)
+                            </FormLabel>
+                            <Select 
+                                onValueChange={field.onChange} 
+                                value={field.value || undefined} 
+                                disabled={!!field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger className={cn(
+                                        "bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors",
+                                        field.value && "bg-neutral-100 opacity-70 cursor-not-allowed"
+                                    )}>
+                                        <SelectValue placeholder={field.value || "No requestor data found"} />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 transition-colors">
+                                    {displayRequestors.map((req) => (
+                                        <SelectItem
+                                            key={req}
+                                            value={req}
+                                            className="hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:bg-neutral-100 dark:focus:bg-neutral-800 focus:text-neutral-900 dark:focus:text-white transition-colors cursor-pointer"
+                                        >
+                                            {req}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
 
-            <FormField
-                control={form.control}
-                name="currentHolder"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
-                            <span className="flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5" />
-                                Current Holder (KOL 1)
-                            </span>
-                        </FormLabel>
-                        <FormControl>
-                            <Input
-                                placeholder="Auto-filled from selection"
-                                className="bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-neutral-900 dark:text-neutral-100 transition-colors disabled:opacity-80 font-medium"
-                                disabled
-                                {...field}
-                            />
-                        </FormControl>
-                        {watchCurrentHolder && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                Device will be returned from this KOL
-                            </p>
-                        )}
-                        <FormMessage className="text-red-400" />
-                    </FormItem>
-                )}
-            />
+            {watchImei && requestor === "Other" && (
+                <FormField
+                    control={form.control}
+                    name="customRequestor"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                Custom Requestor
+                            </FormLabel>
+                            <FormControl>
+                                <Input
+                                    placeholder="Enter custom name"
+                                    className="bg-neutral-50 dark:bg-neutral-950 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors focus-visible:ring-blue-500"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
+
+            {watchImei && (
+                <FormField
+                    control={form.control}
+                    name="unitName"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                Unit Name
+                            </FormLabel>
+                            <FormControl>
+                                <Input
+                                    placeholder="Auto-filled from selection"
+                                    className="bg-neutral-100 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 transition-colors opacity-70 cursor-not-allowed"
+                                    readOnly
+                                    {...field}
+                                />
+                            </FormControl>
+                            <p className="text-xs text-blue-500 mt-1">Auto-filled from selected unit</p>
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
+
+            {watchImei && (
+                <FormField
+                    control={form.control}
+                    name="currentHolder"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-neutral-700 dark:text-neutral-300 transition-colors">
+                                <span className="flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" />
+                                    Current Holder (KOL 1)
+                                </span>
+                            </FormLabel>
+                            <FormControl>
+                                <Input
+                                    placeholder="Auto-filled from selection"
+                                    className="bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-neutral-900 dark:text-neutral-100 transition-colors opacity-80 cursor-not-allowed font-medium"
+                                    readOnly
+                                    {...field}
+                                />
+                            </FormControl>
+                            {watchCurrentHolder && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                    Device will be transferred from this KOL
+                                </p>
+                            )}
+                            <FormMessage className="text-red-400" />
+                        </FormItem>
+                    )}
+                />
+            )}
+
         </>
     )
 }
