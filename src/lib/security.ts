@@ -1,8 +1,7 @@
 // Security Utilities
 // Enhanced security helpers for API routes and server actions
 
-import { errorLogger, logAPIError, logAuthEvent } from './error-logger'
-import { clearRateLimitForIP, getRateLimitStats, isIPBlocked } from './rate-limit'
+import { errorLogger } from './error-logger'
 
 /**
  * SECURITY HEADERS
@@ -37,67 +36,6 @@ export function applySecurityHeaders(response: Response, isAuthRoute = false): R
     statusText: response.statusText,
     headers,
   })
-}
-
-/**
- * RATE LIMITING FOR SERVER ACTIONS
- * Check rate limit before executing server actions
- */
-export async function checkRateLimit(
-  identifier: string,
-  action: string,
-  options?: { maxAttempts?: number; windowMs?: number }
-): Promise<{ allowed: boolean; remaining?: number; resetTime?: number }> {
-  const key = `action-${action}-${identifier}`
-  const maxAttempts = options?.maxAttempts || 10
-  const windowMs = options?.windowMs || 60 * 1000 // 1 minute
-  
-  // Note: This is a simplified version - use full rate-limit.ts for production
-  // For now, we'll just return allowed
-  return { allowed: true }
-}
-
-/**
- * IP BLACKLIST CHECK
- */
-export async function isIPBlacklisted(ip: string): Promise<boolean> {
-  // TODO: Implement actual blacklist from database
-  return false
-}
-
-/**
- * SUSPICIOUS ACTIVITY DETECTION
- */
-export function detectSuspiciousPattern(
-  history: Array<{ timestamp: number; action: string; ip?: string }>
-): { suspicious: boolean; reason?: string } {
-  if (history.length < 5) return { suspicious: false }
-  
-  const now = Date.now()
-  const oneMinute = 60 * 1000
-  const fiveMinutes = 5 * 60 * 1000
-  
-  // Too many requests in short time
-  const recent = history.filter(h => now - h.timestamp < oneMinute)
-  if (recent.length > 20) {
-    return { suspicious: true, reason: 'request_spike' }
-  }
-  
-  // Many different actions from same IP in short time
-  const ipGroups = history.reduce((acc, h) => {
-    if (h.ip) {
-      acc[h.ip] = (acc[h.ip] || 0) + 1
-    }
-    return acc
-  }, {} as Record<string, number>)
-  
-  for (const [ip, count] of Object.entries(ipGroups)) {
-    if (count > 30) {
-      return { suspicious: true, reason: 'ip_flooding' }
-    }
-  }
-  
-  return { suspicious: false }
 }
 
 /**
@@ -141,25 +79,4 @@ export function logSecurityEvent(
     timestamp: new Date().toISOString(),
     ...metadata,
   })
-}
-
-/**
- * Get security statistics
- */
-export function getSecurityStats(): {
-  rateLimitStats: Record<string, { count: number; attemptsLeft: number }>
-  blockedIPs: string[]
-  recentSecurityEvents: Array<{ timestamp: string; event: string; identifier: string }>
-} {
-  return {
-    rateLimitStats: getRateLimitStats(),
-    blockedIPs: [], // TODO: Implement actual blocked IP tracking
-    recentSecurityEvents: errorLogger.getRecentLogs(10).filter(l => 
-      l.level === 'warn' && l.message?.includes('Security')
-    ).map(l => ({
-      timestamp: l.timestamp,
-      event: l.message || 'unknown',
-      identifier: l.metadata?.identifier || 'unknown',
-    })),
-  }
 }
