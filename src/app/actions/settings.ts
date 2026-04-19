@@ -7,6 +7,8 @@ import { ccRecipients, type CCRecipient } from "@/db/schema";
 import type { ActionResult } from "@/types/inventory";
 import { timingSafeEqual } from "@/lib/crypto";
 import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } from "@/lib/rate-limit";
+import { sheets } from "@/server/google";
+import { sql } from "drizzle-orm";
 
 const SETTINGS_COOKIE_NAME = "settings_unlocked";
 const SETTINGS_COOKIE_MAX_AGE = 60 * 60;
@@ -54,6 +56,47 @@ export async function verifySettingsPin(pin: string): Promise<ActionResult> {
 export async function isSettingsUnlocked(): Promise<boolean> {
   const cookieStore = await cookies();
   return cookieStore.has(SETTINGS_COOKIE_NAME);
+}
+
+export interface SystemHealth {
+  supabase: "healthy" | "unhealthy";
+  googleSheets: "healthy" | "unhealthy";
+  mailer: "healthy" | "unhealthy";
+  lastChecked: string;
+}
+
+export async function getSystemHealth(): Promise<SystemHealth> {
+  const health: SystemHealth = {
+    supabase: "unhealthy",
+    googleSheets: "unhealthy",
+    mailer: "unhealthy",
+    lastChecked: new Date().toISOString(),
+  };
+
+  // Check Supabase
+  try {
+    await db.execute(sql`SELECT 1`);
+    health.supabase = "healthy";
+  } catch (error) {
+    console.error("[HEALTH] Supabase connection failed:", error);
+  }
+
+  // Check Google Sheets
+  try {
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    if (spreadsheetId) {
+      await sheets.spreadsheets.get({ spreadsheetId });
+      health.googleSheets = "healthy";
+    }
+  } catch (error) {
+    console.error("[HEALTH] Google Sheets API failed:", error);
+  }
+
+  // Check Mailer Config
+  const hasMailerEnv = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.ADMIN_EMAIL);
+  health.mailer = hasMailerEnv ? "healthy" : "unhealthy";
+
+  return health;
 }
 
 export async function getCCRecipients(): Promise<CCRecipient[]> {
