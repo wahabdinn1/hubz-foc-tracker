@@ -14,29 +14,47 @@ interface ReturnTrackingProps {
 
 export const ReturnTrackingTable = React.memo(function ReturnTrackingTable({ topUrgentReturns, setSelectedItem }: ReturnTrackingProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [displayCount, setDisplayCount] = React.useState(8);
+
+    const displayedData = React.useMemo(() => 
+        topUrgentReturns.slice(0, displayCount), 
+    [topUrgentReturns, displayCount]);
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
-        count: topUrgentReturns.length,
+        count: displayedData.length,
         getScrollElement: () => scrollRef.current,
         estimateSize: () => 92, // Approximate height of each item
-        overscan: 5,
+        overscan: 4,
     });
 
+    // Detect when scrolling near the bottom to load more
+    const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop - clientHeight < 200 && displayCount < topUrgentReturns.length) {
+            setDisplayCount(prev => Math.min(prev + 8, topUrgentReturns.length));
+        }
+    };
+
     return (
-        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-3 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col min-h-[50vh] max-h-[60vh] md:min-h-[500px] md:max-h-[640px] transition-colors">
+        <div className="bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-2xl md:rounded-3xl p-3 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col h-[480px] md:h-[500px] transition-colors">
             <div className="flex items-center gap-3 mb-6 shrink-0">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
                     <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h2 className="text-xl font-bold text-neutral-900 dark:text-white tracking-tight transition-colors">Return FOC Tracking</h2>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm transition-colors">Comprehensive view of devices due back</p>
                 </div>
+                {displayCount < topUrgentReturns.length && (
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest bg-neutral-100 dark:bg-white/5 px-2 py-1 rounded-full">
+                        {displayCount} of {topUrgentReturns.length}
+                    </span>
+                )}
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
-                {topUrgentReturns.length > 0 ? (
+            <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+                {displayedData.length > 0 ? (
                     <div 
                         style={{ 
                             height: `${rowVirtualizer.getTotalSize()}px`, 
@@ -46,7 +64,7 @@ export const ReturnTrackingTable = React.memo(function ReturnTrackingTable({ top
                     >
                         {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                             const idx = virtualItem.index;
-                            const item = topUrgentReturns[idx];
+                            const item = displayedData[idx];
                             const isAsap = item.plannedReturnDate?.toUpperCase() === 'ASAP';
                             const overdue = isItemOverdue(item);
                             const { percent: progressPercent, color: progressColor } = calculateUrgencyProgress(item);
