@@ -28,6 +28,7 @@ import { RequestFormDeviceRow } from "./request/RequestFormDeviceRow"
 import { DiscardGuardDialog } from "@/components/shared/DiscardGuardDialog"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
 import { hasFilledFields } from "@/hooks/useHasFilledFields"
+import { useFormPersistence } from "@/hooks/useFormPersistence"
 
 export function RequestFormModal({ availableItems }: { availableItems: InventoryItem[] }) {
     const router = useRouter()
@@ -57,6 +58,8 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
             ],
         },
     })
+
+    const { clearDraft } = useFormPersistence("request-form", form)
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -97,7 +100,7 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
             const result = await requestUnits(payload)
 
             if (result.success) {
-                resetFormState()
+                clearDraft()
                 setOpen(false)
                 toast.success("Request submitted successfully", {
                     description: `${payload.devices.length} device(s) synced with Google Sheets...`,
@@ -135,7 +138,8 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
         setShowDiscardDialog(false)
         setOpen(false)
         resetFormState()
-    }, [resetFormState])
+        clearDraft()
+    }, [resetFormState, clearDraft])
 
     return (
         <>

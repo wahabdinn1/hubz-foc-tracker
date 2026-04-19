@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -31,6 +31,7 @@ import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
 import { resolveFocTypeWithMatch } from "@/lib/form-utils"
 import { hasFilledFields } from "@/hooks/useHasFilledFields"
+import { useFormPersistence } from "@/hooks/useFormPersistence"
 
 const returnFormSchema = z.object({
     username: z.string().min(1, "Username is required"),
@@ -94,6 +95,41 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
 
     const onInvalid = useScrollToFirstError()
 
+    const { clearDraft } = useFormPersistence("return-form", form)
+
+    // Also persist selectedItems (since it's not part of the RHF form state)
+    useEffect(() => {
+        const saved = localStorage.getItem("return-selected-items")
+        if (saved) {
+            try {
+                const { items, timestamp } = JSON.parse(saved)
+                if (Date.now() - timestamp < 60000) {
+                    setSelectedItems(items)
+                } else {
+                    localStorage.removeItem("return-selected-items")
+                }
+            } catch (e) {
+                console.error("Failed to load selected items draft", e)
+            }
+        }
+    }, [])
+
+    useEffect(() => {
+        if (selectedItems.length > 0) {
+            localStorage.setItem("return-selected-items", JSON.stringify({
+                items: selectedItems,
+                timestamp: Date.now()
+            }))
+        } else {
+            localStorage.removeItem("return-selected-items")
+        }
+    }, [selectedItems])
+
+    const clearAllDrafts = useCallback(() => {
+        clearDraft()
+        localStorage.removeItem("return-selected-items")
+    }, [clearDraft])
+
     async function onSubmit(values: ReturnFormValues) {
         if (selectedItems.length === 0) {
             toast.error("No units selected", {
@@ -113,6 +149,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                     toast.success("Return logged — syncing with Google Sheets...")
                     form.reset()
                     setSelectedItems([])
+                    clearAllDrafts()
                     setOpen(false)
                     router.refresh()
                 } else {
@@ -136,6 +173,7 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 toast.success(`Successfully returned ${selectedItems.length} units.`)
                 form.reset()
                 setSelectedItems([])
+                clearAllDrafts()
                 setOpen(false)
                 router.refresh()
             } else {
@@ -157,7 +195,8 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
         setOpen(false)
         form.reset()
         setSelectedItems([])
-    }, [form])
+        clearAllDrafts()
+    }, [form, clearAllDrafts])
 
     return (
         <>

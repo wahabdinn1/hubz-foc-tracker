@@ -29,6 +29,7 @@ import { UsernameEmailInput } from "./shared/UsernameEmailInput"
 import { useScrollToFirstError } from "@/hooks/useScrollToFirstError"
 import { useDeviceCategories } from "@/hooks/useDeviceCategories"
 import { hasFilledFields } from "@/hooks/useHasFilledFields"
+import { useFormPersistence } from "@/hooks/useFormPersistence"
 import { TransferFormDevice } from "./transfer/TransferFormDevice"
 import { TransferFormNewKol } from "./transfer/TransferFormNewKol"
 import { TransferFormDetails } from "./transfer/TransferFormDetails"
@@ -67,6 +68,8 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
             customCampaign: "",
         },
     });
+    
+    const { clearDraft } = useFormPersistence("transfer-form", form)
 
     const watchRequestor = form.watch("requestor");
 
@@ -97,7 +100,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
             const result = await transferUnit(payload);
 
             if (result.success) {
-                resetFormState();
+                clearDraft();
                 setOpen(false);
                 toast.success("Transfer submitted successfully", {
                     description: `${values.unitName} transferred from ${values.currentHolder} to ${values.kol2Name}. Syncing with Google Sheets...`,
@@ -138,7 +141,8 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
         setShowDiscardDialog(false)
         setOpen(false)
         resetFormState()
-    }, [resetFormState])
+        clearDraft()
+    }, [resetFormState, clearDraft])
 
     return (
         <>
