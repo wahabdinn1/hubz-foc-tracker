@@ -355,6 +355,7 @@ Requestors appear in the "Requestor" dropdown on both the Outbound (Request) and
 5. Save the file. All forms will update automatically.
 
 > **Note:** The `resolveRequestorWithFallback()` function in `lib/form-utils.ts` handles case-insensitive matching against this array. No backend or validation changes are needed — the Zod schema only requires `requestor` to be a non-empty string.
+> **Transfer Form Note:** The Transfer form **auto-fills** the requestor from Column C of the "Step 3 FOC Request" sheet. If a value is auto-filled that isn't in the `REQUESTORS` array, it is dynamically added to the dropdown options to ensure data visibility.
 
 ---
 
@@ -496,14 +497,20 @@ The main grid uses a **2-column CSS grid** (`grid-cols-1 md:grid-cols-2`). To ch
 
 **Type of FOC** is rendered inside `RequestFormDevice` and appears inline next to **Unit Name** — but only after an IMEI is selected. When no IMEI is chosen, Unit Name spans the full width (`md:col-span-2`). When an IMEI is selected, Unit Name shrinks to a single column and Type of FOC appears in the adjacent column with its auto-filled value.
 
-The Transfer form follows the same pattern with sub-components in `src/components/forms/transfer/`:
+The Transfer form follows the same pattern with sub-components (mostly in `src/components/forms/transfer/`):
 
 ```tsx
-<UsernameEmailInput />
+<UsernameEmailInput /> // Shared component for user identification
 <TransferFormDevice ... />
 <TransferFormDetails />
 <TransferFormNewKol />
 ```
+
+**TransferFormDevice** is optimized for data integrity:
+- **Category & IMEI** are prioritized at the top.
+- **Requestor, Unit Name, and Current Holder** appear below only after an IMEI is selected.
+- **Auto-filled fields** (Requestor, Unit Name) are `disabled` or `readOnly` to preserve historical record accuracy.
+- **Requestor logic** uses `useMemo` to dynamically inject auto-filled values into the selection options if they are missing from the standard dropdown.
 
 To change individual fields within a group, edit the corresponding sub-component file. Each `<FormItem>` can use `className="md:col-span-2"` to take up the full width or omit it to take up a single column.
 

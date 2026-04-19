@@ -13,10 +13,12 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 - **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
 - **Forms** — Outbound (loan request), Inbound (return), and Direct Transfer modals with:
   - 2-step device selection (Category → Unit/IMEI)
+  - **Transfer Form Optimization** — Restored top-level Category/IMEI selection; auto-fills Requestor, Unit Name, and Current Holder; conditional visibility for device details after IMEI selection.
+  - **Requestor Auto-fill** — Automatically resolves and displays the original requestor from the Step 3 FOC Request sheet (Column C); includes dynamic option injection for historical data persistence.
   - **Type of FOC** displayed inline next to Unit Name, visible only after IMEI selection, auto-filled from spreadsheet data
   - **Multi-unit requests** — add multiple device rows per submission via `useFieldArray`; batch write to Google Sheets with `sendFocBatchNotification`
   - **Multi-unit returns** — select multiple loaned devices at once; per-item data auto-resolved from Step 3 sheet
-  - Standardized **Campaign Dropdowns** with "Other" fallback
+
   - Precise `writeToNextRow` logic with GMT+7 timestamping
   - **Auto-expanding Sheets** — automatically provisions additional rows via `batchUpdate` before writing if the spreadsheet reaches its grid limit, permanently bypassing the "Range exceeds grid limits" error.
 - **Settings** — Admin-only page for managing CC email recipients. PIN-protected with a separate session cookie (1-hour expiry). Full CRUD: add/delete emails via UI, including **Bulk Addition** with comma/newline support and client-side duplicate prevention. Stored in Supabase via Drizzle ORM. The mailer dynamically queries the database for CC recipients with fallback to `CC_EMAILS` env var.
