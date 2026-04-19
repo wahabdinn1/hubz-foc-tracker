@@ -44,6 +44,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 import { PwaProvider } from "@/components/layout/PwaProvider";
 
@@ -62,6 +63,7 @@ export default function RootLayout({
           {children}
           <Toaster theme="system" />
           <SpeedInsights />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>

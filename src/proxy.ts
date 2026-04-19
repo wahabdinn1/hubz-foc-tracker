@@ -112,12 +112,6 @@ export async function proxy(request: NextRequest) {
 
         const { payload } = await jwtVerify(token, secret)
         
-        // Log successful authentication
-        errorLogger.debug('Request authenticated', { 
-          userId: payload.sub, 
-          pathname 
-        })
-
         const response = NextResponse.next()
         response.headers.set('x-middleware-auth', 'success')
         return response
