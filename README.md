@@ -4,7 +4,12 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 
 ## Features
 
-- **Dashboard** — Analytical views with scorecards for available stock, outstanding loans, unreturned devices, and pending returns. Includes urgent return tracking, overdue surface data, and recent activity feeds.
+- **Dashboard** — High-performance analytical views with **Server-Side Data Aggregation**. Includes scorecards for available stock, outstanding loans, unreturned devices, and pending returns. Features urgent return tracking, overdue surface data, and recent activity feeds.
+- **Performance Optimized** — Built for speed with:
+  - **Request Deduplication** — Utilizes `React.cache` for per-request data fetching optimization.
+  - **List Virtualization** — Efficiently handles thousands of records using `TanStack Virtual` in the Return Tracking and Activity components.
+  - **Server-Side Calculations** — KPI and stat aggregation performed on the server to minimize client-side processing.
+  - **Deduplicated Props** — Optimized component interfaces to reduce JSON payload sizes between server and client.
 - **Inventory Bank** — Robust data hub with three tabs:
   - **Master List** — Full device table with multi-column sorting, text search, and color-coded FOC Status badges (Return/Unreturn).
   - **Device Models** — 3-level drill-down hierarchy: Base Model → Variant → Individual Units with IMEI, holder, and FOC status detail cards.
@@ -46,6 +51,7 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 | Email | Nodemailer + Gmail SMTP |
 | Testing | Vitest, React Testing Library |
 | Package Manager | pnpm |
+| Performance | TanStack Virtual, `React.cache` |
 
 ## Getting Started
 

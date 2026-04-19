@@ -193,13 +193,13 @@ The deprecated `fullData: Record<string, string>` dictionary has been removed. A
 
 The deprecated `fullData` dictionary has been removed. The `QuickViewPanel` now renders typed fields from `step1Data` and `step3Data` instead of dynamically iterating over header-name keys.
 
-### Real-time Caching and Revalidation
+### Real-time Caching and Performance
 
-- `getInventory()` is wrapped in `unstable_cache` with a 60-second TTL (configured via `CACHE_REVALIDATE_SECONDS` in constants).
-- Pages use **ISR** (`revalidate = 60`) instead of `force-dynamic` for better Vercel free-tier compatibility.
-- `getDashboardData()` combines `getInventory()`, `getOverdueData()`, and `getReturnHistory()` into a single `Promise.all` call.
-- Mutations immediately fire `revalidatePath('/', 'layout')` to drop the cache.
-- The request-date cross-reference reads **"Step 3 FOC Request"** to resolve timestamps per device.
+- **Server-Side Data Aggregation** — The dashboard stats are now pre-aggregated on the server via `aggregateDashboardData`. This eliminates client-side computation bottlenecks and ensures the UI renders immediately with accurate KPIs.
+- **Request Deduplication** — `getInventory()`, `getOverdueData()`, and `getReturnHistory()` are wrapped in `React.cache`. This ensures request-level deduplication, meaning redundant calls within a single render cycle (e.g., across layouts and server components) only execute one network request.
+- **ISR (Incremental Static Regeneration)** — Pages use `revalidate = 60` for optimized performance and Vercel scalability.
+- **Parallel Fetching** — `getDashboardData()` utilizes `Promise.all` to fetch all core datasets concurrently, minimizing TTFB (Time to First Byte).
+- **Mutations** — Every successful mutation triggers `revalidatePath('/', 'layout')` to clear the cache and ensure data fresh-ness.
 
 ---
 
@@ -297,6 +297,9 @@ Custom scrollbar styles are defined in `globals.css` with separate light and dar
 ### Performance Conventions
 
 - **`useMemo`** — Wrap expensive array computations (filter, sort, reduce) in `useMemo`. Both `DashboardClient` and `MasterListTab` follow this pattern.
+- **Server-side Aggregation** — Dashboard metrics are computed on the server to reduce client-side memory and CPU usage.
+- **Virtualization** — `ReturnTrackingTable` and `ActivityFeed` use `TanStack Virtual` to handle large scrollable lists efficiently.
+- **`React.cache`** — Deduplicates server-side data fetching calls within the same request lifecycle.
 - **`useDeviceCategories` hook** — Shared hook replacing duplicated category-map building in Request and Transfer forms.
 - **Avoid render-time state updates** — Use `useEffect` when resetting `currentPage` or similar derived state, not inline during render.
 - **Stable React keys** — Use composite keys (`${item.imei}-${item.unitName}-${idx}`) instead of array indices.
