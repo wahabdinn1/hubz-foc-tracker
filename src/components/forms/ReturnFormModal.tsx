@@ -220,17 +220,17 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 }
             }}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white text-neutral-900 dark:text-white gap-2 transition-all">
-                    <Undo2 className="w-4 h-4" />
+                <Button variant="outline" className="gap-2 transition-all">
+                    <Undo2 />
                     <span className="hidden sm:inline">Inbound (Return)</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <DialogContent className="sm:max-w-3xl overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Inbound (Return) Form</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-6 mt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <UsernameEmailInput />
 
@@ -242,19 +242,19 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                         </div>
 
                         {selectedItems.length > 0 && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                    <Smartphone className="w-4 h-4" />
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <Smartphone className="size-4" />
                                     <span>Units to Return ({selectedItems.length})</span>
                                 </div>
-                                <div className="space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                                <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
                                     {selectedItems.map((item) => (
                                         <div
                                             key={item.imei}
-                                            className="group p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800/50"
+                                            className="group p-3 rounded-xl bg-muted/30 border border-border/50 transition-colors hover:bg-muted/50"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="flex-1 min-w-0 space-y-2">
+                                                <div className="flex-1 min-w-0 flex flex-col gap-2">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">{item.unitName || "Unknown Unit"}</span>
                                                         <span className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">{item.imei}</span>
@@ -272,20 +272,20 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                         )}
                                                     </div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                                                            <Mail className="w-3 h-3 shrink-0" />
+                                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                            <Mail className="size-3 shrink-0" />
                                                             <span className="truncate">{resolveEmail(item)}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                                                            <MapPin className="w-3 h-3 shrink-0" />
+                                                        <div className="flex items-center gap-1.5 text-xs text-amber-500">
+                                                            <MapPin className="size-3 shrink-0" />
                                                             <span className="truncate">From: {item.onHolder || "-"}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                                                            <User className="w-3 h-3 shrink-0" />
+                                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                            <User className="size-3 shrink-0" />
                                                             <span className="truncate">{resolveRequestor(item)}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                                                            <Phone className="w-3 h-3 shrink-0" />
+                                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                            <Phone className="size-3 shrink-0" />
                                                             <span className="truncate">{resolvePhone(item)}</span>
                                                         </div>
                                                     </div>
@@ -293,10 +293,10 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedItems(prev => prev.filter(i => i.imei !== item.imei))}
-                                                    className="p-2.5 min-w-[44px] min-h-[44px] rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0 opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                                                    className="size-11 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                                                     aria-label={`Remove ${item.unitName}`}
                                                 >
-                                                    <X className="w-5 h-5" />
+                                                    <X className="size-5" />
                                                 </button>
                                             </div>
                                         </div>

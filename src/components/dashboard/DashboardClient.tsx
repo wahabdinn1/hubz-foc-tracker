@@ -74,7 +74,7 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = EMP
     } = useInventoryStats(inventory, dateRange as DashboardDateRange);
 
     return (
-        <div className="w-full h-full space-y-6 md:space-y-8 pb-10 p-4 md:p-10">
+        <div className="w-full h-full flex flex-col gap-6 md:gap-8 pb-10 p-4 md:p-10">
             {/* Ambient Background Glow */}
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none transition-colors" />
 
@@ -102,15 +102,15 @@ export function DashboardClient({ inventory, isAuthenticated, overdueItems = EMP
                 initial="hidden"
                 animate="show"
             >
-                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Total Stock" value={totalStock} icon={<Package className="w-4 h-4" />} /></motion.div>
-                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Available" value={availableCount} icon={<CheckCircle className="w-4 h-4 text-green-400" />} onClick={() => router.push('/inventory?filter=available')} /></motion.div>
-                <motion.div variants={ITEM_VARIANTS}><Scorecard title="On KOL" value={onKolCount} icon={<Clock className="w-4 h-4 text-orange-400" />} onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
-                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Unreturn" value={giftedUnitsCount} icon={<Gift className="w-4 h-4 text-cyan-400" />} subtitle="Marked as UNRETURN" onClick={() => router.push('/inventory?filter=unreturn')} /></motion.div>
-                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Pending Returns" value={pendingReturnCount} icon={<ArrowDownRight className="w-4 h-4 text-red-400" />} subtitle="Scheduled items" onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
+                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Total Stock" value={totalStock} icon={<Package />} /></motion.div>
+                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Available" value={availableCount} icon={<CheckCircle className="text-green-400" />} onClick={() => router.push('/inventory?filter=available')} /></motion.div>
+                <motion.div variants={ITEM_VARIANTS}><Scorecard title="On KOL" value={onKolCount} icon={<Clock className="text-orange-400" />} onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
+                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Unreturn" value={giftedUnitsCount} icon={<Gift className="text-cyan-400" />} subtitle="Marked as UNRETURN" onClick={() => router.push('/inventory?filter=unreturn')} /></motion.div>
+                <motion.div variants={ITEM_VARIANTS}><Scorecard title="Pending Returns" value={pendingReturnCount} icon={<ArrowDownRight className="text-red-400" />} subtitle="Scheduled items" onClick={() => router.push('/inventory?filter=loaned')} /></motion.div>
             </motion.div>
 
             {/* ── ⚠️ Overdue Alert (urgency-first — always visible after scorecards) ── */}
-            {overdueItems.length > 0 && (
+            {!!overdueItems.length && (
                 <ErrorBoundary fallbackTitle="Failed to load overdue panel">
                     <div className="relative z-10">
                         <OverduePanel overdueItems={overdueItems} />

@@ -56,11 +56,11 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
             {/* Trigger Button */}
             <button
                 onClick={() => setOpen(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500 dark:text-neutral-400 bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors backdrop-blur-xl"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-xl hover:bg-muted/50 transition-colors backdrop-blur-xl"
             >
-                <Search className="w-3.5 h-3.5" />
+                <Search className="size-3.5" />
                 <span>Search...</span>
-                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] font-mono bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                <kbd className="ml-2 px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded text-muted-foreground border border-border">
                     ⌘K
                 </kbd>
             </button>
@@ -71,43 +71,43 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                     <Command className="bg-transparent">
                         <CommandInput
                             placeholder="Search devices, KOLs, campaigns..."
-                            className="h-12 text-neutral-900 dark:text-white border-b border-neutral-200 dark:border-neutral-800"
+                            className="h-12 text-foreground border-b border-border"
                         />
                         <CommandList className="max-h-[300px] overflow-y-auto custom-scrollbar">
                             <CommandEmpty className="py-6 text-center text-sm text-neutral-500">No results found.</CommandEmpty>
 
                             {/* Quick Navigation */}
                             <CommandGroup heading="Navigation" className="text-neutral-500 dark:text-neutral-400">
-                                <CommandItem onSelect={() => handleSelect("nav:/")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <Package className="mr-2 h-4 w-4 text-blue-500" />
+                                <CommandItem onSelect={() => handleSelect("nav:/")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <Package className="mr-2 size-4 text-blue-500" />
                                     Dashboard
                                 </CommandItem>
-                                <CommandItem onSelect={() => handleSelect("nav:/inventory")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <Package className="mr-2 h-4 w-4 text-blue-500" />
+                                <CommandItem onSelect={() => handleSelect("nav:/inventory")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <Package className="mr-2 size-4 text-blue-500" />
                                     Inventory Bank
                                 </CommandItem>
-                                <CommandItem onSelect={() => handleSelect("nav:/kol")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <User className="mr-2 h-4 w-4 text-blue-500" />
+                                <CommandItem onSelect={() => handleSelect("nav:/kol")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <User className="mr-2 size-4 text-blue-500" />
                                     KOL Directory
                                 </CommandItem>
-                                <CommandItem onSelect={() => handleSelect("nav:/settings")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <Settings className="mr-2 h-4 w-4 text-blue-500" />
+                                <CommandItem onSelect={() => handleSelect("nav:/settings")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <Settings className="mr-2 size-4 text-blue-500" />
                                     Settings
                                 </CommandItem>
                             </CommandGroup>
 
                             {/* Quick Filters */}
                             <CommandGroup heading="Quick Filters" className="text-neutral-500 dark:text-neutral-400">
-                                <CommandItem onSelect={() => handleSelect("filter:available")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <div className="mr-2 h-2 w-2 rounded-full bg-green-500" />
+                                <CommandItem onSelect={() => handleSelect("filter:available")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <div className="mr-2 size-2 rounded-full bg-green-500" />
                                     Available Devices
                                 </CommandItem>
-                                <CommandItem onSelect={() => handleSelect("filter:loaned")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <div className="mr-2 h-2 w-2 rounded-full bg-orange-500" />
+                                <CommandItem onSelect={() => handleSelect("filter:loaned")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <div className="mr-2 size-2 rounded-full bg-orange-500" />
                                     Loaned Devices
                                 </CommandItem>
-                                <CommandItem onSelect={() => handleSelect("filter:unreturn")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                    <div className="mr-2 h-2 w-2 rounded-full bg-red-500" />
+                                <CommandItem onSelect={() => handleSelect("filter:unreturn")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                    <div className="mr-2 size-2 rounded-full bg-red-500" />
                                     Unreturned Devices
                                 </CommandItem>
                             </CommandGroup>
@@ -116,8 +116,8 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                             {uniqueKOLs.length > 0 && (
                                 <CommandGroup heading="KOL Profiles" className="text-neutral-500 dark:text-neutral-400">
                                     {uniqueKOLs.slice(0, 10).map((kol) => (
-                                        <CommandItem key={kol} onSelect={() => handleSelect("nav:/kol")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                            <User className="mr-2 h-4 w-4 text-purple-500" />
+                                        <CommandItem key={kol} onSelect={() => handleSelect("nav:/kol")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                            <User className="mr-2 size-4 text-purple-500" />
                                             {kol}
                                         </CommandItem>
                                     ))}
@@ -128,8 +128,8 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                             {uniqueCampaigns.length > 0 && (
                                 <CommandGroup heading="Campaigns" className="text-neutral-500 dark:text-neutral-400">
                                     {uniqueCampaigns.slice(0, 8).map((campaign) => (
-                                        <CommandItem key={campaign} onSelect={() => handleSelect("nav:/inventory")} className="cursor-pointer text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-800">
-                                            <Megaphone className="mr-2 h-4 w-4 text-pink-500" />
+                                        <CommandItem key={campaign} onSelect={() => handleSelect("nav:/inventory")} className="cursor-pointer text-foreground hover:bg-muted aria-selected:bg-muted">
+                                            <Megaphone className="mr-2 size-4 text-pink-500" />
                                             {campaign}
                                         </CommandItem>
                                     ))}

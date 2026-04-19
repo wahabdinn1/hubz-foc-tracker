@@ -84,7 +84,7 @@ export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, 
                         )}
                         title={autoSyncEnabled ? "Disable auto-sync" : "Enable auto-sync"}
                     >
-                        {autoSyncEnabled ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                        {autoSyncEnabled ? <Wifi /> : <WifiOff />}
                     </Button>
                 </div>
 
@@ -96,7 +96,7 @@ export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, 
                     className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-white/5 rounded-xl transition-colors"
                     title="Force Sync with Google Sheets"
                 >
-                    <RefreshCw className={cn("w-5 h-5", isPending && "animate-spin text-blue-500 dark:text-blue-400")} />
+                <RefreshCw className={cn(isPending && "animate-spin text-primary")} />
                 </Button>
 
                 <ThemeToggle />

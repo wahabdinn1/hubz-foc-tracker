@@ -62,7 +62,7 @@ export const Scorecard = React.memo(function Scorecard({
                         <h3 className="text-[13px] uppercase font-bold tracking-widest text-neutral-500 dark:text-neutral-400 transition-colors">
                             {title}
                         </h3>
-                        <div className="text-blue-600 dark:text-blue-400 p-2.5 bg-blue-50/80 dark:bg-blue-500/10 rounded-xl shrink-0 border border-blue-100 dark:border-blue-500/20 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20">
+                        <div className="text-blue-600 dark:text-blue-400 p-2.5 bg-blue-50/80 dark:bg-blue-500/10 rounded-xl shrink-0 border border-blue-100 dark:border-blue-500/20 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 [&_svg]:size-4">
                             {icon}
                         </div>
                     </div>
