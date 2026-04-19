@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { sheets } from "./google";
 import { unstable_cache, revalidatePath } from "next/cache";
 import type { InventoryItem, OverdueItem, ReturnHistoryItem, RequestHistoryItem, Step3RefData } from "@/types/inventory";
@@ -37,7 +38,7 @@ function parseStep3Row(row: string[]): Step3RefData {
   };
 }
 
-export const getInventory = unstable_cache(
+export const getInventory = cache(unstable_cache(
   async (): Promise<InventoryItem[]> => {
     try {
       const response = await sheets.spreadsheets.values.batchGet({
@@ -102,7 +103,7 @@ export const getInventory = unstable_cache(
   },
   [CACHE_TAG_INVENTORY],
   { revalidate: CACHE_REVALIDATE_SECONDS }
-);
+));
 
 function buildStep3LookupMap(
   reqRows: string[][] | null | undefined
@@ -149,7 +150,7 @@ export async function getDashboardData(dateRange?: DashboardDateRange) {
   };
 }
 
-export const getOverdueData = unstable_cache(
+export const getOverdueData = cache(unstable_cache(
   async (): Promise<OverdueItem[]> => {
     try {
       const response = await sheets.spreadsheets.values.get({
@@ -187,9 +188,9 @@ export const getOverdueData = unstable_cache(
   },
   ["overdue-data"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
-);
+));
 
-export const getReturnHistory = unstable_cache(
+export const getReturnHistory = cache(unstable_cache(
   async (): Promise<ReturnHistoryItem[]> => {
     try {
       const response = await sheets.spreadsheets.values.get({
@@ -225,7 +226,7 @@ export const getReturnHistory = unstable_cache(
   },
   ["return-history"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
-);
+));
 
 export const getRequestHistory = unstable_cache(
   async (): Promise<RequestHistoryItem[]> => {
