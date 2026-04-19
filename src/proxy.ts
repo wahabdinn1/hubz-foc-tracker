@@ -110,7 +110,7 @@ export async function proxy(request: NextRequest) {
             throw new Error('Missing JWT signing secret')
         }
 
-        const { payload } = await jwtVerify(token, secret)
+        const { payload: _payload } = await jwtVerify(token, secret)
         
         const response = NextResponse.next()
         response.headers.set('x-middleware-auth', 'success')
