@@ -19,8 +19,8 @@ async function DashboardFetcher() {
   const authed = await isAuthenticated();
   if (!authed) return <PinModal />;
 
-  const { inventory, overdueItems, returnHistory } = await getDashboardData();
-  return <DashboardClient inventory={inventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} />
+  const { stats, overdueItems, returnHistory } = await getDashboardData();
+  return <DashboardClient inventory={stats.allInventory} isAuthenticated={true} overdueItems={overdueItems} returnHistory={returnHistory} initialStats={stats} />
 }
 
 export default function Page() {
