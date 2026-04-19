@@ -8,7 +8,7 @@ export interface LogContext {
   level: LogLevel
   message: string
   error?: Error
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   userId?: string
   sessionId?: string
   ip?: string
@@ -36,7 +36,7 @@ class ErrorLogger {
     level: LogLevel,
     message: string,
     error?: Error,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): LogContext {
     const log: LogContext = {
       timestamp: new Date().toISOString(),
@@ -61,28 +61,33 @@ class ErrorLogger {
 
     // Output to console in development
     if (this.isDevelopment) {
-      const consoleMethod = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'
-      // @ts-ignore
-      console[consoleMethod](`[${level.toUpperCase()}]`, message, error || '', metadata || '')
+      if (level === 'error') {
+        console.error(`[${level.toUpperCase()}]`, message, error || '', metadata || '')
+      } else if (level === 'warn') {
+        console.warn(`[${level.toUpperCase()}]`, message, error || '', metadata || '')
+      } else {
+        // Use warn for info/debug levels to comply with lint rules, but prefix with level
+        console.warn(`[${level.toUpperCase()}]`, message, error || '', metadata || '')
+      }
     }
 
     return log
   }
 
   // Main logging methods
-  error(message: string, error?: Error, metadata?: Record<string, any>) {
+  error(message: string, error?: Error, metadata?: Record<string, unknown>) {
     return this.createLog('error', message, error, metadata)
   }
 
-  warn(message: string, metadata?: Record<string, any>) {
+  warn(message: string, metadata?: Record<string, unknown>) {
     return this.createLog('warn', message, undefined, metadata)
   }
 
-  info(message: string, metadata?: Record<string, any>) {
+  info(message: string, metadata?: Record<string, unknown>) {
     return this.createLog('info', message, undefined, metadata)
   }
 
-  debug(message: string, metadata?: Record<string, any>) {
+  debug(message: string, metadata?: Record<string, unknown>) {
     return this.createLog('debug', message, undefined, metadata)
   }
 
@@ -93,7 +98,7 @@ class ErrorLogger {
     ip?: string
     userAgent?: string
     url?: string
-  }, level: LogLevel, message: string, error?: Error, metadata?: Record<string, any>) {
+  }, level: LogLevel, message: string, error?: Error, metadata?: Record<string, unknown>) {
     const log = this.createLog(level, message, error, metadata)
     Object.assign(log, context)
     return log
@@ -124,13 +129,13 @@ export const errorLogger = ErrorLogger.getInstance()
 
 // Export individual logging functions
 export const logger = {
-  error: (message: string, error?: Error, metadata?: Record<string, any>) =>
+  error: (message: string, error?: Error, metadata?: Record<string, unknown>) =>
     errorLogger.error(message, error, metadata),
-  warn: (message: string, metadata?: Record<string, any>) =>
+  warn: (message: string, metadata?: Record<string, unknown>) =>
     errorLogger.warn(message, metadata),
-  info: (message: string, metadata?: Record<string, any>) =>
+  info: (message: string, metadata?: Record<string, unknown>) =>
     errorLogger.info(message, metadata),
-  debug: (message: string, metadata?: Record<string, any>) =>
+  debug: (message: string, metadata?: Record<string, unknown>) =>
     errorLogger.debug(message, metadata),
   withContext: errorLogger.logWithContext.bind(errorLogger),
 }
@@ -141,7 +146,7 @@ export function logAPIError(
   path: string,
   statusCode: number,
   error: Error,
-  requestData?: Record<string, any>
+  requestData?: Record<string, unknown>
 ) {
   return errorLogger.error(
     `API Error ${method} ${path} - ${statusCode}`,
@@ -160,11 +165,10 @@ export function logAuthEvent(
   event: 'login' | 'logout' | 'failed_login' | 'password_reset',
   userId?: string,
   ip?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   return errorLogger.info(
     `Auth event: ${event}`,
-    undefined,
     { event, userId, ip, ...metadata }
   )
 }

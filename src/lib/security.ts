@@ -71,7 +71,7 @@ export function sanitizeIMEI(imei: string): string {
 export function logSecurityEvent(
   event: 'rate_limit_exceeded' | 'blocked_ip' | 'suspicious_activity' | 'failed_auth',
   identifier: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   errorLogger.warn(`Security event: ${event}`, {
     event,
