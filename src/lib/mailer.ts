@@ -1,13 +1,17 @@
 import nodemailer from "nodemailer";
-import { db } from "@/db";
-import { ccRecipients } from "@/db/schema";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Use SSL/TLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Hardened timeouts for serverless execution
+  connectionTimeout: 20000, // 20 seconds
+  greetingTimeout: 20000,   // 20 seconds
+  socketTimeout: 60000,     // 60 seconds
 });
 
 type ActionLabel = "REQUEST" | "RETURN" | "TRANSFER";
@@ -210,7 +214,10 @@ async function resolveCCField(): Promise<string> {
     return ccCache.emails;
   }
 
+  console.log("[MAILER] Attempting to resolve CC recipients...");
   try {
+    const { db } = await import("@/db");
+    const { ccRecipients } = await import("@/db/schema");
     const rows = await db.select({ email: ccRecipients.email }).from(ccRecipients);
     if (rows && rows.length > 0) {
       const emails = rows.map((r) => r.email).join(",");
@@ -234,6 +241,7 @@ async function resolveCCField(): Promise<string> {
 }
 
 async function sendMail(html: string): Promise<void> {
+  console.log("[MAILER] sendMail invoked.");
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   const adminEmail = process.env.ADMIN_EMAIL;
@@ -248,6 +256,7 @@ async function sendMail(html: string): Promise<void> {
   const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@wppmedia.com>`;
 
   try {
+    console.log("[MAILER] Preparing transporter options...");
     const options: nodemailer.SendMailOptions = {
       from: `"WPP Media FOC System" <${emailUser}>`,
       to: adminEmail,
@@ -262,17 +271,21 @@ async function sendMail(html: string): Promise<void> {
       options.cc = ccEmails;
     }
 
+    console.log("[MAILER] Calling transporter.sendMail...");
     const info = await transporter.sendMail(options);
     console.log("[MAILER] Email sent successfully:", info.messageId, ccEmails ? `(CC: ${ccEmails})` : "(No CC)");
   } catch (error) {
     console.error("[MAILER] Failed to send email notification:", error);
+    throw error; // Re-throw to be caught by the mutation's catch block
   }
 }
 
 export async function sendFocNotification(data: FocNotificationData): Promise<void> {
-  await sendMail(buildSingleHtml(data));
+  console.log(`[MAILER] sendFocNotification triggered for action: ${data.actionType}`);
+  return await sendMail(buildSingleHtml(data));
 }
 
 export async function sendFocBatchNotification(items: FocNotificationData[]): Promise<void> {
-  await sendMail(buildBatchHtml(items));
+  console.log(`[MAILER] sendFocBatchNotification triggered for ${items.length} items.`);
+  return await sendMail(buildBatchHtml(items));
 }

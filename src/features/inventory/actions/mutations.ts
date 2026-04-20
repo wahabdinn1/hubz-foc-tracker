@@ -255,8 +255,8 @@ export async function requestUnits(data: RequestPayload): Promise<MutationResult
           "Type of FOC": device.typeOfFoc,
         },
       }));
-      after(() => {
-        sendFocBatchNotification(batchItems).catch((mailError) => {
+      after(async () => {
+        await sendFocBatchNotification(batchItems).catch((mailError) => {
           console.error("[MAILER] Failed to send request notification:", mailError);
         });
       });
@@ -309,8 +309,8 @@ export async function returnUnit(data: ReturnPayload): Promise<MutationResult> {
     ]);
 
     try {
-      after(() => {
-        sendFocNotification({
+      after(async () => {
+        await sendFocNotification({
           actionType: "RETURN",
           unitName: validated.unitName,
           imei: validated.imei,
@@ -410,8 +410,8 @@ export async function returnUnits(dataArray: ReturnPayload[]): Promise<MutationR
           },
         };
       });
-      after(() => {
-        sendFocBatchNotification(batchItems).catch((mailError) => {
+      after(async () => {
+        await sendFocBatchNotification(batchItems).catch((mailError) => {
           console.error("[MAILER] Failed to send batch return notification:", mailError);
         });
       });
@@ -548,8 +548,8 @@ export async function transferUnit(data: TransferPayload): Promise<MutationResul
     }
 
     try {
-      after(() => {
-        sendFocNotification({
+      after(async () => {
+        await sendFocNotification({
           actionType: "TRANSFER",
           unitName: validated.unitName,
           imei: validated.imei,
