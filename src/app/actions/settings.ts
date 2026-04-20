@@ -35,33 +35,45 @@ export async function verifySettingsPin(pin: string): Promise<ActionResult> {
   // Strip surrounding quotes that Vercel env dashboard may preserve
   const cleanedPins = rawPins.replace(/^["']|["']$/g, "");
   const authorizedPins = cleanedPins.split(",").filter(Boolean);
-  const matched = authorizedPins.find((p) =>
-    timingSafeEqual(p.trim(), pin)
-  );
+  try {
+    const matched = authorizedPins.find((p) =>
+      timingSafeEqual(p.trim(), pin)
+    );
 
-  if (matched === undefined) {
-    await recordFailedAttempt(rateLimitKey);
-    const remaining = await getRemainingAttempts(rateLimitKey);
+    if (matched === undefined) {
+      await recordFailedAttempt(rateLimitKey);
+      const remaining = await getRemainingAttempts(rateLimitKey);
+      return {
+        success: false,
+        error: remaining > 0
+          ? `Invalid PIN. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+          : "Too many failed attempts. Please try again in 15 minutes.",
+      };
+    }
+
+    await clearAttempts(rateLimitKey);
+
+    const cookieStore = await cookies();
+    cookieStore.set(SETTINGS_COOKIE_NAME, "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: SETTINGS_COOKIE_MAX_AGE,
+      path: "/",
+    });
+
+    // Force revalidation to clear PinScreen state
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/", "layout");
+
+    return { success: true };
+  } catch (error) {
+    console.error("[SETTINGS] PIN Verification Error:", error);
     return {
       success: false,
-      error: remaining > 0
-        ? `Invalid PIN. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
-        : "Too many failed attempts. Please try again in 15 minutes.",
+      error: "An unexpected error occurred. Please try again.",
     };
   }
-
-  await clearAttempts(rateLimitKey);
-
-  const cookieStore = await cookies();
-  cookieStore.set(SETTINGS_COOKIE_NAME, "1", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SETTINGS_COOKIE_MAX_AGE,
-    path: "/",
-  });
-
-  return { success: true };
 }
 
 export async function isSettingsUnlocked(): Promise<boolean> {

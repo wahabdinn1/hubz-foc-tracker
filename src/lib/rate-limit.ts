@@ -8,6 +8,10 @@ const CONFIG = {
   clearIntervalMs: 60 * 1000, // Clean up every minute
 } as const;
 
+// ---------------------------------------------------------------------------
+// Rate Limiting Store
+// ---------------------------------------------------------------------------
+
 interface AttemptRecord {
   count: number;
   firstAttempt: number;
@@ -16,59 +20,75 @@ interface AttemptRecord {
 
 const STORE_KEY = Symbol.for("foc_rate_limit_store");
 
-// Get or initialize the rate limit store with thread-safety
+/**
+ * Get or initialize the rate limit store.
+ * Uses globalThis with a Symbol key to persist state across hot-reloads 
+ * and shared worker instances where supported.
+ */
 function getStore(): Map<string, AttemptRecord> {
-  const g = globalThis as unknown as Record<symbol, Map<string, AttemptRecord> | undefined>;
+  const g = globalThis as any;
   if (!g[STORE_KEY]) {
     g[STORE_KEY] = new Map<string, AttemptRecord>();
-    // Do not use setInterval in serverless environments as it prevents process exit
-    if (typeof window === 'undefined' && !g[STORE_KEY].has('__cleanup_initialized__')) {
-      g[STORE_KEY].set('__cleanup_initialized__', { count: 0, firstAttempt: Date.now(), lastAttempt: Date.now() });
-    }
   }
-  return g[STORE_KEY]!;
+  return g[STORE_KEY];
 }
 
-// Clean up expired records
+/**
+ * Clean up expired records.
+ * Called lazily on each access to avoid background timers that hang serverless functions.
+ */
 function purgeStale(): void {
   try {
     const now = Date.now();
     const store = getStore();
-    let cleaned = 0;
+    const toDelete: string[] = [];
 
+    // Collect expired keys first (safer than deleting during iteration)
     for (const [key, record] of store.entries()) {
-      // Skip cleanup marker
-      if (key === '__cleanup_initialized__') continue
-      
       if (now - record.firstAttempt > CONFIG.windowMs) {
-        store.delete(key);
-        cleaned++;
+        toDelete.push(key);
       }
     }
 
-    if (cleaned > 0 && process.env.NODE_ENV === 'development') {
-      errorLogger.debug(`Rate limit cleanup: removed ${cleaned} expired entries`);
+    // Perform deletions
+    for (const key of toDelete) {
+      store.delete(key);
+    }
+
+    if (toDelete.length > 0 && process.env.NODE_ENV === 'development') {
+      errorLogger.debug(`Rate limit cleanup: removed ${toDelete.length} expired entries`);
     }
   } catch (error) {
     errorLogger.error('Error in rate limit cleanup', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
-// Generate a rate limit key from IP and optional prefix
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a rate limit key from IP and optional prefix.
+ */
 export async function getRateLimitKey(prefix = "pin"): Promise<string> {
   try {
     const headersList = await headers();
-    const forwarded = headersList.get("x-forwarded-for");
-    const realIP = headersList.get("x-real-ip");
-    const ip = forwarded?.split(",")[0]?.trim() || realIP?.trim() || "unknown";
+    // Common IP headers on Vercel/Cloudflare
+    const ip = 
+      headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+      headersList.get("x-real-ip")?.trim() || 
+      "unknown";
+    
     return `${prefix}-${ip}`;
   } catch (error) {
-    errorLogger.warn("Failed to extract IP for rate limiting", { error });
-    return `${prefix}-unknown`;
+    // Fail gracefully: use a global key if headers are unavailable
+    return `${prefix}-global`;
   }
 }
 
-// Check if a key is rate limited
+/**
+ * Check if a key is currently rate limited.
+ */
 export async function isRateLimited(key: string): Promise<boolean> {
   try {
     purgeStale();
@@ -76,10 +96,8 @@ export async function isRateLimited(key: string): Promise<boolean> {
     const record = getStore().get(key);
     if (!record) return false;
 
-    const now = Date.now();
-    
-    // Check if window expired
-    if (now - record.firstAttempt > CONFIG.windowMs) {
+    // Double check window expiration
+    if (Date.now() - record.firstAttempt > CONFIG.windowMs) {
       getStore().delete(key);
       return false;
     }
@@ -87,11 +105,13 @@ export async function isRateLimited(key: string): Promise<boolean> {
     return record.count >= CONFIG.maxAttempts;
   } catch (error) {
     errorLogger.error('Error checking rate limit', error instanceof Error ? error : new Error(String(error)), { key });
-    return false; // Fail open - don't block if there's an error
+    return false; // Fail open
   }
 }
 
-// Record a failed attempt
+/**
+ * Record a failed attempt for a key.
+ */
 export async function recordFailedAttempt(key: string): Promise<void> {
   try {
     purgeStale();
@@ -107,22 +127,13 @@ export async function recordFailedAttempt(key: string): Promise<void> {
         firstAttempt: now,
         lastAttempt: now,
       });
-      
-      errorLogger.debug("Rate limit: first failed attempt recorded", { key });
     } else {
       // Increment existing record
       record.count += 1;
       record.lastAttempt = now;
       
-      // Log when approaching limit
       if (record.count >= CONFIG.maxAttempts) {
         errorLogger.warn("Rate limit exceeded", { key, count: record.count });
-      } else if (record.count >= CONFIG.maxAttempts - 1) {
-        errorLogger.warn("Rate limit warning: approaching max attempts", {
-          key,
-          count: record.count,
-          max: CONFIG.maxAttempts,
-        });
       }
     }
   } catch (error) {
@@ -130,17 +141,17 @@ export async function recordFailedAttempt(key: string): Promise<void> {
   }
 }
 
-// Clear attempts for a key (on successful auth)
+/**
+ * Clear attempts for a key (e.g., after successful authentication).
+ */
 export async function clearAttempts(key: string): Promise<void> {
   try {
-    const deleted = getStore().delete(key);
-    if (deleted && process.env.NODE_ENV === 'development') {
-      errorLogger.debug("Rate limit cleared for key", { key });
-    }
+    getStore().delete(key);
   } catch (error) {
     errorLogger.error('Error clearing rate limit', error instanceof Error ? error : new Error(String(error)), { key });
   }
 }
+
 
 // Get remaining attempts for a key
 export async function getRemainingAttempts(key: string): Promise<number> {

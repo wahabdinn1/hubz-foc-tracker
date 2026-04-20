@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import { db } from "@/db";
+import { ccRecipients } from "@/db/schema";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -209,12 +211,11 @@ async function resolveCCField(): Promise<string> {
   }
 
   try {
-    const { db } = await import("@/db");
-    const { ccRecipients } = await import("@/db/schema");
     const rows = await db.select({ email: ccRecipients.email }).from(ccRecipients);
-    if (rows.length > 0) {
+    if (rows && rows.length > 0) {
       const emails = rows.map((r) => r.email).join(",");
       ccCache = { emails, expiresAt: now + CC_CACHE_TTL };
+      console.log(`[MAILER] Resolved ${rows.length} CC recipients from database.`);
       return emails;
     }
   } catch (error) {
@@ -224,7 +225,10 @@ async function resolveCCField(): Promise<string> {
   const fallback = process.env.CC_EMAILS?.trim() || "";
   if (fallback) {
     console.warn("[MAILER] Using CC_EMAILS fallback from environment.");
+  } else {
+    console.warn("[MAILER] No CC recipients found in database or environment.");
   }
+  
   ccCache = { emails: fallback, expiresAt: now + CC_CACHE_TTL };
   return fallback;
 }
@@ -244,16 +248,22 @@ async function sendMail(html: string): Promise<void> {
   const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@wppmedia.com>`;
 
   try {
-    await transporter.sendMail({
+    const options: nodemailer.SendMailOptions = {
       from: `"WPP Media FOC System" <${emailUser}>`,
       to: adminEmail,
-      ...(ccEmails && { cc: ccEmails }),
       subject: EMAIL_SUBJECT,
       html,
       messageId,
       inReplyTo: THREAD_ID,
       references: [THREAD_ID],
-    });
+    };
+
+    if (ccEmails) {
+      options.cc = ccEmails;
+    }
+
+    const info = await transporter.sendMail(options);
+    console.log("[MAILER] Email sent successfully:", info.messageId, ccEmails ? `(CC: ${ccEmails})` : "(No CC)");
   } catch (error) {
     console.error("[MAILER] Failed to send email notification:", error);
   }
