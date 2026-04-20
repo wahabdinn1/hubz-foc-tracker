@@ -2,11 +2,11 @@
 
 import React, { useRef } from "react";
 import type { ReturnHistoryItem } from "@/types/inventory";
-import { Undo2, Calendar, User, ExternalLink } from "lucide-react";
+import { Undo2, Calendar, User, ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface ReturnHistoryPanelProps {
     returnHistory: ReturnHistoryItem[];
@@ -14,7 +14,6 @@ interface ReturnHistoryPanelProps {
 
 export const ReturnHistoryPanel = React.memo(function ReturnHistoryPanel({ returnHistory }: ReturnHistoryPanelProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const router = useRouter();
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -65,13 +64,13 @@ export const ReturnHistoryPanel = React.memo(function ReturnHistoryPanel({ retur
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => router.push('/audit')}
-                        className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20"
+                    <Link
+                        href="/audit"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-1"
                     >
                         View All
-                        <ExternalLink className="w-3 h-3" />
-                    </button>
+                        <ArrowUpRight className="w-3 h-3" />
+                    </Link>
                     <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs font-bold px-3">
                         {returnHistory.length} Total
                     </Badge>

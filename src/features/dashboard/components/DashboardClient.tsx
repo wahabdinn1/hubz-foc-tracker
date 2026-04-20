@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { InventoryItem, OverdueItem, ReturnHistoryItem } from "@/types/inventory";
 import { Scorecard } from "@/components/shared/Scorecard";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
 import dynamic from "next/dynamic"
 
@@ -20,7 +21,7 @@ import { DateRangePicker } from "./DateRangePicker";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { motion } from "framer-motion";
 import {
-    Package, CheckCircle, Clock, Gift, ArrowDownRight, RefreshCw
+    Package, CheckCircle, Clock, Gift, ArrowDownRight, RefreshCw, Settings2, ChevronRight
 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { getDashboardData } from "../actions";
@@ -268,22 +269,24 @@ export function DashboardClient({
                     </ErrorBoundary>
 
                     {/* Quick Access to Settings (Addressing "Hard to Access" feedback) */}
-                    <motion.button
-                        {...SECTION_ENTER}
-                        onClick={() => router.push('/settings')}
-                        className="group flex items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] backdrop-blur-xl hover:border-blue-500/30 transition-all text-left"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform" />
+                    <Link href="/settings" className="block">
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full mt-6 p-4 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors group flex items-center justify-between"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
+                                    <Settings2 className="w-5 h-5 text-neutral-500 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-sm font-semibold text-neutral-900 dark:text-white">Settings & Configuration</p>
+                                    <p className="text-xs text-neutral-500">Manage CC recipients and dropdowns</p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-sm text-neutral-900 dark:text-white">System Settings</h4>
-                                <p className="text-xs text-neutral-500">Configure notifications & SMTP</p>
-                            </div>
-                        </div>
-                        <ArrowDownRight className="w-5 h-5 text-neutral-400 group-hover:text-blue-500 -rotate-45 group-hover:translate-x-1 transition-all" />
-                    </motion.button>
+                            <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
+                        </motion.div>
+                    </Link>
 
                     {/* Live Activity Feed */}
                     <ErrorBoundary fallbackTitle="Failed to load activity feed">
