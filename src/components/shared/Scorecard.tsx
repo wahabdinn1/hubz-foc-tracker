@@ -39,7 +39,7 @@ export const Scorecard = React.memo(function Scorecard({
             onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
             className={cn(
                 "group relative overflow-hidden rounded-2xl md:rounded-[20px] bg-white dark:bg-neutral-900/50 border border-black/5 dark:border-white/[0.08] backdrop-blur-2xl shadow-lg flex flex-col p-5 min-h-[110px] transition-all duration-300 hover:border-black/10 dark:hover:border-white/20",
-                onClick && "cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0",
+                onClick && "cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900",
                 className
             )}
         >

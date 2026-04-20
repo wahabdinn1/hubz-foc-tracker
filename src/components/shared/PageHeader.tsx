@@ -76,6 +76,7 @@ export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, 
                         variant="ghost"
                         size="icon"
                         onClick={toggleAutoSync}
+                        aria-label={autoSyncEnabled ? "Disable auto-sync" : "Enable auto-sync"}
                         className={cn(
                             "h-8 w-8 rounded-lg transition-colors",
                             autoSyncEnabled
@@ -93,6 +94,7 @@ export function PageHeader({ title, subtitle, availableUnits = EMPTY_INVENTORY, 
                     size="icon"
                     onClick={handleSync}
                     disabled={isPending}
+                    aria-label="Force sync with Google Sheets"
                     className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-white/5 rounded-xl transition-colors"
                     title="Force Sync with Google Sheets"
                 >

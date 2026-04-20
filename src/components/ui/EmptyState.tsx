@@ -9,10 +9,16 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon: Icon, title, description, className }: EmptyStateProps) {
+    const prefersReducedMotion = useReducedMotion();
+    
     return (
-        <div className={cn("w-full h-full flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500", className)}>
+        <div className={cn(
+            "w-full h-full flex flex-col items-center justify-center p-8 text-center",
+            !prefersReducedMotion && "animate-in fade-in duration-500",
+            className
+        )}>
             <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/5 dark:border-white/[0.05] flex items-center justify-center mb-4 transition-colors">
-                <Icon className="w-8 h-8 text-neutral-400 dark:text-neutral-500" />
+                <Icon className="w-8 h-8 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
             </div>
             <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-1 transition-colors tracking-tight">
                 {title}

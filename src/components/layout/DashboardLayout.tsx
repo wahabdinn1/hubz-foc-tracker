@@ -77,9 +77,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Main Content Pane */}
-            <div className="flex-1 relative z-10 w-full md:pt-0 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 h-screen overflow-y-auto custom-scrollbar">
+            <main id="main-content" className="flex-1 relative z-10 w-full md:pt-0 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 h-screen overflow-y-auto custom-scrollbar">
                 {children}
-            </div>
+            </main>
         </div>
     );
 }

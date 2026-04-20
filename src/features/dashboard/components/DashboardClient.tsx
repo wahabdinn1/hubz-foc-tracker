@@ -133,7 +133,7 @@ export function DashboardClient({
                 <motion.div variants={ITEM_VARIANTS} className="lg:col-span-4 h-full">
                     <div className="group relative h-full overflow-hidden rounded-[24px] bg-blue-600 p-6 shadow-2xl shadow-blue-500/20">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                            <Package size={140} strokeWidth={1} />
+                            <Package size={140} strokeWidth={1} aria-hidden="true" />
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
                             <div>
@@ -142,13 +142,13 @@ export function DashboardClient({
                             </div>
                             <div className="mt-8">
                                 <div className="flex items-baseline gap-2 mb-4">
-                                    <span className="text-6xl font-black text-white tracking-tighter">{totalStock}</span>
+                                    <span className="text-6xl font-black text-white tracking-tighter tabular-nums">{totalStock}</span>
                                     <span className="text-blue-200 font-bold text-lg italic">Units</span>
                                 </div>
-                                <div className="flex gap-1 h-1.5 w-full bg-blue-700/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-green-400" style={{ width: `${(availableCount/totalStock)*100}%` }} />
-                                    <div className="h-full bg-white/60" style={{ width: `${(onKolCount/totalStock)*100}%` }} />
-                                    <div className="h-full bg-red-400" style={{ width: `${(giftedUnitsCount/totalStock)*100}%` }} />
+                                <div className="flex gap-1 h-1.5 w-full bg-blue-700/50 rounded-full overflow-hidden" role="progressbar" aria-label="Inventory distribution breakdown">
+                                    <div className="h-full bg-green-400" style={{ width: `${(availableCount/totalStock)*100}%` }} aria-label={`${availableCount} Available`} />
+                                    <div className="h-full bg-white/60" style={{ width: `${(onKolCount/totalStock)*100}%` }} aria-label={`${onKolCount} Loaned`} />
+                                    <div className="h-full bg-red-400" style={{ width: `${(giftedUnitsCount/totalStock)*100}%` }} aria-label={`${giftedUnitsCount} Gifted`} />
                                 </div>
                                 <div className="flex justify-between mt-3">
                                     <div className="flex items-center gap-1.5">
@@ -251,7 +251,7 @@ export function DashboardClient({
                     <div className="flex items-center justify-between mb-[-12px]">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest px-2">Monitoring</h3>
-                            {isRefreshing ? <RefreshCw className="w-3 h-3 animate-spin text-blue-500" /> : null}
+                            {isRefreshing ? <RefreshCw className="w-3 h-3 animate-spin text-blue-500" aria-hidden="true" /> : null}
                         </div>
                         <DateRangePicker dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
                     </div>

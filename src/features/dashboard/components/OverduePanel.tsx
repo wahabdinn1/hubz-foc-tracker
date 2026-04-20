@@ -31,7 +31,7 @@ export const OverduePanel = React.memo(function OverduePanel({ overdueItems }: O
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                        <AlertTriangle className="w-5 h-5 text-red-500" aria-hidden="true" />
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-neutral-900 dark:text-white tracking-tight transition-colors">
@@ -47,51 +47,52 @@ export const OverduePanel = React.memo(function OverduePanel({ overdueItems }: O
                 </Badge>
             </div>
 
-            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+            <ul className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
                 {displayItems.map((item, idx) => (
-                    <div
-                        key={`${item.serialNumber}-${idx}`}
-                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/60 dark:bg-neutral-950/40 border border-black/5 dark:border-white/[0.05] hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors group"
-                    >
-                        <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-neutral-900 dark:text-neutral-200 truncate transition-colors">
-                                {item.materialDescription || "Unknown Device"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="text-xs font-mono text-neutral-500 truncate">
-                                    SN: {item.serialNumber}
-                                </span>
-                                {item.seinPic ? (
-                                    <span className="text-xs text-neutral-400">
-                                        • PIC: {item.seinPic}
+                    <li key={`${item.serialNumber}-${idx}`}>
+                        <div
+                            className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/60 dark:bg-neutral-950/40 border border-black/5 dark:border-white/[0.05] hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors group cursor-pointer"
+                        >
+                            <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-sm text-neutral-900 dark:text-neutral-200 truncate transition-colors">
+                                    {item.materialDescription || "Unknown Device"}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-xs font-mono text-neutral-500 truncate">
+                                        SN: {item.serialNumber}
                                     </span>
-                                ) : null}
+                                    {item.seinPic ? (
+                                        <span className="text-xs text-neutral-400">
+                                            • PIC: {item.seinPic}
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <div className="text-right">
+                                    <Badge variant="outline" className={cn(
+                                        "text-xs font-bold px-2 py-0.5",
+                                        item.overdueDays > 30
+                                            ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                            : item.overdueDays > 14
+                                                ? "bg-orange-500/10 text-orange-500 border-orange-500/20"
+                                                : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                    )}>
+                                        <Clock className="w-3 h-3 mr-1 inline" aria-hidden="true" />
+                                        <span className="tabular-nums">{item.overdueDays}d</span>
+                                    </Badge>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-neutral-300 dark:text-neutral-600 group-hover:text-red-400 transition-colors" aria-hidden="true" />
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <div className="text-right">
-                                <Badge variant="outline" className={cn(
-                                    "text-xs font-bold px-2 py-0.5",
-                                    item.overdueDays > 30
-                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
-                                        : item.overdueDays > 14
-                                            ? "bg-orange-500/10 text-orange-500 border-orange-500/20"
-                                            : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                )}>
-                                    <Clock className="w-3 h-3 mr-1 inline" />
-                                    {item.overdueDays}d
-                                </Badge>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-neutral-300 dark:text-neutral-600 group-hover:text-red-400 transition-colors" />
-                        </div>
-                    </div>
+                    </li>
                 ))}
-                {remaining > 0 ? (
-                    <p className="text-xs text-neutral-400 text-center pt-2">
-                        + {remaining} more overdue device{remaining !== 1 ? "s" : ""}
-                    </p>
-                ) : null}
-            </div>
+            </ul>
+            {remaining > 0 ? (
+                <p className="text-xs text-neutral-400 text-center pt-2">
+                    + {remaining} more overdue device{remaining !== 1 ? "s" : ""}
+                </p>
+            ) : null}
         </motion.div>
     );
 });

@@ -58,7 +58,7 @@ export function PinModal() {
                             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                         </div>
                     )}
-                    <InputOTP maxLength={6} onComplete={onComplete} disabled={isPending}>
+                    <InputOTP maxLength={6} onComplete={onComplete} disabled={isPending} aria-label="6-digit access PIN">
                         <InputOTPGroup>
                             <InputOTPSlot index={0} />
                             <InputOTPSlot index={1} />
@@ -68,7 +68,7 @@ export function PinModal() {
                             <InputOTPSlot index={5} />
                         </InputOTPGroup>
                     </InputOTP>
-                    {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+                    {error && <p className="text-sm text-red-500 font-medium" role="alert" aria-live="polite">{error}</p>}
                 </div>
             </DialogContent>
         </Dialog>

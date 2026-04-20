@@ -98,7 +98,7 @@ export function SettingsDashboard({ initialRecipients, initialDropdownOptions }:
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications" className="outline-none focus:ring-0">
+        <TabsContent value="notifications" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
           <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
             <CardHeader className="p-6">
               <CardTitle className="text-lg font-bold">Email Recipients</CardTitle>
@@ -112,7 +112,7 @@ export function SettingsDashboard({ initialRecipients, initialDropdownOptions }:
           </Card>
         </TabsContent>
 
-        <TabsContent value="dropdowns" className="outline-none focus:ring-0">
+        <TabsContent value="dropdowns" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
           <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
             <CardHeader className="p-6">
               <CardTitle className="text-lg font-bold">Form Dropdowns</CardTitle>

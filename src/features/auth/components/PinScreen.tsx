@@ -71,6 +71,7 @@ export function PinScreen() {
             maxLength={6}
             onComplete={onComplete}
             disabled={isPending}
+            aria-label="6-digit PIN code"
           >
             <InputOTPGroup>
               <InputOTPSlot index={0} />
@@ -83,7 +84,7 @@ export function PinScreen() {
           </InputOTP>
         </div>
         {error && (
-          <p className="text-sm text-red-500 font-medium">{error}</p>
+          <p className="text-sm text-red-500 font-medium" role="alert" aria-live="polite">{error}</p>
         )}
       </div>
     </div>
