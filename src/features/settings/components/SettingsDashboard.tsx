@@ -71,7 +71,7 @@ export function SettingsDashboard({ initialRecipients, initialDropdownOptions }:
         </div>
 
         {/* Content Sections */}
-        <TabsContent value="diagnostics" className="space-y-6 outline-none focus:ring-0">
+        <TabsContent value="diagnostics" className="space-y-6">
           <SystemHealthCard />
           <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
             <CardHeader className="p-6">

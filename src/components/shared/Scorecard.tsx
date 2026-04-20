@@ -68,7 +68,7 @@ export const Scorecard = React.memo(function Scorecard({
                     </div>
                     <div>
                         <div className="flex items-baseline gap-2">
-                            <p className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight transition-colors">
+                            <p className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight transition-colors tabular-nums">
                                 {value}
                             </p>
                         </div>

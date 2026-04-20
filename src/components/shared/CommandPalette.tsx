@@ -59,9 +59,9 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                 className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] rounded-xl hover:bg-muted/50 transition-colors backdrop-blur-xl"
             >
                 <Search className="size-3.5" />
-                <span>Search...</span>
+                <span>Search…</span>
                 <kbd className="ml-2 px-1.5 py-0.5 text-[10px] font-mono bg-muted rounded text-muted-foreground border border-border">
-                    ⌘K
+                    ⌘ K
                 </kbd>
             </button>
 
@@ -70,7 +70,7 @@ export function CommandPalette({ inventory }: CommandPaletteProps) {
                     <DialogTitle className="sr-only">Command Palette</DialogTitle>
                     <Command className="bg-transparent">
                         <CommandInput
-                            placeholder="Search devices, KOLs, campaigns..."
+                            placeholder="Search devices, KOLs, campaigns…"
                             className="h-12 text-foreground border-b border-border"
                         />
                         <CommandList className="max-h-[300px] overflow-y-auto custom-scrollbar">
