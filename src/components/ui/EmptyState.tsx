@@ -1,5 +1,6 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "framer-motion";
 
 interface EmptyStateProps {
     icon: LucideIcon;

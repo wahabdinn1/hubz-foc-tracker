@@ -5,14 +5,21 @@ import type { OverdueItem } from "@/types/inventory";
 import { AlertTriangle, Clock, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface OverduePanelProps {
     overdueItems: OverdueItem[];
 }
 
 export const OverduePanel = React.memo(function OverduePanel({ overdueItems }: OverduePanelProps) {
+    const prefersReducedMotion = useReducedMotion();
+    
     if (overdueItems.length === 0) return null;
+    const SECTION_ENTER = prefersReducedMotion ? {} : {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.3 }
+    };
 
     // Show max 8 items
     const displayItems = overdueItems.slice(0, 8);
@@ -21,9 +28,7 @@ export const OverduePanel = React.memo(function OverduePanel({ overdueItems }: O
     return (
         <motion.div
             className="bg-white/80 dark:bg-neutral-900/40 border border-red-500/20 dark:border-red-500/10 rounded-2xl md:rounded-3xl p-4 md:p-6 backdrop-blur-xl shadow-2xl relative z-10 overflow-hidden transition-colors"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
+            {...SECTION_ENTER}
         >
             {/* Urgent glow */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/10 dark:bg-red-500/5 rounded-full blur-[80px] pointer-events-none" />
