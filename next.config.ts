@@ -52,7 +52,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://sheets.googleapis.com",
+              "connect-src 'self' https://*.supabase.co https://sheets.googleapis.com https://vitals.vercel-insights.com https://vitals.vercel-analytics.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

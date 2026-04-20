@@ -21,10 +21,9 @@ function getStore(): Map<string, AttemptRecord> {
   const g = globalThis as unknown as Record<symbol, Map<string, AttemptRecord> | undefined>;
   if (!g[STORE_KEY]) {
     g[STORE_KEY] = new Map<string, AttemptRecord>();
-    // Set up periodic cleanup only in server environment
+    // Do not use setInterval in serverless environments as it prevents process exit
     if (typeof window === 'undefined' && !g[STORE_KEY].has('__cleanup_initialized__')) {
       g[STORE_KEY].set('__cleanup_initialized__', { count: 0, firstAttempt: Date.now(), lastAttempt: Date.now() });
-      setInterval(purgeStale, CONFIG.clearIntervalMs);
     }
   }
   return g[STORE_KEY]!;

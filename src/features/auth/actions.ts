@@ -25,7 +25,9 @@ export async function verifyPin(inputPin: string): Promise<ActionResult> {
     };
   }
 
-  const authorizedPins = authorizedPinsStr.split(",");
+  // Strip surrounding quotes that Vercel env dashboard may preserve
+  const cleanedPins = authorizedPinsStr.replace(/^["']|["']$/g, "");
+  const authorizedPins = cleanedPins.split(",").filter(Boolean);
 
   const matchedPin = authorizedPins.find(pin => timingSafeEqual(pin.trim(), inputPin));
 
