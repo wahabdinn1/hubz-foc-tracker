@@ -23,7 +23,18 @@ export async function verifySettingsPin(pin: string): Promise<ActionResult> {
     };
   }
 
-  const authorizedPins = process.env.AUTHORIZED_PINS?.split(",") || [];
+  const rawPins = process.env.AUTHORIZED_PINS;
+  if (!rawPins) {
+    console.error("[SETTINGS] AUTHORIZED_PINS environment variable is not set");
+    return {
+      success: false,
+      error: "Server misconfigured — please contact the administrator.",
+    };
+  }
+
+  // Strip surrounding quotes that Vercel env dashboard may preserve
+  const cleanedPins = rawPins.replace(/^["']|["']$/g, "");
+  const authorizedPins = cleanedPins.split(",").filter(Boolean);
   const matched = authorizedPins.find((p) =>
     timingSafeEqual(p.trim(), pin)
   );
