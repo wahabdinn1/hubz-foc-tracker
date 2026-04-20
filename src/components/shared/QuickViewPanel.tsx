@@ -27,7 +27,7 @@ export function QuickViewPanel({ item, isOpen, onOpenChange }: QuickViewPanelPro
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
-            <SheetContent className="overflow-y-auto w-full sm:max-w-lg bg-white/95 dark:bg-neutral-950/95 transition-colors border-l border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 custom-scrollbar shadow-2xl p-4 sm:p-6">
+            <SheetContent className="overflow-y-auto w-full sm:max-w-lg bg-white/95 dark:bg-neutral-950/95 transition-colors border-l border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 custom-scrollbar shadow-2xl p-4 sm:p-6 overscroll-contain">
                 <SheetHeader className="mb-4 sm:mb-6 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 text-left min-w-0">
