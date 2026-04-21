@@ -1,3 +1,4 @@
+import React, { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,13 @@ interface MasterListMobileCardsProps {
     setSelectedItem: (item: InventoryItem) => void;
 }
 
-export function MasterListMobileCards({ paginatedInventory, setSelectedItem }: MasterListMobileCardsProps) {
+const CARD_VARIANTS = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.95 }
+} as const;
+
+export const MasterListMobileCards = memo(function MasterListMobileCards({ paginatedInventory, setSelectedItem }: MasterListMobileCardsProps) {
     return (
         <div className="block md:hidden p-3 space-y-3">
             <AnimatePresence mode="popLayout">
@@ -23,9 +30,10 @@ export function MasterListMobileCards({ paginatedInventory, setSelectedItem }: M
                         return (
                             <motion.div
                                 key={`${item.imei}-${item.unitName}-${idx}`}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
+                                variants={CARD_VARIANTS}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
                                 transition={{ duration: 0.15, delay: Math.min(idx * 0.05, 0.3) }}
                                 onClick={() => setSelectedItem(item)}
                                 className={cn(
@@ -71,4 +79,4 @@ export function MasterListMobileCards({ paginatedInventory, setSelectedItem }: M
             </AnimatePresence>
         </div>
     );
-}
+});

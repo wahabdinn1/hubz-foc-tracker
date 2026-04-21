@@ -8,7 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import type { Dispatch, SetStateAction } from "react";
+import React, { memo, type Dispatch, type SetStateAction } from "react";
 
 interface MasterListPaginationProps {
     currentPage: number;
@@ -18,7 +18,7 @@ interface MasterListPaginationProps {
     setRowsPerPage: Dispatch<SetStateAction<number>> | ((size: number) => void);
 }
 
-export function MasterListPagination({ currentPage, setCurrentPage, totalPages, rowsPerPage, setRowsPerPage }: MasterListPaginationProps) {
+export const MasterListPagination = memo(function MasterListPagination({ currentPage, setCurrentPage, totalPages, rowsPerPage, setRowsPerPage }: MasterListPaginationProps) {
     const setPage = (val: number | ((prev: number) => number)) => {
         if (typeof val === "function") {
             setCurrentPage(val(currentPage));
@@ -101,4 +101,4 @@ export function MasterListPagination({ currentPage, setCurrentPage, totalPages, 
             </div>
         </div>
     );
-}
+});

@@ -7,7 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import type { Dispatch, SetStateAction } from "react";
+import React, { memo, type Dispatch, type SetStateAction } from "react";
 
 interface MasterListFiltersProps {
     searchQuery: string;
@@ -19,7 +19,7 @@ interface MasterListFiltersProps {
     filteredCount: number;
 }
 
-export function MasterListFilters({
+export const MasterListFilters = memo(function MasterListFilters({
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -73,4 +73,4 @@ export function MasterListFilters({
             </div>
         </div>
     );
-}
+});

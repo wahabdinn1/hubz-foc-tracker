@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useTransition, useRef, useEffect, memo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   useReactTable,
@@ -51,7 +51,13 @@ function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
     return debounced;
 }
 
-export function MasterListTab({ inventory, setSelectedItem, initialFilter }: MasterListTabProps) {
+const ROW_VARIANTS = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 }
+} as const;
+
+export const MasterListTab = memo(function MasterListTab({ inventory, setSelectedItem, initialFilter }: MasterListTabProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -293,7 +299,7 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
                 filteredCount={filteredCount}
             />
 
-            <div className="overflow-x-auto flex-1 relative max-h-[calc(100vh-280px)] md:max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="overflow-x-auto flex-1 relative max-h-[calc(100vh-280px)] md:max-h-[600px] overflow-y-auto custom-scrollbar [content-visibility:auto]">
                 <MasterListMobileCards
                     paginatedInventory={table.getRowModel().rows.map(r => r.original)}
                     setSelectedItem={setSelectedItem}
@@ -335,9 +341,10 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
                                      const overdue = isItemOverdue(item);
                                      return (
                                          <motion.tr
-                                             initial={{ opacity: 0, y: 10 }}
-                                             animate={{ opacity: 1, y: 0 }}
-                                             exit={{ opacity: 0, y: -10 }}
+                                             variants={ROW_VARIANTS}
+                                             initial="initial"
+                                             animate="animate"
+                                             exit="exit"
                                              transition={{ duration: 0.15, delay: Math.min(idx * 0.03, 0.15) }}
                                              key={`${item.imei}-${item.unitName}-${idx}`}
                                              onClick={() => setSelectedItem(item)}
@@ -383,4 +390,4 @@ export function MasterListTab({ inventory, setSelectedItem, initialFilter }: Mas
             />
         </div>
     );
-}
+});
