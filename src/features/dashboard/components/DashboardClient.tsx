@@ -12,11 +12,21 @@ const QuickViewPanel = dynamic(
     () => import("@/components/shared/QuickViewPanel").then((mod) => mod.QuickViewPanel),
     { ssr: false }
 )
+const ActivityFeed = dynamic(
+    () => import("./ActivityFeed").then((mod) => mod.ActivityFeed),
+    { ssr: false }
+)
+const DashboardDonutChart = dynamic(
+    () => import("./DashboardDonutChart").then((mod) => mod.DashboardDonutChart),
+    { ssr: false }
+)
+const ReturnHistoryPanel = dynamic(
+    () => import("./ReturnHistoryPanel").then((mod) => mod.ReturnHistoryPanel),
+    { ssr: false }
+)
+
 import { ReturnTrackingTable } from "./ReturnTrackingTable";
-import { ActivityFeed } from "./ActivityFeed";
-import { DashboardDonutChart } from "./DashboardDonutChart";
 import { OverduePanel } from "./OverduePanel";
-import { ReturnHistoryPanel } from "./ReturnHistoryPanel";
 import { DateRangePicker } from "./DateRangePicker";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { motion } from "framer-motion";
