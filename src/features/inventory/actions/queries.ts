@@ -38,73 +38,6 @@ function parseStep3Row(row: string[]): Step3RefData {
   };
 }
 
-export const getInventory = cache(unstable_cache(
-  async (): Promise<InventoryItem[]> => {
-    try {
-      const response = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId: SHEET_ID,
-        ranges: [SHEET_RANGES.DATA_BANK, SHEET_RANGES.FOC_REQUEST],
-      });
-
-      const rows = response.data.valueRanges?.[0].values;
-      const reqRows = response.data.valueRanges?.[1].values;
-
-      if (!rows || rows.length <= 1) {
-        throw new Error("No inventory data found or only headers present.");
-      }
-
-      const step3Map = buildStep3LookupMap(reqRows);
-
-      return rows.slice(1)
-        .filter((rawRow) => {
-          const row = rawRow as string[];
-          const hasImei = (row[STEP1_COLS.IMEI] || "").trim() !== "";
-          const hasUnit = (row[STEP1_COLS.UNIT_NAME] || "").trim() !== "";
-          return hasImei || hasUnit;
-        })
-        .map((rawRow) => {
-          const row = rawRow as string[];
-          const imei = cell(row, STEP1_COLS.IMEI);
-          const unitName = cell(row, STEP1_COLS.UNIT_NAME);
-          const onHolder = cell(row, STEP1_COLS.ON_HOLDER);
-
-          let step3: Step3RefData | null = null;
-          if (imei && imei !== "-") {
-            step3 = step3Map.get(imei) || null;
-          }
-          if (!step3 && unitName && onHolder) {
-            step3 = step3Map.get(`${unitName}||${onHolder}`) || null;
-          }
-
-          return {
-            imei,
-            unitName,
-            focStatus: cell(row, STEP1_COLS.FOC_STATUS),
-            goatPic: cell(row, STEP1_COLS.GOAT_PIC),
-            seinPic: cell(row, STEP1_COLS.SEIN_PIC_NAME),
-            statusLocation: cell(row, STEP1_COLS.STATUS_LOCATION),
-            onHolder,
-            plannedReturnDate: cell(row, STEP1_COLS.PLANNED_RETURN),
-            campaignName: cell(row, STEP1_COLS.CAMPAIGN_NAME),
-            dateOfReceipt: cell(row, STEP1_COLS.DATE_OF_RECEIPT),
-            focType: cell(row, STEP1_COLS.FOC_TYPE),
-            returnToTccReceipt: cell(row, STEP1_COLS.RETURN_TO_TCC),
-            step3Data: step3,
-          };
-        });
-    } catch (error) {
-      console.error("Failed to fetch inventory", error);
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch inventory from Google Sheets"
-      );
-    }
-  },
-  [CACHE_TAG_INVENTORY],
-  { revalidate: CACHE_REVALIDATE_SECONDS }
-));
-
 function buildStep3LookupMap(
   reqRows: string[][] | null | undefined
 ): Map<string, Step3RefData> {
@@ -127,11 +60,120 @@ function buildStep3LookupMap(
   return map;
 }
 
+function parseInventoryRows(rows: string[][] | null | undefined, step3Rows: string[][] | null | undefined): InventoryItem[] {
+  if (!rows || rows.length <= 1) return [];
+  const step3Map = buildStep3LookupMap(step3Rows);
+
+  return rows.slice(1)
+    .filter((rawRow) => {
+      const row = rawRow as string[];
+      const hasImei = (row[STEP1_COLS.IMEI] || "").trim() !== "";
+      const hasUnit = (row[STEP1_COLS.UNIT_NAME] || "").trim() !== "";
+      return hasImei || hasUnit;
+    })
+    .map((rawRow) => {
+      const row = rawRow as string[];
+      const imei = cell(row, STEP1_COLS.IMEI);
+      const unitName = cell(row, STEP1_COLS.UNIT_NAME);
+      const onHolder = cell(row, STEP1_COLS.ON_HOLDER);
+
+      let step3: Step3RefData | null = null;
+      if (imei && imei !== "-") {
+        step3 = step3Map.get(imei) || null;
+      }
+      if (!step3 && unitName && onHolder) {
+        step3 = step3Map.get(`${unitName}||${onHolder}`) || null;
+      }
+
+      return {
+        imei,
+        unitName,
+        focStatus: cell(row, STEP1_COLS.FOC_STATUS),
+        goatPic: cell(row, STEP1_COLS.GOAT_PIC),
+        seinPic: cell(row, STEP1_COLS.SEIN_PIC_NAME),
+        statusLocation: cell(row, STEP1_COLS.STATUS_LOCATION),
+        onHolder,
+        plannedReturnDate: cell(row, STEP1_COLS.PLANNED_RETURN),
+        campaignName: cell(row, STEP1_COLS.CAMPAIGN_NAME),
+        dateOfReceipt: cell(row, STEP1_COLS.DATE_OF_RECEIPT),
+        focType: cell(row, STEP1_COLS.FOC_TYPE),
+        returnToTccReceipt: cell(row, STEP1_COLS.RETURN_TO_TCC),
+        step3Data: step3,
+      };
+    });
+}
+
+function parseOverdueRows(rows: string[][] | null | undefined): OverdueItem[] {
+  if (!rows || rows.length <= 1) return [];
+  return rows.slice(1)
+    .map((rawRow) => {
+      const row = rawRow as string[];
+      const overdueDaysRaw = cell(row, OVERDUE_COLS.OVERDUE_DAYS);
+      const overdueDays = parseInt(overdueDaysRaw, 10);
+
+      return {
+        serialNumber: cell(row, OVERDUE_COLS.SERIAL_NUMBER),
+        materialDescription: cell(row, OVERDUE_COLS.MATERIAL_DESCRIPTION),
+        planReturnDate: cell(row, OVERDUE_COLS.PLAN_RETURN_DATE),
+        overdueDays: isNaN(overdueDays) ? 0 : overdueDays,
+        statusUpdate: cell(row, OVERDUE_COLS.STATUS_UPDATE),
+        location: cell(row, OVERDUE_COLS.LOCATION),
+        seinPic: cell(row, OVERDUE_COLS.SEIN_PIC),
+        contactPerson: cell(row, OVERDUE_COLS.CONTACT_PERSON),
+        nextStep: cell(row, OVERDUE_COLS.NEXT_STEP),
+      };
+    })
+    .filter(item => item.serialNumber && item.serialNumber.trim() !== "" && item.overdueDays > 0)
+    .sort((a, b) => b.overdueDays - a.overdueDays);
+}
+
+function parseReturnHistoryRows(rows: string[][] | null | undefined): ReturnHistoryItem[] {
+  if (!rows || rows.length <= 1) return [];
+  return rows.slice(1)
+    .filter(row => row && row.length > 0 && row[STEP4_COLS.TIMESTAMP])
+    .map((rawRow) => {
+      const row = rawRow as string[];
+      return {
+        timestamp:  cell(row, STEP4_COLS.TIMESTAMP),
+        email:      cell(row, STEP4_COLS.EMAIL),
+        requestor:  cell(row, STEP4_COLS.REQUESTOR),
+        unitName:   cell(row, STEP4_COLS.UNIT_NAME),
+        imei:       cell(row, STEP4_COLS.IMEI),
+        fromKol:    cell(row, STEP4_COLS.FROM_KOL),
+        kolAddress:  cell(row, STEP4_COLS.KOL_ADDRESS),
+        kolPhone:   cell(row, STEP4_COLS.KOL_PHONE),
+        typeOfFoc:  cell(row, STEP4_COLS.TYPE_OF_FOC),
+        returnDate: cell(row, STEP4_COLS.REMARKS),
+      };
+    })
+    .reverse();
+}
+
+export const getInventory = cache(unstable_cache(
+  async (): Promise<InventoryItem[]> => {
+    try {
+      const response = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SHEET_ID,
+        ranges: [SHEET_RANGES.DATA_BANK, SHEET_RANGES.FOC_REQUEST],
+      });
+
+      return parseInventoryRows(
+        response.data.valueRanges?.[0].values,
+        response.data.valueRanges?.[1].values
+      );
+    } catch (error) {
+      console.error("Failed to fetch inventory", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to fetch inventory");
+    }
+  },
+  [CACHE_TAG_INVENTORY],
+  { revalidate: CACHE_REVALIDATE_SECONDS }
+));
+
 export async function revalidateInventory() {
   revalidatePath("/", "layout");
   return { success: true };
 }
-
 
 export const getOverdueData = cache(unstable_cache(
   async (): Promise<OverdueItem[]> => {
@@ -141,29 +183,7 @@ export const getOverdueData = cache(unstable_cache(
         range: SHEET_RANGES.OVERDUE_TRACKER,
       });
 
-      const rows = response.data.values;
-      if (!rows || rows.length <= 1) return [];
-
-      return rows.slice(1)
-        .map((rawRow) => {
-          const row = rawRow as string[];
-          const overdueDaysRaw = cell(row, OVERDUE_COLS.OVERDUE_DAYS);
-          const overdueDays = parseInt(overdueDaysRaw, 10);
-
-          return {
-            serialNumber: cell(row, OVERDUE_COLS.SERIAL_NUMBER),
-            materialDescription: cell(row, OVERDUE_COLS.MATERIAL_DESCRIPTION),
-            planReturnDate: cell(row, OVERDUE_COLS.PLAN_RETURN_DATE),
-            overdueDays: isNaN(overdueDays) ? 0 : overdueDays,
-            statusUpdate: cell(row, OVERDUE_COLS.STATUS_UPDATE),
-            location: cell(row, OVERDUE_COLS.LOCATION),
-            seinPic: cell(row, OVERDUE_COLS.SEIN_PIC),
-            contactPerson: cell(row, OVERDUE_COLS.CONTACT_PERSON),
-            nextStep: cell(row, OVERDUE_COLS.NEXT_STEP),
-          };
-        })
-        .filter(item => item.serialNumber && item.serialNumber.trim() !== "" && item.overdueDays > 0)
-        .sort((a, b) => b.overdueDays - a.overdueDays);
+      return parseOverdueRows(response.data.values);
     } catch (error) {
       console.error("Failed to fetch overdue data", error);
       return [];
@@ -181,27 +201,7 @@ export const getReturnHistory = cache(unstable_cache(
         range: SHEET_RANGES.FOC_RETURN,
       });
 
-      const rows = response.data.values;
-      if (!rows || rows.length <= 1) return [];
-
-      return rows.slice(1)
-        .filter(row => row && row.length > 0 && row[STEP4_COLS.TIMESTAMP])
-        .map((rawRow) => {
-          const row = rawRow as string[];
-          return {
-            timestamp:  cell(row, STEP4_COLS.TIMESTAMP),
-            email:      cell(row, STEP4_COLS.EMAIL),
-            requestor:  cell(row, STEP4_COLS.REQUESTOR),
-            unitName:   cell(row, STEP4_COLS.UNIT_NAME),
-            imei:       cell(row, STEP4_COLS.IMEI),
-            fromKol:    cell(row, STEP4_COLS.FROM_KOL),
-            kolAddress:  cell(row, STEP4_COLS.KOL_ADDRESS),
-            kolPhone:   cell(row, STEP4_COLS.KOL_PHONE),
-            typeOfFoc:  cell(row, STEP4_COLS.TYPE_OF_FOC),
-            returnDate: cell(row, STEP4_COLS.REMARKS),
-          };
-        })
-        .reverse();
+      return parseReturnHistoryRows(response.data.values);
     } catch (error) {
       console.error("Failed to fetch return history", error);
       return [];
@@ -211,7 +211,44 @@ export const getReturnHistory = cache(unstable_cache(
   { revalidate: CACHE_REVALIDATE_SECONDS }
 ));
 
-export const getRequestHistory = unstable_cache(
+/**
+ * Optimized dashboard fetcher that retrieves all data in a single Google Sheets batch call.
+ * Eliminates waterfalls and reduces API requests.
+ */
+export const getDashboardFullData = cache(unstable_cache(
+  async (): Promise<{ 
+    inventory: InventoryItem[], 
+    overdueItems: OverdueItem[], 
+    returnHistory: ReturnHistoryItem[] 
+  }> => {
+    try {
+      const response = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SHEET_ID,
+        ranges: [
+          SHEET_RANGES.DATA_BANK,
+          SHEET_RANGES.FOC_REQUEST,
+          SHEET_RANGES.OVERDUE_TRACKER,
+          SHEET_RANGES.FOC_RETURN,
+        ],
+      });
+
+      const ranges = response.data.valueRanges || [];
+      const inventory = parseInventoryRows(ranges[0]?.values, ranges[1]?.values);
+      const overdueItems = parseOverdueRows(ranges[2]?.values);
+      const returnHistory = parseReturnHistoryRows(ranges[3]?.values);
+
+      return { inventory, overdueItems, returnHistory };
+    } catch (error) {
+      console.error("Failed to fetch dashboard full data", error);
+      // Fallback to empty if critical failure
+      return { inventory: [], overdueItems: [], returnHistory: [] };
+    }
+  },
+  ["dashboard-full-data"],
+  { revalidate: CACHE_REVALIDATE_SECONDS }
+));
+
+export const getRequestHistory = cache(unstable_cache(
   async (): Promise<RequestHistoryItem[]> => {
     try {
       const response = await sheets.spreadsheets.values.get({
@@ -249,4 +286,4 @@ export const getRequestHistory = unstable_cache(
   },
   ["request-history"],
   { revalidate: CACHE_REVALIDATE_SECONDS }
-);
+));

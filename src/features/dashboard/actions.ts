@@ -1,14 +1,10 @@
 "use server";
 
-import { getInventory, getOverdueData, getReturnHistory } from "@/features/inventory/actions/queries";
+import { getDashboardFullData } from "@/features/inventory/actions/queries";
 import { aggregateDashboardData, type DashboardDateRange } from "./utils";
 
 export async function getDashboardData(dateRange?: DashboardDateRange) {
-  const [inventory, overdueItems, returnHistory] = await Promise.all([
-    getInventory(),
-    getOverdueData(),
-    getReturnHistory(),
-  ]);
+  const { inventory, overdueItems, returnHistory } = await getDashboardFullData();
 
   const stats = aggregateDashboardData(inventory, dateRange);
 
