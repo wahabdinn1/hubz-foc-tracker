@@ -26,7 +26,7 @@ const STORE_KEY = Symbol.for("foc_rate_limit_store");
  * and shared worker instances where supported.
  */
 function getStore(): Map<string, AttemptRecord> {
-  const g = globalThis as any;
+  const g = globalThis as typeof globalThis & { [STORE_KEY]?: Map<string, AttemptRecord> };
   if (!g[STORE_KEY]) {
     g[STORE_KEY] = new Map<string, AttemptRecord>();
   }
