@@ -220,9 +220,9 @@ export function ReturnFormModal({ loanedItems }: { loanedItems: InventoryItem[] 
                 }
             }}>
             <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-500 text-white gap-2 shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all">
+                <Button className="px-3 sm:px-5 py-2 sm:py-2.5 h-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-sm gap-1.5 sm:gap-2">
                     <Undo2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Inbound (Return)</span>
+                    <span className="hidden sm:inline">Return</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">

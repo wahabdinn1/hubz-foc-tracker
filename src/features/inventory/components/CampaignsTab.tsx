@@ -2,19 +2,19 @@
 
 import { useState, useMemo } from "react";
 import type { InventoryItem } from "@/types/inventory";
-import { Input } from "@/components/ui/input";
 import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Megaphone, Search } from "lucide-react";
+import { Megaphone, Search, Smartphone } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface CampaignsTabProps {
     inventory: InventoryItem[];
     setSelectedItem: (item: InventoryItem) => void;
+    searchQuery: string;
 }
 
-export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) {
-    const [campaignSearch, setCampaignSearch] = useState("");
+export function CampaignsTab({ inventory, setSelectedItem, searchQuery }: CampaignsTabProps) {
     const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
 
     const campaigns = useMemo(() => {
@@ -51,7 +51,7 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
         }).sort((a, b) => b.total - a.total);
     }, [inventory]);
 
-    const filteredCampaigns = campaigns.filter(c => c.name.toLowerCase().includes(campaignSearch.toLowerCase()));
+    const filteredCampaigns = campaigns.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const activeCampaignData = selectedCampaign ? campaigns.find(c => c.name === selectedCampaign) : null;
 
     if (activeCampaignData) {
@@ -85,45 +85,123 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {activeCampaignData.items.map((item, idx) => (
-                            <div
-                                key={idx}
-                                onClick={() => setSelectedItem(item)}
-                                className="group cursor-pointer flex flex-col gap-3 bg-white/80 dark:bg-neutral-950/40 shadow-sm dark:shadow-none border border-black/5 dark:border-white/5 rounded-xl md:rounded-2xl p-3 md:p-4 hover:bg-black/5 dark:hover:bg-neutral-800/50 hover:border-purple-500/30 transition-all hover:-translate-y-0.5"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="min-w-0">
-                                        <h3 className="font-semibold text-neutral-900 dark:text-neutral-200 text-sm truncate">{item.unitName || "Unknown Unit"}</h3>
-                                        <p className="text-neutral-500 dark:text-neutral-400 text-xs font-mono mt-0.5 truncate">IMEI: {item.imei || "N/A"}</p>
-                                    </div>
-                                    <Badge variant="outline" className={cn(
-                                        "px-2 py-0.5 text-[10px] whitespace-nowrap shrink-0 ml-2",
-                                        isStatusAvailable(item.statusLocation) ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                                            isStatusLoaned(item.statusLocation) ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
-                                                "bg-neutral-500/10 text-neutral-500 dark:text-neutral-400 border-neutral-500/20"
-                                    )}>
-                                        {item.statusLocation || "UNKNOWN"}
-                                    </Badge>
-                                </div>
-
-                                <div className="mt-1 pt-3 border-t border-black/5 dark:border-white/5 flex flex-col gap-1.5 text-xs">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-neutral-500">Holder:</span>
-                                        <span className="text-neutral-700 dark:text-neutral-300 font-medium truncate ml-2">{item.onHolder || "-"}</span>
-                                    </div>
-                                    {item.plannedReturnDate && item.plannedReturnDate !== "-" && item.plannedReturnDate !== "N/A" ? (
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-500">Return:</span>
-                                            <span className={cn(
-                                                "font-medium",
-                                                item.plannedReturnDate === 'ASAP' ? "text-red-400" : "text-neutral-700 dark:text-neutral-300"
-                                            )}>{item.plannedReturnDate}</span>
-                                        </div>
-                                    ) : null}
-                                </div>
+                    {/* Grid Table */}
+                    <div className="flex flex-col relative max-h-[calc(100vh-380px)] overflow-y-auto custom-scrollbar [content-visibility:auto]">
+                        {/* Sticky Header */}
+                        <div className="sticky top-0 z-20 mb-4 px-4 lg:px-8 py-4 bg-white/60 dark:bg-[#09090b]/60 backdrop-blur-xl rounded-2xl border border-black/[0.05] dark:border-white/[0.05] shadow-sm mx-1 mt-1">
+                            <div className="hidden lg:grid grid-cols-[1.5fr_1.2fr_1fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-4 items-center">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-900 dark:text-white">Unit Identity</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Serial / IMEI</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Custodian</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">GOAT PIC</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Log Date</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">FOC Class</div>
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600 text-right">Vault Status</div>
                             </div>
-                        ))}
+                            <div className="lg:hidden flex justify-between items-center text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                                <span>Ledger Operations</span>
+                                <span>{activeCampaignData.items.length} Records</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col">
+                            {activeCampaignData.items.length === 0 ? (
+                                <div className="py-12">
+                                    <EmptyState
+                                        icon={Search}
+                                        title="No units found"
+                                        description="This campaign has no devices matching your criteria."
+                                    />
+                                </div>
+                            ) : activeCampaignData.items.map((item, idx) => {
+                                const focUp = item.focStatus?.toUpperCase().trim();
+                                return (
+                                    <div
+                                        key={`${item.imei}-${idx}`}
+                                        onClick={() => setSelectedItem(item)}
+                                        className="grid grid-cols-1 lg:grid-cols-[1.5fr_1.2fr_1fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-y-4 gap-x-4 px-4 lg:px-8 py-4 lg:py-3 items-center group relative border-b border-black/[0.02] dark:border-white/[0.02] last:border-0 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                                    >
+                                        {/* Unit Identity */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold group-hover:scale-110 transition-transform shrink-0">
+                                                <Smartphone size={18} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-display leading-tight truncate">
+                                                    {item.unitName || "-"}
+                                                </h4>
+                                                <span className="lg:hidden text-[10px] font-mono text-zinc-400 truncate block">
+                                                    {item.imei || "-"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Serial / IMEI */}
+                                        <div className="hidden lg:block">
+                                            <code className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 bg-black/[0.03] dark:bg-white/[0.05] px-2 py-1 rounded-lg border border-black/[0.05] dark:border-white/[0.05] truncate block w-fit">
+                                                {item.imei || "-"}
+                                            </code>
+                                        </div>
+
+                                        {/* Custodian */}
+                                        <div className="text-xs text-zinc-600 dark:text-zinc-300 font-medium truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Holder</span>
+                                            {item.onHolder || "-"}
+                                        </div>
+
+                                        {/* GOAT PIC */}
+                                        <div className="flex items-center gap-2 truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">PIC</span>
+                                            <div className="flex items-center gap-2">
+                                                {(item.goatPic || item.seinPic) && (item.goatPic || item.seinPic) !== "-" && (
+                                                    <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-bold shrink-0">
+                                                        {((item.goatPic || item.seinPic) as string).substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span className="text-[11px] text-zinc-500 truncate">{(item.goatPic || item.seinPic) || "-"}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Log Date */}
+                                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono font-bold truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Date</span>
+                                            {item.step3Data?.timestamp && item.step3Data.timestamp.trim() !== "" && item.step3Data.timestamp !== "-" ? item.step3Data.timestamp : "—"}
+                                        </div>
+
+                                        {/* FOC Class */}
+                                        <div>
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Class</span>
+                                            <div className={cn(
+                                                "w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                                focUp === "RETURN" ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" :
+                                                    focUp === "UNRETURN" ? "bg-amber-500/5 text-amber-600 border-amber-500/20" :
+                                                        "bg-zinc-500/10 text-zinc-500 border-zinc-500/20"
+                                            )}>
+                                                {!focUp || focUp === "-" ? "—" : focUp}
+                                            </div>
+                                        </div>
+
+                                        {/* Vault Status */}
+                                        <div className="flex items-center gap-2 lg:justify-end truncate">
+                                            <div className={cn(
+                                                "shrink-0 w-1.5 h-1.5 rounded-full",
+                                                isStatusAvailable(item.statusLocation) ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" :
+                                                isStatusLoaned(item.statusLocation) ? "bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]" :
+                                                "bg-zinc-300 dark:bg-zinc-700"
+                                            )} />
+                                            <span className={cn(
+                                                "text-[10px] font-black uppercase tracking-widest",
+                                                isStatusAvailable(item.statusLocation) ? "text-zinc-900 dark:text-white" :
+                                                isStatusLoaned(item.statusLocation) ? "text-orange-500" :
+                                                "text-zinc-500"
+                                            )}>
+                                                {item.statusLocation || "UNKNOWN"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -132,20 +210,14 @@ export function CampaignsTab({ inventory, setSelectedItem }: CampaignsTabProps) 
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="bg-white/80 dark:bg-neutral-900/40 p-1.5 rounded-2xl border border-black/5 dark:border-white/[0.05] backdrop-blur-xl shadow-xl w-full max-w-sm flex items-center focus-within:border-white/[0.15] transition-colors">
-                <Search className="w-5 h-5 text-neutral-500 ml-3 shrink-0" />
-                <Input
-                    placeholder="Search by campaign name..."
-                    className="border-none bg-transparent focus-visible:ring-0 text-neutral-900 dark:text-white placeholder:text-neutral-500 shadow-none"
-                    value={campaignSearch}
-                    onChange={(e) => setCampaignSearch(e.target.value)}
-                />
-            </div>
 
             {filteredCampaigns.length === 0 ? (
-                <div className="text-center py-20 text-neutral-500">
-                    <Megaphone className="w-12 h-12 text-neutral-700 mx-auto mb-4 opacity-50" />
-                    <p>No campaigns found matching {campaignSearch}</p>
+                <div className="col-span-full py-12">
+                    <EmptyState
+                        icon={Megaphone}
+                        title="No campaigns found"
+                        description={`No campaigns matching "${searchQuery}"`}
+                    />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

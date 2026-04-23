@@ -11,13 +11,13 @@ import { ModelLevel3Units } from "./models/ModelLevel3Units";
 interface ModelsTabProps {
     inventory: InventoryItem[];
     setSelectedItem: (item: InventoryItem) => void;
+    searchQuery: string;
+    statusFilter: string;
 }
 
-export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
-    const [modelSearch, setModelSearch] = useState("");
+export function ModelsTab({ inventory, setSelectedItem, searchQuery, statusFilter }: ModelsTabProps) {
     const [selectedBaseModel, setSelectedBaseModel] = useState<string | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
-    const [focStatusFilter, setFocStatusFilter] = useState<string>("ALL");
 
     // Build two-level hierarchy: baseModel → variants → items
     const deviceModelGroups = useMemo(() => {
@@ -27,9 +27,9 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
             if (!item.unitName || item.unitName.trim() === "-" || item.unitName.trim() === "N/A" || item.unitName.trim() === "") continue;
 
             // Apply FOC Status Filter
-            if (focStatusFilter !== "ALL") {
+            if (statusFilter !== "ALL") {
                 const itemStatus = item.focStatus?.toUpperCase().trim() || "";
-                if (itemStatus !== focStatusFilter) continue;
+                if (itemStatus !== statusFilter) continue;
             }
 
             const baseModel = extractBaseModel(item.unitName);
@@ -80,11 +80,11 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
         }
 
         return groups.sort((a, b) => b.total - a.total);
-    }, [inventory, focStatusFilter]);
+    }, [inventory, statusFilter]);
 
     const filteredGroups = deviceModelGroups.filter(g =>
-        g.baseModel.toLowerCase().includes(modelSearch.toLowerCase()) ||
-        g.variants.some(v => v.name.toLowerCase().includes(modelSearch.toLowerCase()))
+        g.baseModel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        g.variants.some(v => v.name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     const activeGroup = selectedBaseModel ? deviceModelGroups.find(g => g.baseModel === selectedBaseModel) : null;
@@ -114,14 +114,10 @@ export function ModelsTab({ inventory, setSelectedItem }: ModelsTabProps) {
         );
     }
 
-    // Level 1: Base Models Grid
     return (
         <ModelLevel1Grid
             filteredGroups={filteredGroups}
-            modelSearch={modelSearch}
-            setModelSearch={setModelSearch}
-            focStatusFilter={focStatusFilter}
-            setFocStatusFilter={setFocStatusFilter}
+            modelSearch={searchQuery}
             setSelectedBaseModel={setSelectedBaseModel}
         />
     );

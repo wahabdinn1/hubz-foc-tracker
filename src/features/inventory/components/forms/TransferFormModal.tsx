@@ -169,7 +169,7 @@ export function TransferFormModal({ loanedItems }: { loanedItems: InventoryItem[
                 }}
             >
                 <DialogTrigger asChild>
-                    <Button className="bg-amber-600 hover:bg-amber-500 text-white gap-2 shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all">
+                    <Button className="px-5 py-2.5 h-auto bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 rounded-xl text-xs font-bold hover:bg-zinc-200 dark:hover:bg-white/10 active:scale-95 transition-all gap-2">
                         <ArrowLeftRight className="w-4 h-4" />
                         <span className="hidden sm:inline">Transfer</span>
                     </Button>

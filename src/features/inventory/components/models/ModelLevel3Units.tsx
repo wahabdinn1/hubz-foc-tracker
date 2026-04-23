@@ -94,91 +94,125 @@ export function ModelLevel3Units({ activeGroup, activeVariant, setSelectedBaseMo
                     </div>
                 </div>
 
-                {/* Unit Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[calc(100vh-380px)] overflow-y-auto custom-scrollbar pr-1">
-                    <AnimatePresence>
-                        {filteredItems.length === 0 ? (
-                            <div className="col-span-full py-12 text-center text-neutral-500">
-                                <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                <p>No units found matching &ldquo;{search}&rdquo;</p>
-                            </div>
-                        ) : filteredItems.map((item, idx) => {
-                            const focUp = item.focStatus?.toUpperCase().trim();
-                            return (
-                                <motion.div
-                                    key={`${item.imei}-${idx}`}
-                                    initial={{ opacity: 0, y: 15 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.2, delay: Math.min(idx * 0.05, 0.3) }}
-                                    onClick={() => setSelectedItem(item)}
-                                    className="group cursor-pointer flex flex-col gap-3 bg-white/90 dark:bg-neutral-950/40 border border-black/5 dark:border-white/5 rounded-2xl p-4 hover:border-blue-500/30 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all hover:-translate-y-0.5 shadow-sm"
-                                >
-                                    {/* Row 1: IMEI + Badges */}
-                                    <div className="flex justify-between items-start gap-2">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-neutral-400 text-[11px] font-mono truncate">
-                                                IMEI: {item.imei || "N/A"}
-                                            </p>
-                                            <h4 className="font-semibold text-neutral-800 dark:text-neutral-200 text-sm mt-1 group-hover:text-blue-500 transition-colors">
-                                                {item.onHolder || "No Holder"}
-                                            </h4>
+                {/* Grid Table */}
+                <div className="flex flex-col relative max-h-[calc(100vh-380px)] overflow-y-auto custom-scrollbar [content-visibility:auto]">
+                    {/* Sticky Header */}
+                    <div className="sticky top-0 z-20 mb-4 px-4 lg:px-8 py-4 bg-white/60 dark:bg-[#09090b]/60 backdrop-blur-xl rounded-2xl border border-black/[0.05] dark:border-white/[0.05] shadow-sm mx-1 mt-1">
+                        <div className="hidden lg:grid grid-cols-[1.5fr_1.2fr_1fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-4 items-center">
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-900 dark:text-white">Unit Identity</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Serial / IMEI</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Custodian</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">GOAT PIC</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Log Date</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">FOC Class</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600 text-right">Vault Status</div>
+                        </div>
+                        <div className="lg:hidden flex justify-between items-center text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                            <span>Ledger Operations</span>
+                            <span>{filteredItems.length} Records</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                        <AnimatePresence>
+                            {filteredItems.length === 0 ? (
+                                <div className="py-12 text-center text-neutral-500">
+                                    <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                    <p>No units found matching &ldquo;{search}&rdquo;</p>
+                                </div>
+                            ) : filteredItems.map((item, idx) => {
+                                const focUp = item.focStatus?.toUpperCase().trim();
+                                return (
+                                    <motion.div
+                                        key={`${item.imei}-${idx}`}
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.2, delay: Math.min(idx * 0.05, 0.3) }}
+                                        onClick={() => setSelectedItem(item)}
+                                        className="grid grid-cols-1 lg:grid-cols-[1.5fr_1.2fr_1fr_0.8fr_0.8fr_0.8fr_0.6fr] gap-y-4 gap-x-4 px-4 lg:px-8 py-4 lg:py-3 items-center group relative border-b border-black/[0.02] dark:border-white/[0.02] last:border-0 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                                    >
+                                        {/* Unit Identity */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold group-hover:scale-110 transition-transform shrink-0">
+                                                <Smartphone size={18} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-display leading-tight truncate">
+                                                    {item.unitName || "-"}
+                                                </h4>
+                                                <span className="lg:hidden text-[10px] font-mono text-zinc-400 truncate block">
+                                                    {item.imei || "-"}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-1 shrink-0">
-                                            <Badge variant="outline" className={cn(
-                                                "text-[10px] px-2 py-0 whitespace-nowrap",
-                                                item.statusLocation?.includes("AVAILABLE")
-                                                    ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                    : item.statusLocation?.includes("LOANED")
-                                                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                                                        : "bg-neutral-500/10 text-neutral-500 border-neutral-500/20"
+
+                                        {/* Serial / IMEI */}
+                                        <div className="hidden lg:block">
+                                            <code className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 bg-black/[0.03] dark:bg-white/[0.05] px-2 py-1 rounded-lg border border-black/[0.05] dark:border-white/[0.05] truncate block w-fit">
+                                                {item.imei || "-"}
+                                            </code>
+                                        </div>
+
+                                        {/* Custodian */}
+                                        <div className="text-xs text-zinc-600 dark:text-zinc-300 font-medium truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Holder</span>
+                                            {item.onHolder || "-"}
+                                        </div>
+
+                                        {/* GOAT PIC */}
+                                        <div className="flex items-center gap-2 truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">PIC</span>
+                                            <div className="flex items-center gap-2">
+                                                {(item.goatPic || item.seinPic) && (item.goatPic || item.seinPic) !== "-" && (
+                                                    <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-bold shrink-0">
+                                                        {((item.goatPic || item.seinPic) as string).substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span className="text-[11px] text-zinc-500 truncate">{(item.goatPic || item.seinPic) || "-"}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Log Date */}
+                                        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono font-bold truncate">
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Date</span>
+                                            {item.step3Data?.timestamp && item.step3Data.timestamp.trim() !== "" && item.step3Data.timestamp !== "-" ? item.step3Data.timestamp : "—"}
+                                        </div>
+
+                                        {/* FOC Class */}
+                                        <div>
+                                            <span className="lg:hidden text-[9px] uppercase font-black text-zinc-400 block mb-1">Class</span>
+                                            <div className={cn(
+                                                "w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                                focUp === "RETURN" ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20" :
+                                                    focUp === "UNRETURN" ? "bg-amber-500/5 text-amber-600 border-amber-500/20" :
+                                                        "bg-zinc-500/10 text-zinc-500 border-zinc-500/20"
+                                            )}>
+                                                {!focUp || focUp === "-" ? "—" : focUp}
+                                            </div>
+                                        </div>
+
+                                        {/* Vault Status */}
+                                        <div className="flex items-center gap-2 lg:justify-end truncate">
+                                            <div className={cn(
+                                                "shrink-0 w-1.5 h-1.5 rounded-full",
+                                                item.statusLocation?.toUpperCase().includes("AVAILABLE") ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" :
+                                                item.statusLocation?.toUpperCase().includes("LOANED") ? "bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]" :
+                                                "bg-zinc-300 dark:bg-zinc-700"
+                                            )} />
+                                            <span className={cn(
+                                                "text-[10px] font-black uppercase tracking-widest",
+                                                item.statusLocation?.toUpperCase().includes("AVAILABLE") ? "text-zinc-900 dark:text-white" :
+                                                item.statusLocation?.toUpperCase().includes("LOANED") ? "text-orange-500" :
+                                                "text-zinc-500"
                                             )}>
                                                 {item.statusLocation || "UNKNOWN"}
-                                            </Badge>
-                                            {focUp && focUp !== "-" ? (
-                                                <Badge variant="outline" className={cn(
-                                                    "text-[10px] px-2 py-0 whitespace-nowrap font-semibold",
-                                                    focUp === "RETURN"
-                                                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                                        : focUp === "UNRETURN"
-                                                            ? "bg-red-500/10 text-red-500 border-red-500/20"
-                                                            : "bg-neutral-500/10 text-neutral-500 border-neutral-500/20"
-                                                )}>
-                                                    {item.focStatus}
-                                                </Badge>
-                                            ) : null}
-                                        </div>
-                                    </div>
-
-                                    {/* Row 2: Details */}
-                                    <div className="pt-3 border-t border-black/5 dark:border-white/5 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-400">GOAT PIC</span>
-                                            <span className="text-neutral-600 dark:text-neutral-300 font-medium truncate ml-2 text-right">{item.goatPic || "-"}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-400">SEIN PIC</span>
-                                            <span className="text-neutral-600 dark:text-neutral-300 font-medium truncate ml-2 text-right">{item.seinPic || "-"}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-400">Request</span>
-                                            <span className="text-neutral-600 dark:text-neutral-300 font-mono truncate ml-2 text-right">
-                                                {item.step3Data?.timestamp || "-"}
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-neutral-400">Return</span>
-                                            <span className={cn(
-                                                "font-mono truncate ml-2 text-right",
-                                                item.plannedReturnDate === "ASAP" ? "text-red-400 font-semibold" : "text-neutral-600 dark:text-neutral-300"
-                                            )}>
-                                                {item.plannedReturnDate || "-"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
         </div>

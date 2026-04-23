@@ -68,9 +68,13 @@ function sanitizeRow(row: string[]): string[] {
   return row.map(sanitizeCell);
 }
 
-/** Build a full email address from a username. */
+/** Build a full email address from a username, stripping any existing domain. */
 function resolveEmailAddress(username: string): string {
-  return `${username}${EMAIL_DOMAIN}`;
+  // Strip existing domain suffix to avoid double-domain like user@wppmedia.com@wppmedia.com
+  const cleanUsername = username.includes("@")
+    ? username.split("@")[0]
+    : username;
+  return `${cleanUsername}${EMAIL_DOMAIN}`;
 }
 
 /** Resolve the effective requestor name with case-insensitive matching. */

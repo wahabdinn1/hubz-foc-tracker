@@ -164,9 +164,9 @@ export function RequestFormModal({ availableItems }: { availableItems: Inventory
                 }
             }}>
                 <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all">
+                    <Button className="px-3 sm:px-5 py-2 sm:py-2.5 h-auto bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black rounded-xl text-xs font-bold active:scale-95 transition-all shadow-sm gap-1.5 sm:gap-2">
                         <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline">New Request</span>
+                        <span className="hidden sm:inline">Request</span>
                     </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white transition-colors overflow-y-auto max-h-[90vh] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
