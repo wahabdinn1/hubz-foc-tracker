@@ -4,16 +4,17 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
 
 ## Features
 
-- **Dashboard** — High-performance analytical views with **Server-Side Data Aggregation**. Includes scorecards for available stock, outstanding loans, unreturned devices, and pending returns. Features urgent return tracking, overdue surface data, and recent activity feeds.
-- **Performance Optimized** — Built for speed with:
+- **Dashboard** — High-performance analytical views with **Server-Side Data Aggregation**. Includes scorecards for available stock, outstanding loans, unreturned devices, and pending returns. Features a high-fidelity **Status Hub** sidebar and urgent return tracking, with a clean layout optimized for operational oversight (redundant charts removed for maximum clarity).
+- **Inventory Bank** — High-density data hub with interactive overview stats and three specialized tabs:
+  - **Inventory Summary Bar** — Real-time metrics (Total, Available, Loaned, Unreturned) with glassmorphic styling and responsive grid layout, powered by `useInventoryStats`.
+  - **Master List** — Optimized data ledger with multi-column sorting, text search, and **Integrated Pagination** within a unified glassmorphic container.
+  - **Device Models** — 3-level drill-down hierarchy: Base Model → Variant → Individual Units with IMEI, holder, and FOC status detail cards.
+  - **Campaigns** — Devices grouped by active campaign name with standardized empty states.
+- **Performance Optimized** — Built for high-density interaction with:
+  - **Reduced Animation Overhead** — Optimized DOM transitions (removed per-row motion wrappers) for buttery-smooth scrolling on large datasets.
   - **Request Deduplication** — Utilizes `React.cache` for per-request data fetching optimization.
   - **List Virtualization** — Efficiently handles thousands of records using `TanStack Virtual` in the Return Tracking and Activity components.
   - **Server-Side Calculations** — KPI and stat aggregation performed on the server to minimize client-side processing.
-  - **Deduplicated Props** — Optimized component interfaces to reduce JSON payload sizes between server and client.
-- **Inventory Bank** — Robust data hub with three tabs:
-  - **Master List** — Full device table with multi-column sorting, text search, and color-coded FOC Status badges (Return/Unreturn).
-  - **Device Models** — 3-level drill-down hierarchy: Base Model → Variant → Individual Units with IMEI, holder, and FOC status detail cards.
-  - **Campaigns** — Devices grouped by active campaign name.
 - **KOL Directory** — Dynamically assembled Key Opinion Leader profiles from device tracking data, displaying combined hardware histories and contact details.
 - **QuickView Panel** — Slide-over detail panel with request timeline visualization and complete data record for any device.
 - **Forms** — Outbound (loan request), Inbound (return), and Direct Transfer modals with:
@@ -23,11 +24,22 @@ Hubz FOC Tracker is an internal analytics dashboard and logistics tracking porta
   - **Type of FOC** displayed inline next to Unit Name, visible only after IMEI selection, auto-filled from spreadsheet data
   - **Multi-unit requests** — add multiple device rows per submission via `useFieldArray`; batch write to Google Sheets with `sendFocBatchNotification`
   - **Multi-unit returns** — select multiple loaned devices at once; per-item data auto-resolved from Step 3 sheet
+  - **UX Enhancements** — Includes "Discard changes" confirmation for dirty forms and smooth-scroll-to-error handling.
 
-  - Precise `writeToNextRow` logic with GMT+7 timestamping
-  - **Auto-expanding Sheets** — automatically provisions additional rows via `batchUpdate` before writing if the spreadsheet reaches its grid limit, permanently bypassing the "Range exceeds grid limits" error.
-- **Settings** — Admin-only page for managing CC email recipients. PIN-protected with a separate session cookie (1-hour expiry). Full CRUD: add/delete emails via UI, including **Bulk Addition** with comma/newline support and client-side duplicate prevention. Stored in Supabase via Drizzle ORM. The mailer dynamically queries the database for CC recipients with fallback to `CC_EMAILS` env var.
-- **Email Notifications** — Automatic email alerts (via Nodemailer + Gmail) sent to admins on every Request, Return, and Transfer action. Modern Shadcn-style HTML template with color-coded action badges. All notifications thread into a **single Gmail conversation** via static subject + `In-Reply-To`/`References` headers. CC recipients are fetched dynamically from the Supabase database.
+### UI/UX Improvements
+- [x] **Form Discard Confirmation** — Show "Discard changes?" dialog when closing a dirty form.
+- [x] **Scroll-to-Error** — On form validation failure, smooth-scroll to the first error field.
+- [x] **Dashboard UI Refinement** — Cleaned up dashboard layout by removing date filters and distribution charts.
+- [x] **Inventory Summary Bar** — Integrated dynamic, glassmorphic fleet statistics providing at-a-glance operational visibility.
+- [x] **Mobile-Optimized Inventory** — Implemented responsive tab navigation and consolidated data containers with integrated pagination.
+- [x] **Standardized Empty States** — Unified zero-data visualization across all inventory views.
+
+## Technical Maintenance
+- **Precise `writeToNextRow`** — Uses `OVERWRITE` with explicit range targeting to guarantee data appends exactly below the last active row.
+- **Auto-expanding Sheets** — Automatically provisions additional rows via `batchUpdate` if the spreadsheet reaches its grid limit.
+- **Layout Stability** — Unified glassmorphic containers stabilize layout shifts during filtering or pagination.
+- **Settings** — Admin-only page for managing CC email recipients. PIN-protected with a separate session cookie (1-hour expiry). Full CRUD: add/delete emails via UI, including **Bulk Addition** with comma/newline support and client-side duplicate prevention. Stored in Supabase via Drizzle ORM.
+- **Email Notifications** — Automatic email alerts (via Nodemailer + Gmail) sent to admins on every Request, Return, and Transfer action. Modern Shadcn-style HTML template with color-coded action badges. All notifications thread into a **single Gmail conversation** via static subject + `In-Reply-To`/`References` headers.
 - **Micro-Animations** — Framer Motion powers fluid card sorting, sliding, and fading transitions throughout the UI.
 - **Authentication** — PIN-based access backed by JWT tokens (HS256 via `jose`), enforced by the Next.js 16 Edge proxy intercepting all traffic.
 - **Theming & Design** — Light and Dark mode via `next-themes`, glassmorphism UI with frosted-glass panels and responsive Tailwind utilities.

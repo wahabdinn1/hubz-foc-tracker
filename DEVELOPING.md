@@ -83,7 +83,7 @@ src/
 | Module | Responsibility |
 |---|---|
 | `@/features/inventory/actions/queries.ts` | Fetches and transforms data from Google Sheets using **positional column parsing** (`STEP1_COLS`, `STEP3_COLS`, `STEP4_COLS`); cached with 60s ISR |
-| `@/features/inventory/actions/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers; formula injection sanitization; email notifications; auto-expands Google Sheets grids |
+| `@/features/inventory/actions/mutations.ts` | Appends rows to "Step 3" (request), "Step 4" (return), and handles direct transfers using `OVERWRITE`; formula injection sanitization; email notifications; auto-expands Google Sheets grids |
 | `lib/mailer.ts` | `sendFocNotification()` / `sendFocBatchNotification()` — sends styled HTML email via Nodemailer + Gmail SMTP on every mutation; dynamic CC list from Supabase/Drizzle |
 | `app/actions/settings.ts` | Settings page server actions: `verifySettingsPin()`, `isSettingsUnlocked()`, `getCCRecipients()`, etc. |
 | `db/schema.ts` | Drizzle ORM schema — `cc_recipients` table (id serial PK, email text unique, createdAt timestamp) |
@@ -100,8 +100,8 @@ src/
 | `lib/faq-data.ts` | FAQ accordion data — questions, answers, and categories for the Help Center |
 | `hooks/useDeviceCategories.ts` | `useDeviceCategories(items, filterFn)` — builds category map, sorted categories, and filtered items |
 | `hooks/useScrollToFirstError.ts` | `useScrollToFirstError()` — shared `onInvalid` handler that scrolls to and focuses the first error field |
-| `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity` from raw inventory (single-pass) |
-| `hooks/useSyncInventory.ts` | Centralized `handleSync()` + `isPending` state for all pages |
+| `hooks/useInventoryStats.ts` | Derives `totalStock`, `availableCount`, `onKolCount`, `giftedUnitsCount`, `availableUnits`, `loanedItems`, `topUrgentReturns`, `recentActivity` from raw inventory (single-pass); powers the **Inventory Summary Bar**. |
+| `hooks/useSyncInventory.ts` | Centralized `handleSync()` + `isPending` state for all pages; optimized with `revalidatePath` for immediate UI feedback. |
 
 ---
 
