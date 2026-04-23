@@ -65,9 +65,14 @@ export function InventoryClient({ inventory, initialFilter }: { inventory: Inven
     const isUpdatingUrl = useRef(false);
 
     const urlTab = searchParams.get("tab");
-    const activeTab = urlToTab(urlTab || "") || "master";
+    const resolvedTab = urlToTab(urlTab || "") || "master";
+    
+    // Optimistic state for immediate UI feedback before the URL updates
+    const [optimisticTab, setOptimisticTab] = useState<string | null>(null);
+    const activeTab = optimisticTab || resolvedTab;
 
     const handleTabChange = useCallback((value: string) => {
+        setOptimisticTab(value);
         isUpdatingUrl.current = true;
         startTransition(() => {
             const newSearch = updateParam(searchParams, "tab", tabToUrl(value));
@@ -87,6 +92,7 @@ export function InventoryClient({ inventory, initialFilter }: { inventory: Inven
     });
 
     useEffect(() => {
+        setOptimisticTab(null);
         isUpdatingUrl.current = false;
     }, [urlTab]);
 
@@ -153,7 +159,7 @@ export function InventoryClient({ inventory, initialFilter }: { inventory: Inven
                 </div>
 
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-                    <nav className="flex p-1 bg-black/5 dark:bg-white/5 rounded-2xl backdrop-blur-sm border border-black/[0.03] dark:border-white/[0.03] w-full lg:w-auto overflow-x-auto">
+                    <nav className="flex p-1 bg-black/5 dark:bg-white/5 rounded-2xl backdrop-blur-sm border border-black/[0.03] dark:border-white/[0.03] w-full lg:w-auto overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {[
                             { id: "master", label: "Master List", icon: Database },
                             { id: "models", label: "Device Models", icon: Smartphone },
@@ -162,13 +168,14 @@ export function InventoryClient({ inventory, initialFilter }: { inventory: Inven
                             <button
                                 key={tab.id}
                                 onClick={() => handleTabChange(tab.id)}
-                                className={`flex items-center gap-2 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-none font-display whitespace-nowrap ${
+                                className={cn(
+                                    "flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 rounded-xl text-sm font-bold transition-all font-display whitespace-nowrap snap-start shrink-0",
                                     activeTab === tab.id 
                                         ? "bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm dark:shadow-none" 
-                                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                }`}
+                                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
                             >
-                                <tab.icon size={16} />
+                                <tab.icon size={16} className={activeTab === tab.id ? "text-blue-600 dark:text-blue-400" : "text-zinc-400"} />
                                 {tab.label}
                             </button>
                         ))}
