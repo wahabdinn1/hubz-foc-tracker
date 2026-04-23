@@ -6,6 +6,7 @@ import { AUTH_COOKIE_NAME, JWT_EXPIRATION, COOKIE_MAX_AGE } from "@/lib/constant
 import { timingSafeEqual } from "@/lib/crypto";
 import { isRateLimited, recordFailedAttempt, clearAttempts, getRemainingAttempts, getRateLimitKey } from "@/lib/rate-limit";
 import type { ActionResult } from "@/types/inventory";
+import { revalidatePath } from "next/cache";
 
 export async function verifyPin(inputPin: string): Promise<ActionResult> {
   const authorizedPinsStr = process.env.AUTHORIZED_PINS;
@@ -59,7 +60,6 @@ export async function verifyPin(inputPin: string): Promise<ActionResult> {
       });
 
       // Force cache revalidation to clear PinModal state
-      const { revalidatePath } = await import("next/cache");
       revalidatePath("/", "layout");
 
       return { success: true };
