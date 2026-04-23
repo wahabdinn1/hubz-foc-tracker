@@ -544,17 +544,34 @@ Then create the corresponding page at `src/app/new-page/page.tsx`.
 
 ---
 
-### How to Change Dashboard Scorecard Content
+### How to Change Page, Table, and Card Titles
 
-**File to edit:** `src/components/dashboard/DashboardClient.tsx`
+Most UI titles and labels are defined directly in component props or local arrays for easy maintenance.
 
-Scorecards are rendered using the `<Scorecard>` component. Each one receives:
-- `title` — card heading
-- `value` — the number to display
-- `icon` — Lucide icon
-- `filterLink` — optional link URL for click-through
+#### 1. Page Header Titles
+**Files:** `src/app/inventory/page.tsx`, `src/app/kol/page.tsx`, etc.
 
-Modify the props or add new `<Scorecard>` instances in the grid.
+Look for the `<PageHeader>` component and modify the `title` and `subtitle` props.
+
+#### 2. Inventory Summary Bar Labels
+**File:** `src/features/inventory/components/InventoryClient.tsx`
+
+The labels for the interactive summary stats (Total Fleet, Available, etc.) are defined in the data array in the render function (e.g., `label: 'Total Fleet'`).
+
+#### 3. Table / Ledger Titles
+**Files:** `src/features/inventory/components/MasterListTab.tsx`, `src/features/inventory/components/CampaignsTab.tsx`
+
+The "Ledger Operations" title found above the inventory tables is defined in a `<span>` element within the JSX. Search for "Ledger Operations" to modify it.
+
+#### 4. Dashboard Scorecards
+**File:** `src/features/dashboard/components/DashboardClient.tsx`
+
+Scorecards receive their titles via props: `<Scorecard title="Available Units" ... />`.
+
+#### 5. Device Model Card Headers
+**Files:** `src/features/inventory/components/models/ModelLevel1Grid.tsx`, `ModelLevel2Cards.tsx`
+
+Card sub-headers (like "Utilization" or counts) are defined within the components in the `models/` directory.
 
 ---
 
@@ -619,7 +636,13 @@ The application uses a **hybrid database approach**: Google Sheets remains the p
 
 **Adding a new hidden column to QuickView** — Add the lowercase key to `QUICKVIEW_HIDDEN_KEYS` in `lib/constants.ts`.
 
-**Form submission goes to wrong row** — The server uses `INSERT_ROWS` with explicit range targeting. Check `server/mutations.ts` to verify the range logic.
+**Form submission goes to wrong row** — The server uses `OVERWRITE` with explicit range targeting (e.g., `A{nextRow}:P{nextRow}`). This ensures that even if the spreadsheet has hidden formatting or trailing empty rows, the data is written precisely at the first available physical row.
+
+**Inventory Page layout shifts** — The unified glassmorphic container in `MasterListTab` stabilizes the layout by wrapping both the table and pagination. This prevents the "jumping" effect when changing page sizes or filtering results.
+
+**Table jank during scrolling** — Row-level Framer Motion animations were removed to reduce DOM overhead. High-density tables now use CSS `divide-y` and simple transitions for maximum performance.
+
+**Mobile navigation issues** — The inventory tab bar uses `whitespace-nowrap` and `overflow-x-auto` to handle overflow on small screens while maintaining a sleek, linear appearance.
 
 **Range exceeds grid limits** — The server auto-expands the Google Sheet (appending 100 dimensions using `batchUpdate`) whenever `writeToNextRow` encounters an index that exceeds the tab's current max rows grid configuration.
 
@@ -709,7 +732,10 @@ The following improvements are planned but not yet implemented:
 ### UI/UX Improvements
 - [x] **Form Discard Confirmation** — Show "Discard changes?" dialog when closing a dirty form (`isDirty` from react-hook-form)
 - [x] **Scroll-to-Error** — On form validation failure, smooth-scroll to the first error field
-- [ ] **Dashboard Date Range Filter** — Add date range selector to filter dashboard analytics by time period
+- [x] **Dashboard UI Refinement** — Cleaned up dashboard layout by removing date filters and distribution charts, promoting Settings and Recent Activity feeds to primary sidebar positions for a more editorial look.
+- [x] **Inventory Summary Bar** — Integrated dynamic, glassmorphic fleet statistics providing at-a-glance operational visibility.
+- [x] **Mobile-Optimized Inventory** — Implemented responsive tab navigation and consolidated data containers with integrated pagination for a stable mobile experience.
+- [x] **Standardized Empty States** — Unified zero-data visualization across all inventory views (Models, Campaigns, Master List).
 - [x] **Multi-Unit Return** — Select multiple loaned devices in the Inbound (Return) form; per-item data auto-resolved from Step 3 sheet
 - [x] **Multi-Unit Request** — Submit multiple device requests in a single form using `useFieldArray` + `RequestFormDeviceRow`; batch write to Google Sheets with `sendFocBatchNotification`
 - [ ] **Bulk Operations** — Multi-select rows in Master List for batch status updates
@@ -739,7 +765,7 @@ The following improvements are planned but not yet implemented:
 - [x] **Timing-Safe PIN Comparison** — Prevents timing attacks on PIN verification
 - [x] **Formula Injection Protection** — `sanitizeCell()` prefixes `=`, `+`, `-`, `@` with apostrophe before writing to Sheets
 - [x] **Required JWT_SECRET** — No fallback to `GOOGLE_PRIVATE_KEY`; application rejects auth without it
-- [x] **Race Condition Fix** — `writeToNextRow` uses `values.append` + `INSERT_ROWS` instead of read-then-write
+- [x] **Race Condition Fix** — `writeToNextRow` uses `values.append` + `OVERWRITE` instead of read-then-write or `INSERT_ROWS` (which pushes to the absolute bottom).
 - [x] **Accessible Interactive Elements** — Keyboard support (`role="button"`, `tabIndex`, `onKeyDown`) on clickable divs
 
 ### Features
