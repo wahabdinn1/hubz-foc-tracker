@@ -184,7 +184,6 @@ export function KOLClient({ inventory }: { inventory: InventoryItem[] }) {
                 subtitle="Aggregated profiles of all Key Opinion Leaders based on device tracking."
                 availableUnits={availableUnits}
                 loanedItems={loanedItems}
-                allInventory={inventory}
             />
 
             <div className="relative z-10">

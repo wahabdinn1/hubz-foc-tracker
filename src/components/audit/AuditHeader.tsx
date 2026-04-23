@@ -14,11 +14,10 @@ export function AuditHeader({ inventory, eventCount }: AuditHeaderProps) {
 
     return (
         <PageHeader
-            title="Audit Log"
-            subtitle={`Exhaustive chronological history of all device requests and returns. Search across ${eventCount} total events.`}
+            title="Audit Ledger"
+            subtitle="Historical trace of every device mutation, transfer, and lifecycle event."
             availableUnits={availableUnits}
             loanedItems={loanedItems}
-            allInventory={inventory}
         />
     )
 }

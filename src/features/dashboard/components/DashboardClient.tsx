@@ -16,10 +16,6 @@ const ActivityFeed = dynamic(
     () => import("./ActivityFeed").then((mod) => mod.ActivityFeed),
     { ssr: false }
 )
-const DashboardDonutChart = dynamic(
-    () => import("./DashboardDonutChart").then((mod) => mod.DashboardDonutChart),
-    { ssr: false }
-)
 const ReturnHistoryPanel = dynamic(
     () => import("./ReturnHistoryPanel").then((mod) => mod.ReturnHistoryPanel),
     { ssr: false }
@@ -27,14 +23,11 @@ const ReturnHistoryPanel = dynamic(
 
 import { ReturnTrackingTable } from "./ReturnTrackingTable";
 import { OverduePanel } from "./OverduePanel";
-import { DateRangePicker } from "./DateRangePicker";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { motion } from "framer-motion";
 import {
-    Package, CheckCircle, Clock, Gift, ArrowDownRight, RefreshCw, Settings2, ChevronRight
+    Package, CheckCircle, Clock, Gift, ArrowDownRight, Settings2, ChevronRight
 } from "lucide-react";
-import type { DateRange } from "react-day-picker";
-import { getDashboardData } from "../actions";
 import { type DashboardData } from "../utils";
 
 // ── Animation constants (extracted to avoid re-creation on every render) ──
@@ -76,9 +69,6 @@ export function DashboardClient({
 }: DashboardClientProps) {
     const router = useRouter();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [stats, setStats] = useState<DashboardData>(initialStats);
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const {
         totalStock,
@@ -91,23 +81,7 @@ export function DashboardClient({
         loanedItems,
         recentActivity,
         allInventory
-    } = stats;
-
-    const handleDateRangeChange = async (newRange: DateRange | undefined) => {
-        setDateRange(newRange);
-        setIsRefreshing(true);
-        try {
-            const result = await getDashboardData(newRange ? {
-                from: newRange.from?.toISOString(),
-                to: newRange.to?.toISOString(),
-            } : undefined);
-            setStats(result.stats);
-        } catch (error) {
-            console.error("Failed to refresh dashboard stats", error);
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
+    } = initialStats;
 
 
     return (
@@ -127,7 +101,6 @@ export function DashboardClient({
                     subtitle="Real-time status of all FOC devices"
                     availableUnits={availableUnits}
                     loanedItems={loanedItems}
-                    allInventory={allInventory}
                 />
                 
                 {/* Secondary Actions / Breadcrumbs could go here if needed */}
@@ -258,43 +231,23 @@ export function DashboardClient({
 
                 {/* ── STATUS HUB (Right, 33%) ── */}
                 <div className="xl:col-span-1 flex flex-col gap-6 md:gap-8">
-                    {/* Analytics Header with Filter */}
-                    <div className="flex items-center justify-between mb-[-12px]">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest px-2">Monitoring</h3>
-                            {isRefreshing ? <RefreshCw className="w-3 h-3 animate-spin text-blue-500" aria-hidden="true" /> : null}
-                        </div>
-                        <DateRangePicker dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
-                    </div>
-
-                    {/* Distribution Analytics */}
-                    <ErrorBoundary fallbackTitle="Failed to load distribution chart">
-                        <motion.div {...SECTION_ENTER}>
-                            <DashboardDonutChart
-                                availableCount={availableCount}
-                                onKolCount={onKolCount}
-                                unreturnCount={giftedUnitsCount}
-                            />
-                        </motion.div>
-                    </ErrorBoundary>
-
-                    {/* Quick Access to Settings (Addressing "Hard to Access" feedback) */}
+                    {/* Quick Access to Settings */}
                     <Link href="/settings" className="block">
                         <motion.div
-                            whileHover={{ scale: 1.02 }}
+                            whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.98 }}
-                            className="w-full mt-6 p-4 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors group flex items-center justify-between"
+                            className="w-full p-5 rounded-2xl md:rounded-3xl bg-white/80 dark:bg-neutral-900/40 border border-black/5 dark:border-white/[0.08] hover:border-blue-500/30 hover:bg-blue-500/5 dark:hover:bg-blue-500/5 transition-all duration-300 group flex items-center justify-between backdrop-blur-xl shadow-lg"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
-                                    <Settings2 className="w-5 h-5 text-neutral-500 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-600/10 flex items-center justify-center border border-blue-500/20 group-hover:from-blue-500/25 group-hover:to-blue-600/20 transition-all duration-300">
+                                    <Settings2 className="w-5 h-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-sm font-semibold text-neutral-900 dark:text-white">Settings & Configuration</p>
-                                    <p className="text-xs text-neutral-500">Manage CC recipients and dropdowns</p>
+                                    <p className="text-sm font-bold text-neutral-900 dark:text-white tracking-tight">Settings & Configuration</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Manage CC recipients and dropdowns</p>
                                 </div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
+                            <ChevronRight className="w-5 h-5 text-neutral-300 dark:text-neutral-600 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
                         </motion.div>
                     </Link>
 
