@@ -24,11 +24,13 @@ import {
 
 const outfit = Outfit({
   subsets: ["latin"],
+  display: "swap",
   variable: "--font-outfit",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
+  display: "swap",
   variable: "--font-jetbrains-mono",
 });
 
@@ -37,9 +39,18 @@ const GrainOverlay = () => (
        style={{ backgroundImage: `url("https://grainy-gradients.vercel.app/noise.svg")` }} />
 );
 
-import { ModelsTab } from "./ModelsTab";
-import { MasterListTab } from "./MasterListTab";
-import { CampaignsTab } from "./CampaignsTab";
+const MasterListTab = dynamic(
+    () => import("./MasterListTab").then((mod) => mod.MasterListTab), 
+    { loading: () => <div className="h-[600px] w-full animate-pulse bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl border border-black/5 dark:border-white/5" /> }
+);
+const ModelsTab = dynamic(
+    () => import("./ModelsTab").then((mod) => mod.ModelsTab),
+    { loading: () => <div className="h-[600px] w-full animate-pulse bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl border border-black/5 dark:border-white/5" /> }
+);
+const CampaignsTab = dynamic(
+    () => import("./CampaignsTab").then((mod) => mod.CampaignsTab),
+    { loading: () => <div className="h-[600px] w-full animate-pulse bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl border border-black/5 dark:border-white/5" /> }
+);
 import { updateParam, urlToTab, tabToUrl } from "@/lib/url-params";
 import { isStatusAvailable, isStatusLoaned } from "@/lib/constants";
 import { cn } from "@/lib/utils";

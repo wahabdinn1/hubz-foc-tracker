@@ -2,16 +2,22 @@
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { RequestFormModal } from "@/features/inventory/components/forms/RequestFormModal";
-import { ReturnFormModal } from "@/features/inventory/components/forms/ReturnFormModal";
-import dynamic from "next/dynamic"
+import dynamic from "next/dynamic";
 
+const RequestFormModal = dynamic(
+    () => import("@/features/inventory/components/forms/RequestFormModal").then((mod) => mod.RequestFormModal),
+    { ssr: false }
+);
 
+const ReturnFormModal = dynamic(
+    () => import("@/features/inventory/components/forms/ReturnFormModal").then((mod) => mod.ReturnFormModal),
+    { ssr: false }
+);
 
 const TransferFormModal = dynamic(
     () => import("@/features/inventory/components/forms/TransferFormModal").then((mod) => mod.TransferFormModal),
     { ssr: false }
-)
+);
 import { useSyncInventory } from "@/hooks/useSyncInventory";
 import { useAutoSync, useAutoSyncEnabled } from "@/hooks/useAutoSync";
 import { cn } from "@/lib/utils";
